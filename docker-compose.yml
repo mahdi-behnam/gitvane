@@ -1,0 +1,59 @@
+services:
+  postgres:
+    image: pgvector/pgvector:16-pgdg
+    container_name: repolens-postgres
+    environment:
+      POSTGRES_USER: repolens
+      POSTGRES_PASSWORD: repolens
+      POSTGRES_DB: repolens
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U repolens"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: repolens-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: repolens-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://repolens:repolens@postgres:5432/repolens
+      - SYNC_DATABASE_URL=postgresql+psycopg://repolens:repolens@postgres:5432/repolens
+      - REDIS_URL=redis://redis:6379/0
+      - REPOLENS_WORKSPACE=/workspace/repos
+      - APP_NAME=RepoLens
+      - ENVIRONMENT=docker
+      - DEBUG=true
+    volumes:
+      - ./backend:/app
+      - repos_volume:/workspace/repos
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  redis_data:
+  repos_volume:
