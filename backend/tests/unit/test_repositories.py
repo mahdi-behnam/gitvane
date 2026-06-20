@@ -1,0 +1,232 @@
+"""Unit tests for the /api/v1/repositories endpoints.
+
+Uses FastAPI dependency overrides to mock the DB session and
+RepositoryService, so no live database is required.
+"""
+
+from datetime import datetime, timezone
+from typing import Any, AsyncGenerator
+from unittest.mock import AsyncMock, MagicMock
+
+import pytest
+from fastapi.testclient import TestClient
+
+from app.api.deps import get_db, get_repository_service
+from app.core.errors import GitOperationError, RepositoryNotFoundError
+from app.db.models import Repository
+from app.main import app
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+UTC = timezone.utc
+
+
+def _make_repo(
+    repo_id: int = 1,
+    name: str = "test-repo",
+    clone_url: str = "https://github.com/example/test-repo.git",
+    status: str = "ready",
+) -> Repository:
+    """Build a minimal Repository ORM stub for use in tests."""
+    repo = MagicMock(spec=Repository)
+    repo.id = repo_id
+    repo.name = name
+    repo.clone_url = clone_url
+    repo.local_path = f"/workspace/repos/repo_{repo_id}"
+    repo.default_branch = "main"
+    repo.current_ref = "abc123def456"
+    repo.status = status
+    repo.last_indexed_commit = None
+    repo.created_at = datetime(2024, 1, 1, tzinfo=UTC)
+    repo.updated_at = datetime(2024, 1, 1, tzinfo=UTC)
+    repo.indexed_at = None
+    repo.repo_metadata = None
+    return repo
+
+
+async def _noop_db() -> AsyncGenerator[Any, None]:
+    """No-op DB dependency override — service is fully mocked anyway."""
+    yield MagicMock()
+
+
+# ---------------------------------------------------------------------------
+# Tests — POST /api/v1/repositories
+# ---------------------------------------------------------------------------
+
+
+def test_create_repository_success() -> None:
+    """POST returns 201 and the new repository payload on success."""
+    repo = _make_repo()
+    mock_svc = MagicMock()
+    mock_svc.create_repository = AsyncMock(return_value=repo)
+
+    app.dependency_overrides[get_db] = _noop_db
+    app.dependency_overrides[get_repository_service] = lambda: mock_svc
+    try:
+        client = TestClient(app)
+        response = client.post(
+            "/api/v1/repositories",
+            json={"name": "test-repo", "clone_url": "https://github.com/example/test-repo.git"},
+        )
+        assert response.status_code == 201
+        data = response.json()
+        assert data["id"] == 1
+        assert data["name"] == "test-repo"
+        assert data["status"] == "ready"
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_create_repository_missing_url_and_path() -> None:
+    """POST returns 422 (Pydantic validation error) when neither clone_url nor local_path is given."""
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/repositories",
+        json={"name": "test-repo"},
+    )
+    assert response.status_code == 422
+
+
+def test_create_repository_git_error() -> None:
+    """POST returns 422 when GitService raises GitOperationError."""
+    mock_svc = MagicMock()
+    mock_svc.create_repository = AsyncMock(
+        side_effect=GitOperationError("Failed to clone")
+    )
+
+    app.dependency_overrides[get_db] = _noop_db
+    app.dependency_overrides[get_repository_service] = lambda: mock_svc
+    try:
+        client = TestClient(app)
+        response = client.post(
+            "/api/v1/repositories",
+            json={"name": "bad-repo", "clone_url": "https://invalid.example/repo.git"},
+        )
+        assert response.status_code == 422
+    finally:
+        app.dependency_overrides.clear()
+
+
+# ---------------------------------------------------------------------------
+# Tests — GET /api/v1/repositories
+# ---------------------------------------------------------------------------
+
+
+def test_list_repositories_empty() -> None:
+    """GET returns an empty list when no repositories exist."""
+    mock_svc = MagicMock()
+    mock_svc.list_repositories = AsyncMock(return_value=[])
+    mock_svc.count_repositories = AsyncMock(return_value=0)
+
+    app.dependency_overrides[get_db] = _noop_db
+    app.dependency_overrides[get_repository_service] = lambda: mock_svc
+    try:
+        client = TestClient(app)
+        response = client.get("/api/v1/repositories")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["items"] == []
+        assert data["total"] == 0
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_list_repositories_returns_items() -> None:
+    """GET returns paginated items and the correct total count."""
+    repos = [_make_repo(repo_id=i, name=f"repo-{i}") for i in range(1, 4)]
+    mock_svc = MagicMock()
+    mock_svc.list_repositories = AsyncMock(return_value=repos)
+    mock_svc.count_repositories = AsyncMock(return_value=3)
+
+    app.dependency_overrides[get_db] = _noop_db
+    app.dependency_overrides[get_repository_service] = lambda: mock_svc
+    try:
+        client = TestClient(app)
+        response = client.get("/api/v1/repositories?skip=0&limit=10")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total"] == 3
+        assert len(data["items"]) == 3
+    finally:
+        app.dependency_overrides.clear()
+
+
+# ---------------------------------------------------------------------------
+# Tests — GET /api/v1/repositories/{id}
+# ---------------------------------------------------------------------------
+
+
+def test_get_repository_found() -> None:
+    """GET /{id} returns 200 and the matching repository."""
+    repo = _make_repo(repo_id=42)
+    mock_svc = MagicMock()
+    mock_svc.get_repository_or_raise = AsyncMock(return_value=repo)
+
+    app.dependency_overrides[get_db] = _noop_db
+    app.dependency_overrides[get_repository_service] = lambda: mock_svc
+    try:
+        client = TestClient(app)
+        response = client.get("/api/v1/repositories/42")
+        assert response.status_code == 200
+        assert response.json()["id"] == 42
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_get_repository_not_found() -> None:
+    """GET /{id} returns 404 when the repository does not exist."""
+    mock_svc = MagicMock()
+    mock_svc.get_repository_or_raise = AsyncMock(
+        side_effect=RepositoryNotFoundError("Repository with id=99 does not exist")
+    )
+
+    app.dependency_overrides[get_db] = _noop_db
+    app.dependency_overrides[get_repository_service] = lambda: mock_svc
+    try:
+        client = TestClient(app)
+        response = client.get("/api/v1/repositories/99")
+        assert response.status_code == 404
+    finally:
+        app.dependency_overrides.clear()
+
+
+# ---------------------------------------------------------------------------
+# Tests — DELETE /api/v1/repositories/{id}
+# ---------------------------------------------------------------------------
+
+
+def test_delete_repository_success() -> None:
+    """DELETE /{id} returns 204 No Content on success."""
+    repo = _make_repo(repo_id=5)
+    mock_svc = MagicMock()
+    mock_svc.delete_repository_or_raise = AsyncMock(return_value=repo)
+
+    app.dependency_overrides[get_db] = _noop_db
+    app.dependency_overrides[get_repository_service] = lambda: mock_svc
+    try:
+        client = TestClient(app)
+        response = client.delete("/api/v1/repositories/5")
+        assert response.status_code == 204
+        assert response.content == b""
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_delete_repository_not_found() -> None:
+    """DELETE /{id} returns 404 when the repository does not exist."""
+    mock_svc = MagicMock()
+    mock_svc.delete_repository_or_raise = AsyncMock(
+        side_effect=RepositoryNotFoundError("Repository with id=999 does not exist")
+    )
+
+    app.dependency_overrides[get_db] = _noop_db
+    app.dependency_overrides[get_repository_service] = lambda: mock_svc
+    try:
+        client = TestClient(app)
+        response = client.delete("/api/v1/repositories/999")
+        assert response.status_code == 404
+    finally:
+        app.dependency_overrides.clear()
