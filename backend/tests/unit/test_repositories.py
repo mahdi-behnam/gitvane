@@ -8,14 +8,12 @@ from datetime import datetime, timezone
 from typing import Any, AsyncGenerator
 from unittest.mock import AsyncMock, MagicMock
 
-import pytest
 from fastapi.testclient import TestClient
 
 from app.api.deps import get_db, get_repository_service
 from app.core.errors import GitOperationError, RepositoryNotFoundError
 from app.db.models import Repository
 from app.main import app
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -81,7 +79,7 @@ def test_create_repository_success() -> None:
 
 
 def test_create_repository_missing_url_and_path() -> None:
-    """POST returns 422 (Pydantic validation error) when neither clone_url nor local_path is given."""
+    """POST returns 422 when neither clone_url nor local_path is provided."""
     client = TestClient(app)
     response = client.post(
         "/api/v1/repositories",

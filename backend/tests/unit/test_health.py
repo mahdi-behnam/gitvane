@@ -7,7 +7,7 @@ from app.main import app
 
 
 def test_health_check_success() -> None:
-    """Tests that the health check endpoint returns 200 and connected status when DB works"""
+    """Health check endpoint returns 200 and connected status when DB works."""
 
     class MockAsyncSession:
         async def execute(self, statement: Any, *args: Any, **kwargs: Any) -> Any:
