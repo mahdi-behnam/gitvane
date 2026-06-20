@@ -2,10 +2,11 @@ import shutil
 from pathlib import Path
 from typing import List, Optional
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.core.errors import RepositoryNotFoundError
 from app.core.security import validate_and_resolve_path
 from app.db.models import Repository
 from app.services.git_service import GitService
@@ -25,7 +26,13 @@ class RepositoryService:
         branch: Optional[str] = None,
         local_path: Optional[str] = None,
     ) -> Repository:
-        """Registers and clones a Git repository."""
+        """Registers and clones (or adopts) a Git repository.
+
+        If clone_url is provided, the repository is cloned into the workspace.
+        If local_path is provided, that path is validated and adopted as-is.
+        Both can be provided simultaneously; clone_url takes precedence for
+        the actual Git operation.
+        """
         # 1. Create a Repository instance
         repo_obj = Repository(
             name=name,
@@ -82,21 +89,40 @@ class RepositoryService:
     async def get_repository(
         self, db: AsyncSession, repository_id: int
     ) -> Optional[Repository]:
-        """Retrieves a single repository by ID."""
+        """Retrieves a single repository by ID, or None if not found."""
         return await db.get(Repository, repository_id)
+
+    async def get_repository_or_raise(
+        self, db: AsyncSession, repository_id: int
+    ) -> Repository:
+        """Retrieve a repository by ID, raising RepositoryNotFoundError if absent."""
+        repo = await self.get_repository(db, repository_id)
+        if repo is None:
+            raise RepositoryNotFoundError(
+                f"Repository with id={repository_id} does not exist"
+            )
+        return repo
 
     async def list_repositories(
         self, db: AsyncSession, skip: int = 0, limit: int = 100
     ) -> List[Repository]:
-        """Lists registered repositories."""
-        stmt = select(Repository).offset(skip).limit(limit)
+        """Lists registered repositories with pagination."""
+        stmt = select(Repository).offset(skip).limit(limit).order_by(Repository.id)
         result = await db.execute(stmt)
         return list(result.scalars().all())
+
+    async def count_repositories(self, db: AsyncSession) -> int:
+        """Returns the total number of registered repositories."""
+        result = await db.execute(select(func.count()).select_from(Repository))
+        return int(result.scalar_one())
 
     async def delete_repository(
         self, db: AsyncSession, repository_id: int
     ) -> Optional[Repository]:
-        """Deletes a repository record and its local clone folder."""
+        """Deletes a repository record and its local clone folder.
+
+        Returns the deleted object, or None if not found.
+        """
         repo_obj = await self.get_repository(db, repository_id)
         if not repo_obj:
             return None
@@ -110,6 +136,24 @@ class RepositoryService:
                     shutil.rmtree(resolved_path)
             except Exception:
                 # Log deletion failure but continue removing DB row
+                pass
+
+        await db.delete(repo_obj)
+        await db.commit()
+        return repo_obj
+
+    async def delete_repository_or_raise(
+        self, db: AsyncSession, repository_id: int
+    ) -> Repository:
+        """Deletes a repository, raising RepositoryNotFoundError if not found."""
+        repo_obj = await self.get_repository_or_raise(db, repository_id)
+
+        if repo_obj.local_path:
+            try:
+                resolved_path = validate_and_resolve_path(repo_obj.local_path)
+                if resolved_path.exists():
+                    shutil.rmtree(resolved_path)
+            except Exception:
                 pass
 
         await db.delete(repo_obj)
