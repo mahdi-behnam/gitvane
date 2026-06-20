@@ -15,6 +15,13 @@ class RepositoryCreate(BaseModel):
     local_path: Optional[str] = Field(
         None, description="Optional local workspace folder path"
     )
+    index_now: bool = Field(
+        False,
+        description=(
+            "When true, trigger indexing immediately after the repository is "
+            "registered. Requires the indexing pipeline to be active."
+        ),
+    )
 
     @model_validator(mode="before")
     @classmethod
