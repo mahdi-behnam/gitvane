@@ -25,13 +25,17 @@ class RepositoryService:
         clone_url: str,
         branch: Optional[str] = None,
         local_path: Optional[str] = None,
+        index_now: bool = False,
     ) -> Repository:
-        """Registers and clones (or adopts) a Git repository.
+        """Register and clone (or adopt) a Git repository.
 
         If clone_url is provided, the repository is cloned into the workspace.
         If local_path is provided, that path is validated and adopted as-is.
         Both can be provided simultaneously; clone_url takes precedence for
         the actual Git operation.
+
+        When index_now=True the repository status is set to 'indexing_queued'
+        so the indexing worker (Phase 4) can pick it up immediately.
         """
         # 1. Create a Repository instance
         repo_obj = Repository(
@@ -73,7 +77,9 @@ class RepositoryService:
             repo_obj.local_path = str(target_path.as_posix())
             repo_obj.current_ref = current_sha
             repo_obj.default_branch = default_branch
-            repo_obj.status = "ready"
+            # When index_now is requested, mark as queued so the Phase 4
+            # indexing worker picks it up; otherwise mark as ready.
+            repo_obj.status = "indexing_queued" if index_now else "ready"
 
             await db.commit()
             await db.refresh(repo_obj)

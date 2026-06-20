@@ -22,6 +22,8 @@ async def create_repository(
 
     - If `clone_url` is provided, the repository is cloned into the workspace.
     - If `local_path` is provided instead, the path is validated and adopted.
+    - Set `index_now=true` to queue indexing immediately after registration
+      (indexing pipeline must be active; see Phase 4).
     - Returns the created repository record.
     """
     try:
@@ -31,6 +33,7 @@ async def create_repository(
             clone_url=body.clone_url or "",
             branch=body.branch,
             local_path=body.local_path,
+            index_now=body.index_now,
         )
         return RepositoryOut.model_validate(repo)
     except InvalidPathError as exc:
