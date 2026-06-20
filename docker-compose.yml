@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: pgvector/pgvector:16
+    image: pgvector/pgvector:pg16
     container_name: repolens-postgres
     environment:
       POSTGRES_USER: repolens
