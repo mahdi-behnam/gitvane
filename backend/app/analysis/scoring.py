@@ -1,4 +1,4 @@
 class ImpactScorer:
-    """Combines dependency, semantic, co-change, test, and risk scores into a unified ranking"""
+    """Combines dep, semantic, co-change, test, and risk scores into a ranking."""
 
     pass

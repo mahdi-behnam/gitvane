@@ -133,7 +133,8 @@ class GitService:
             return changed_files
         except Exception as e:
             raise GitOperationError(
-                f"Failed to retrieve changed files between '{base_ref}' and '{head_ref}': {str(e)}"
+                f"Failed to retrieve changed files between "
+                f"'{base_ref}' and '{head_ref}': {str(e)}"
             ) from e
 
     def iter_commits(self, repo: git.Repo, max_count: int = 500) -> List[git.Commit]:
@@ -177,7 +178,9 @@ class GitService:
     ) -> bytes:
         """Returns the file content bytes at a specific ref."""
         try:
-            return cast(bytes, repo.git.show(f"{ref}:{file_path}", stdout_as_string=False))
+            return cast(
+                bytes, repo.git.show(f"{ref}:{file_path}", stdout_as_string=False)
+            )
         except Exception as e:
             raise GitOperationError(
                 f"Failed to retrieve content for '{file_path}' at ref '{ref}': {str(e)}"

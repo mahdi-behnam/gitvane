@@ -32,7 +32,7 @@ IGNORED_EXACT_NAMES = {
 
 
 def should_ignore_file(file_path: str | Path) -> bool:
-    """Returns True if the file matches any of the ignored patterns, names, or extensions"""
+    """Return True if the file matches any ignored pattern, name, or extension."""
     path_str = Path(file_path).as_posix()
 
     # Check directory patterns
