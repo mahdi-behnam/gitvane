@@ -31,7 +31,7 @@ class RepositoryCreate(BaseModel):
 class RepositoryOut(BaseModel):
     """Response schema containing repository details"""
 
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
     id: int
     name: str
@@ -44,4 +44,15 @@ class RepositoryOut(BaseModel):
     created_at: datetime
     updated_at: datetime
     indexed_at: Optional[datetime] = None
-    repo_metadata: Optional[dict[str, Any]] = Field(None, alias="metadata")
+    # The DB model exposes this column as repo_metadata (mapped to the
+    # "metadata" DB column to avoid conflict with SQLAlchemy's reserved name).
+    repo_metadata: Optional[dict[str, Any]] = Field(None)
+
+
+class RepositoryList(BaseModel):
+    """Response schema for a paginated list of repositories"""
+
+    items: list[RepositoryOut]
+    total: int
+    skip: int
+    limit: int
