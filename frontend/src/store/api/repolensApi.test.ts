@@ -3,18 +3,29 @@ import { repolensApi } from "@/store/api/repolensApi";
 import { makeStore } from "@/store/store";
 
 describe("repolensApi", () => {
-  it("registers repository and health endpoints", () => {
+  it("registers backend endpoint hooks", () => {
     const endpointNames = Object.keys(repolensApi.endpoints);
 
     expect(endpointNames).toEqual(
       expect.arrayContaining([
         "createRepository",
         "deleteRepository",
+        "getEvaluationReport",
+        "getEvaluationReportMarkdown",
+        "getEvaluationStatus",
+        "getFileNeighbors",
         "getHealth",
+        "getImpactRun",
         "getIndexStatus",
         "getRepository",
+        "getRepositoryRisk",
+        "getRepositorySubgraph",
         "indexRepository",
         "listRepositories",
+        "recommendTests",
+        "runEvaluation",
+        "runImpactAnalysis",
+        "semanticSearch",
       ]),
     );
   });
