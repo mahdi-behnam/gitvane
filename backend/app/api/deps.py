@@ -1,4 +1,5 @@
 from app.db.session import get_db
+from app.services.evaluation_service import EvaluationService
 from app.services.git_service import GitService
 from app.services.impact_service import ImpactService
 from app.services.indexing_service import IndexingService
@@ -38,6 +39,11 @@ def get_risk_service() -> RiskService:
     return RiskService()
 
 
+def get_evaluation_service() -> EvaluationService:
+    """Returns an EvaluationService instance."""
+    return EvaluationService(get_semantic_search_service())
+
+
 def get_test_recommendation_service() -> TestRecommendationService:
     """Returns a TestRecommendationService instance."""
     return TestRecommendationService()
@@ -45,6 +51,7 @@ def get_test_recommendation_service() -> TestRecommendationService:
 
 __all__ = [
     "get_db",
+    "get_evaluation_service",
     "get_git_service",
     "get_impact_service",
     "get_indexing_service",
