@@ -397,5 +397,3 @@ class EvaluationService:
                 f"Repository with id={repository_id} does not exist"
             )
         return repo_obj
-
-    pass

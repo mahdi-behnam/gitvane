@@ -35,7 +35,7 @@ class RepositoryService:
         the actual Git operation.
 
         When index_now=True the repository status is set to 'indexing_queued'
-        so the indexing worker (Phase 4) can pick it up immediately.
+        so clients can immediately trigger or observe indexing work.
         """
         # 1. Create a Repository instance
         repo_obj = Repository(
@@ -77,8 +77,8 @@ class RepositoryService:
             repo_obj.local_path = str(target_path.as_posix())
             repo_obj.current_ref = current_sha
             repo_obj.default_branch = default_branch
-            # When index_now is requested, mark as queued so the Phase 4
-            # indexing worker picks it up; otherwise mark as ready.
+            # When index_now is requested, mark as queued for the indexing API;
+            # otherwise mark as ready.
             repo_obj.status = "indexing_queued" if index_now else "ready"
 
             await db.commit()

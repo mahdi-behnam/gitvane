@@ -31,7 +31,7 @@ Current backend capabilities:
 - Evaluate prediction quality against historical commits.
 - Return graph data for future visualization.
 
-The frontend is intentionally deferred. `frontend/README.md` is a placeholder.
+The frontend is intentionally deferred. `frontend/README.md` documents that scope.
 
 ## Architecture
 
