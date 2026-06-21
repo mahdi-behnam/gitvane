@@ -265,3 +265,30 @@ def test_impact_endpoint_success() -> None:
 
     assert response.status_code == 200
     assert response.json()["analysis_run_id"] == 1
+
+
+def test_get_impact_run_endpoint_success() -> None:
+    mock_svc = MagicMock()
+    mock_svc.get_run = AsyncMock(
+        return_value={
+            "analysis_run_id": 1,
+            "repository_id": 1,
+            "status": "completed",
+            "input_mode": "changed_files",
+            "changed_files": [{"path": "src/auth/token.py"}],
+            "changed_symbols": [],
+            "predictions": [],
+        }
+    )
+
+    app.dependency_overrides[get_db] = _noop_db
+    app.dependency_overrides[get_impact_service] = lambda: mock_svc
+    try:
+        client = TestClient(app)
+        response = client.get("/api/v1/impact/runs/1")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "completed"
+    mock_svc.get_run.assert_awaited_once()
