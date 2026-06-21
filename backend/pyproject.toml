@@ -17,6 +17,8 @@ dependencies = [
     "rq>=1.15.0",
     "gitpython>=3.1.0",
     "tree-sitter>=0.21.0",
+    "tree-sitter-javascript>=0.25.0",
+    "tree-sitter-typescript>=0.23.0",
     "networkx>=3.0",
     "sentence-transformers>=2.2.0",
     "numpy>=1.24.0",
@@ -62,4 +64,3 @@ python_files = ["test_*.py"]
 
 [tool.setuptools.packages.find]
 include = ["app*"]
-
