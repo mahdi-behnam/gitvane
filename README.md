@@ -238,4 +238,3 @@ curl -X POST "http://localhost:8000/api/v1/evaluation/run" \
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 - [docs/API.md](docs/API.md)
 - [docs/EVALUATION.md](docs/EVALUATION.md)
-- [docs/RESUME_BULLETS.md](docs/RESUME_BULLETS.md)
