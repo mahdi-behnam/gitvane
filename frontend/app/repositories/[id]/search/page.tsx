@@ -1,11 +1,11 @@
-import { SectionPage } from "@/components/app/section-page";
+import { SemanticSearchPage } from "@/components/search/semantic-search-page";
 
-export default function RepositorySearchPage() {
-  return (
-    <SectionPage
-      description="Semantic search will run against the selected repository after the search workflow is implemented."
-      label="Search"
-      title="Semantic search"
-    />
-  );
+export default async function RepositorySearchPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+
+  return <SemanticSearchPage repositoryId={Number(id)} />;
 }
