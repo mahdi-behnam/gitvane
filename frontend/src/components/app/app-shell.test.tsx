@@ -1,8 +1,9 @@
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { AppShell } from "@/components/app/app-shell";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import { ToastProvider } from "@/components/ui/toast";
+import { renderWithProviders } from "@/test/render";
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/",
@@ -10,7 +11,7 @@ vi.mock("next/navigation", () => ({
 
 describe("AppShell", () => {
   it("renders navigation and theme controls", () => {
-    render(
+    renderWithProviders(
       <ThemeProvider>
         <ToastProvider>
           <AppShell>

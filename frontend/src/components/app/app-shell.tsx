@@ -17,6 +17,7 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import { skipToken } from "@reduxjs/toolkit/query";
 import { Logo } from "@/components/app/logo";
 import { ThemeToggle } from "@/components/app/theme-toggle";
 import { Badge } from "@/components/ui/badge";
@@ -28,6 +29,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useAppSelector } from "@/store/hooks";
+import { useGetHealthQuery, useGetRepositoryQuery } from "@/store/api/repolensApi";
 import { env } from "@/lib/env";
 import { cn } from "@/lib/utils";
 
@@ -87,16 +90,26 @@ function NavigationLinks({ onNavigate }: { onNavigate?: () => void }) {
 }
 
 function BackendStatus() {
+  const health = useGetHealthQuery();
+  const healthy = health.data?.status === "healthy";
+
   return (
     <div className="hidden items-center gap-2 rounded-md border border-border bg-panel px-3 py-2 text-xs text-muted md:flex">
       <Server aria-hidden="true" className="size-4" />
-      <span>Status pending</span>
-      <Badge>Manual</Badge>
+      <span>{health.isLoading ? "Checking backend" : "Backend"}</span>
+      <Badge tone={healthy ? "success" : health.error ? "danger" : "neutral"}>
+        {healthy ? "Healthy" : health.error ? "Offline" : "Manual"}
+      </Badge>
     </div>
   );
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
+  const activeRepositoryId = useAppSelector(
+    (state) => state.repositorySelection.activeRepositoryId,
+  );
+  const activeRepository = useGetRepositoryQuery(activeRepositoryId ?? skipToken);
+
   return (
     <TooltipProvider delayDuration={200}>
       <div className="min-h-screen bg-canvas text-foreground">
@@ -131,7 +144,9 @@ export function AppShell({ children }: { children: ReactNode }) {
                     <p className="truncate font-mono text-xs uppercase tracking-[0.12em] text-muted">
                       Active repository
                     </p>
-                    <p className="truncate text-sm font-medium">None selected</p>
+                    <p className="truncate text-sm font-medium">
+                      {activeRepository.data?.name ?? "None selected"}
+                    </p>
                   </div>
                 </div>
 
