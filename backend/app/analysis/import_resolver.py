@@ -54,7 +54,23 @@ class ImportResolver:
         if not base_parts:
             return None
 
-        return self._first_existing("/".join(base_parts), self.PYTHON_SUFFIXES, candidate_paths)
+        resolved = self._first_existing(
+            "/".join(base_parts), self.PYTHON_SUFFIXES, candidate_paths
+        )
+        if resolved:
+            return resolved
+
+        for imported_name in parsed_import.names:
+            if imported_name == "*":
+                continue
+            resolved = self._first_existing(
+                "/".join([*base_parts, imported_name]),
+                self.PYTHON_SUFFIXES,
+                candidate_paths,
+            )
+            if resolved:
+                return resolved
+        return None
 
     def resolve_js_ts_import(
         self,

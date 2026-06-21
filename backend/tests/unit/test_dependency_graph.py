@@ -38,6 +38,22 @@ def test_resolves_relative_python_import_edges() -> None:
     assert edges[0].target_path == "pkg/auth/token.py"
 
 
+def test_resolves_python_from_import_module_names() -> None:
+    graph_builder = DependencyGraph()
+    parsed_files = [
+        ParsedFile(
+            path="src/api/routes.py",
+            language=Language.PYTHON,
+            imports=[ParsedImport(module="src.auth", names=["token"], line=1)],
+        ),
+        ParsedFile(path="src/auth/token.py", language=Language.PYTHON),
+    ]
+
+    edges = graph_builder.build_edges(parsed_files)
+
+    assert edges[0].target_path == "src/auth/token.py"
+
+
 def test_resolves_js_ts_relative_import_edges() -> None:
     graph_builder = DependencyGraph()
     parsed_files = [
