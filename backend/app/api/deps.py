@@ -4,6 +4,7 @@ from app.services.impact_service import ImpactService
 from app.services.indexing_service import IndexingService
 from app.services.repository_service import RepositoryService
 from app.services.semantic_search_service import SemanticSearchService
+from app.services.test_recommendation_service import TestRecommendationService
 
 
 def get_git_service() -> GitService:
@@ -31,6 +32,11 @@ def get_semantic_search_service() -> SemanticSearchService:
     return SemanticSearchService()
 
 
+def get_test_recommendation_service() -> TestRecommendationService:
+    """Returns a TestRecommendationService instance."""
+    return TestRecommendationService()
+
+
 __all__ = [
     "get_db",
     "get_git_service",
@@ -38,4 +44,5 @@ __all__ = [
     "get_indexing_service",
     "get_repository_service",
     "get_semantic_search_service",
+    "get_test_recommendation_service",
 ]

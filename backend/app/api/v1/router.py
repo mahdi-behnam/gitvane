@@ -9,6 +9,7 @@ from app.api.v1.endpoints import (
     repositories,
     risk,
     search,
+    tests,
 )
 
 api_router = APIRouter()
@@ -22,6 +23,7 @@ api_router.include_router(
 )  # prefix is nested under repositories
 api_router.include_router(impact.router, prefix="/impact", tags=["impact"])
 api_router.include_router(search.router, prefix="/search", tags=["search"])
+api_router.include_router(tests.router, prefix="/tests", tags=["tests"])
 api_router.include_router(risk.router, prefix="/risk", tags=["risk"])
 api_router.include_router(evaluation.router, prefix="/evaluation", tags=["evaluation"])
 api_router.include_router(graph.router, prefix="/graph", tags=["graph"])

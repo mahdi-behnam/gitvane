@@ -2,7 +2,14 @@ from dataclasses import dataclass, field
 from pathlib import PurePosixPath
 from typing import Any
 
-from app.db.models import CodeFile, DependencyEdge
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.errors import RepositoryNotFoundError
+from app.db.models import CodeFile, Commit, DependencyEdge, Repository
+from app.schemas.impact import ChangedFileInput, TestRecommendationOut
+from app.schemas.tests import TestRecommendationResponse
+from app.services.semantic_search_service import SemanticSearchService
 
 
 @dataclass(frozen=True)
@@ -15,6 +22,57 @@ class TestRecommendation:
 
 class TestRecommendationService:
     """Recommend tests from indexed files without executing them."""
+
+    async def recommend_for_repository(
+        self,
+        db: AsyncSession,
+        repository_id: int,
+        changed_files: list[ChangedFileInput],
+        impacted_files: list[str] | None = None,
+        top_k: int = 10,
+        semantic_search_service: SemanticSearchService | None = None,
+    ) -> TestRecommendationResponse:
+        repo_obj = await db.get(Repository, repository_id)
+        if repo_obj is None:
+            raise RepositoryNotFoundError(
+                f"Repository with id={repository_id} does not exist"
+            )
+
+        code_files, dependency_edges, commits = await self._load_indexed_data(
+            db, repository_id
+        )
+        changed_paths = {item.path for item in changed_files}
+        impacted_paths = set(impacted_files or [])
+        semantic_scores = await self._semantic_scores(
+            db=db,
+            repository_id=repository_id,
+            changed_paths=changed_paths,
+            impacted_paths=impacted_paths,
+            test_paths={item.path for item in code_files if item.is_test},
+            semantic_search_service=semantic_search_service,
+        )
+        recommendations = self.recommend_tests(
+            changed_paths=changed_paths,
+            impacted_paths=impacted_paths,
+            code_files=code_files,
+            dependency_edges=dependency_edges,
+            commits=commits,
+            semantic_scores=semantic_scores,
+            top_k=top_k,
+        )
+        return TestRecommendationResponse(
+            repository_id=repository_id,
+            changed_files=changed_files,
+            recommended_tests=[
+                TestRecommendationOut(
+                    path=item.path,
+                    score=item.score,
+                    reason=item.reason,
+                    linked_files=item.linked_files,
+                )
+                for item in recommendations
+            ],
+        )
 
     def recommend_tests(
         self,
@@ -148,3 +206,52 @@ class TestRecommendationService:
             elif isinstance(item, dict) and item.get("path"):
                 paths.add(str(item["path"]))
         return paths
+
+    async def _load_indexed_data(
+        self, db: AsyncSession, repository_id: int
+    ) -> tuple[list[CodeFile], list[DependencyEdge], list[Commit]]:
+        code_files = (
+            await db.execute(
+                select(CodeFile).where(CodeFile.repository_id == repository_id)
+            )
+        ).scalars().all()
+        dependency_edges = (
+            await db.execute(
+                select(DependencyEdge).where(
+                    DependencyEdge.repository_id == repository_id
+                )
+            )
+        ).scalars().all()
+        commits = (
+            await db.execute(select(Commit).where(Commit.repository_id == repository_id))
+        ).scalars().all()
+        return list(code_files), list(dependency_edges), list(commits)
+
+    async def _semantic_scores(
+        self,
+        db: AsyncSession,
+        repository_id: int,
+        changed_paths: set[str],
+        impacted_paths: set[str],
+        test_paths: set[str],
+        semantic_search_service: SemanticSearchService | None,
+    ) -> dict[str, float]:
+        if semantic_search_service is None:
+            return {}
+        query = "\n".join(sorted(changed_paths | impacted_paths))
+        if not query:
+            return {}
+        try:
+            response = await semantic_search_service.semantic_search(
+                db=db,
+                repository_id=repository_id,
+                query=query,
+                top_k=50,
+            )
+        except Exception:
+            return {}
+        return {
+            result.path: result.score
+            for result in response.results
+            if result.path in test_paths
+        }

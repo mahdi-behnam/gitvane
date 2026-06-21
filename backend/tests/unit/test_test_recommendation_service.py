@@ -1,5 +1,79 @@
-from app.db.models import CodeFile, DependencyEdge
+from typing import Any, AsyncGenerator
+from unittest.mock import AsyncMock, MagicMock
+
+import pytest
+from fastapi.testclient import TestClient
+
+from app.api.deps import (
+    get_db,
+    get_semantic_search_service,
+    get_test_recommendation_service,
+)
+from app.core.errors import RepositoryNotFoundError
+from app.db.models import CodeFile, Commit, DependencyEdge, Repository
+from app.main import app
+from app.schemas.impact import ChangedFileInput
+from app.schemas.search import SemanticSearchResponse, SemanticSearchResult
+from app.schemas.tests import TestRecommendationResponse as RecommendationResponse
 from app.services.test_recommendation_service import TestRecommendationService
+
+
+class _ScalarResult:
+    def __init__(self, values: list[Any]) -> None:
+        self.values = values
+
+    def all(self) -> list[Any]:
+        return self.values
+
+
+class _ExecuteResult:
+    def __init__(self, values: list[Any]) -> None:
+        self.values = values
+
+    def scalars(self) -> _ScalarResult:
+        return _ScalarResult(self.values)
+
+
+class _FakeDb:
+    def __init__(
+        self,
+        code_files: list[CodeFile],
+        edges: list[DependencyEdge],
+        commits: list[Commit],
+        repo_exists: bool = True,
+    ) -> None:
+        self.results = [code_files, edges, commits]
+        self.repo_exists = repo_exists
+
+    async def get(self, model: type[Any], object_id: int) -> Any:
+        if model is Repository and self.repo_exists:
+            return Repository(id=object_id, name="repo", clone_url="", status="indexed")
+        return None
+
+    async def execute(self, statement: object) -> _ExecuteResult:
+        return _ExecuteResult(self.results.pop(0))
+
+
+class _FakeSemanticSearchService:
+    async def semantic_search(
+        self,
+        db: _FakeDb,
+        repository_id: int,
+        query: str,
+        top_k: int,
+    ) -> SemanticSearchResponse:
+        return SemanticSearchResponse(
+            results=[
+                SemanticSearchResult(
+                    path="tests/test_auth_flow.py",
+                    symbol="test_auth_flow",
+                    start_line=1,
+                    end_line=10,
+                    score=0.74,
+                    snippet="auth flow",
+                )
+            ]
+        )
 
 
 def test_recommends_tests_by_import_edge() -> None:
@@ -154,3 +228,105 @@ def test_recommends_tests_by_semantic_score() -> None:
 
     assert recommendations[0].path == "tests/test_auth_flow.py"
     assert recommendations[0].score == 0.72
+
+
+@pytest.mark.asyncio()
+async def test_recommend_for_repository_loads_indexed_data() -> None:
+    source = CodeFile(
+        id=1,
+        repository_id=1,
+        path="src/auth/token.py",
+        language="python",
+        content_hash="a",
+        is_test=False,
+    )
+    test = CodeFile(
+        id=2,
+        repository_id=1,
+        path="tests/test_auth_flow.py",
+        language="python",
+        content_hash="b",
+        is_test=True,
+    )
+    db = _FakeDb(code_files=[source, test], edges=[], commits=[])
+
+    response = await TestRecommendationService().recommend_for_repository(
+        db=db,
+        repository_id=1,
+        changed_files=[ChangedFileInput(path="src/auth/token.py")],
+        semantic_search_service=_FakeSemanticSearchService(),
+    )
+
+    assert response.repository_id == 1
+    assert response.recommended_tests[0].path == "tests/test_auth_flow.py"
+    assert response.recommended_tests[0].score == 0.74
+
+
+@pytest.mark.asyncio()
+async def test_recommend_for_repository_raises_for_missing_repo() -> None:
+    db = _FakeDb(code_files=[], edges=[], commits=[], repo_exists=False)
+
+    with pytest.raises(RepositoryNotFoundError):
+        await TestRecommendationService().recommend_for_repository(
+            db=db,
+            repository_id=99,
+            changed_files=[ChangedFileInput(path="src/auth/token.py")],
+        )
+
+
+async def _noop_db() -> AsyncGenerator[Any, None]:
+    yield MagicMock()
+
+
+def test_test_recommendation_endpoint_success() -> None:
+    mock_svc = MagicMock()
+    mock_svc.recommend_for_repository = AsyncMock(
+        return_value=RecommendationResponse(
+            repository_id=1,
+            changed_files=[ChangedFileInput(path="src/auth/token.py")],
+            recommended_tests=[],
+        )
+    )
+
+    app.dependency_overrides[get_db] = _noop_db
+    app.dependency_overrides[get_test_recommendation_service] = lambda: mock_svc
+    app.dependency_overrides[get_semantic_search_service] = lambda: MagicMock()
+    try:
+        client = TestClient(app)
+        response = client.post(
+            "/api/v1/tests/recommend",
+            json={
+                "repository_id": 1,
+                "changed_files": [{"path": "src/auth/token.py"}],
+            },
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.json()["repository_id"] == 1
+    mock_svc.recommend_for_repository.assert_awaited_once()
+
+
+def test_test_recommendation_endpoint_not_found() -> None:
+    mock_svc = MagicMock()
+    mock_svc.recommend_for_repository = AsyncMock(
+        side_effect=RepositoryNotFoundError("Repository with id=99 does not exist")
+    )
+
+    app.dependency_overrides[get_db] = _noop_db
+    app.dependency_overrides[get_test_recommendation_service] = lambda: mock_svc
+    app.dependency_overrides[get_semantic_search_service] = lambda: MagicMock()
+    try:
+        client = TestClient(app)
+        response = client.post(
+            "/api/v1/tests/recommend",
+            json={
+                "repository_id": 99,
+                "changed_files": [{"path": "src/auth/token.py"}],
+            },
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 404
