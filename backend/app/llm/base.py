@@ -1,4 +1,9 @@
-class BaseLlmClient:
-    """Interface for LLM explanation generation client"""
+from typing import Protocol
 
-    pass
+
+class BaseLlmClient(Protocol):
+    """Interface for LLM explanation generation clients."""
+
+    async def complete(self, messages: list[dict[str, str]]) -> str:
+        """Return a chat completion for the provided messages."""
+        ...
