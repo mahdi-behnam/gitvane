@@ -65,3 +65,92 @@ def test_recommends_tests_by_naming_convention() -> None:
 
     assert recommendations[0].path == "src/auth/token.test.ts"
     assert recommendations[0].score == 0.85
+
+
+def test_recommends_tests_by_directory_proximity() -> None:
+    source = CodeFile(
+        id=1,
+        repository_id=1,
+        path="src/auth/token.py",
+        language="python",
+        content_hash="a",
+        is_test=False,
+    )
+    test = CodeFile(
+        id=2,
+        repository_id=1,
+        path="src/auth/test_session.py",
+        language="python",
+        content_hash="b",
+        is_test=True,
+    )
+
+    recommendations = TestRecommendationService().recommend_tests(
+        changed_paths={"src/auth/token.py"},
+        impacted_paths=set(),
+        code_files=[source, test],
+        dependency_edges=[],
+    )
+
+    assert recommendations[0].path == "src/auth/test_session.py"
+    assert recommendations[0].score == 0.55
+
+
+def test_recommends_tests_by_cochange_history() -> None:
+    source = CodeFile(
+        id=1,
+        repository_id=1,
+        path="src/auth/token.py",
+        language="python",
+        content_hash="a",
+        is_test=False,
+    )
+    test = CodeFile(
+        id=2,
+        repository_id=1,
+        path="tests/test_auth_flow.py",
+        language="python",
+        content_hash="b",
+        is_test=True,
+    )
+    commits = [
+        {
+            "changed_files": [
+                {"path": "src/auth/token.py"},
+                {"path": "tests/test_auth_flow.py"},
+            ]
+        }
+    ]
+
+    recommendations = TestRecommendationService().recommend_tests(
+        changed_paths={"src/auth/token.py"},
+        impacted_paths=set(),
+        code_files=[source, test],
+        dependency_edges=[],
+        commits=commits,
+    )
+
+    assert recommendations[0].path == "tests/test_auth_flow.py"
+    assert recommendations[0].score == 0.75
+
+
+def test_recommends_tests_by_semantic_score() -> None:
+    test = CodeFile(
+        id=2,
+        repository_id=1,
+        path="tests/test_auth_flow.py",
+        language="python",
+        content_hash="b",
+        is_test=True,
+    )
+
+    recommendations = TestRecommendationService().recommend_tests(
+        changed_paths={"src/auth/token.py"},
+        impacted_paths=set(),
+        code_files=[test],
+        dependency_edges=[],
+        semantic_scores={"tests/test_auth_flow.py": 0.72},
+    )
+
+    assert recommendations[0].path == "tests/test_auth_flow.py"
+    assert recommendations[0].score == 0.72
