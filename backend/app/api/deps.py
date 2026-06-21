@@ -1,6 +1,7 @@
 from app.db.session import get_db
 from app.services.evaluation_service import EvaluationService
 from app.services.git_service import GitService
+from app.services.graph_service import GraphService
 from app.services.impact_service import ImpactService
 from app.services.indexing_service import IndexingService
 from app.services.repository_service import RepositoryService
@@ -12,6 +13,11 @@ from app.services.test_recommendation_service import TestRecommendationService
 def get_git_service() -> GitService:
     """Returns a GitService instance"""
     return GitService()
+
+
+def get_graph_service() -> GraphService:
+    """Returns a GraphService instance."""
+    return GraphService()
 
 
 def get_repository_service() -> RepositoryService:
@@ -53,6 +59,7 @@ __all__ = [
     "get_db",
     "get_evaluation_service",
     "get_git_service",
+    "get_graph_service",
     "get_impact_service",
     "get_indexing_service",
     "get_repository_service",
