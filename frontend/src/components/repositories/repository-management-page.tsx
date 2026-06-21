@@ -1,11 +1,12 @@
 "use client";
 
-import { AlertCircle, RefreshCw } from "lucide-react";
+import { AlertCircle, Play, RefreshCw, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { AddRepositoryDialog } from "@/components/repositories/add-repository-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -17,8 +18,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { normalizeApiError } from "@/lib/api/errors";
+import type { Repository } from "@/lib/api/types";
 import { formatDateTime } from "@/lib/format";
-import { useListRepositoriesQuery } from "@/store/api/repolensApi";
+import {
+  useDeleteRepositoryMutation,
+  useIndexRepositoryMutation,
+  useListRepositoriesQuery,
+} from "@/store/api/repolensApi";
+import { useState } from "react";
 
 function RepositorySkeletonRows() {
   return (
@@ -149,9 +156,7 @@ export function RepositoryManagementPage() {
                       {formatDateTime(repository.indexed_at)}
                     </TableCell>
                     <TableCell>
-                      <Button asChild size="sm">
-                        <Link href={`/repositories/${repository.id}`}>View</Link>
-                      </Button>
+                      <RepositoryRowActions repository={repository} />
                     </TableCell>
                   </TableRow>
                 ))}
@@ -160,6 +165,90 @@ export function RepositoryManagementPage() {
           </CardContent>
         </Card>
       )}
+    </div>
+  );
+}
+
+function RepositoryRowActions({ repository }: { repository: Repository }) {
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [indexRepository, indexState] = useIndexRepositoryMutation();
+  const [deleteRepository, deleteState] = useDeleteRepositoryMutation();
+  const indexError = indexState.error
+    ? normalizeApiError(indexState.error).message
+    : null;
+  const deleteError = deleteState.error
+    ? normalizeApiError(deleteState.error).message
+    : null;
+
+  const handleIndex = () => {
+    void indexRepository({
+      body: {},
+      repositoryId: repository.id,
+    });
+  };
+
+  const handleDelete = async () => {
+    try {
+      await deleteRepository(repository.id).unwrap();
+      setDeleteOpen(false);
+    } catch {
+      // The rendered mutation state below carries the normalized API message.
+    }
+  };
+
+  return (
+    <div className="flex flex-wrap gap-2">
+      <Button asChild size="sm">
+        <Link href={`/repositories/${repository.id}`}>View</Link>
+      </Button>
+      <Button
+        disabled={indexState.isLoading}
+        onClick={handleIndex}
+        size="sm"
+        type="button"
+      >
+        <Play aria-hidden="true" className="size-3.5" />
+        Index
+      </Button>
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogTrigger asChild>
+          <Button size="sm" type="button" variant="danger">
+            <Trash2 aria-hidden="true" className="size-3.5" />
+            Delete
+          </Button>
+        </DialogTrigger>
+        <DialogContent title="Delete repository">
+          <div className="space-y-4">
+            <p className="text-sm leading-6 text-muted">
+              Delete {repository.name} from RepoLens and ask the backend to remove its
+              local clone.
+            </p>
+            {deleteError ? (
+              <p className="rounded-md border border-danger/20 bg-danger/10 px-3 py-2 text-sm text-danger">
+                {deleteError}
+              </p>
+            ) : null}
+            <div className="flex justify-end gap-2">
+              <Button
+                onClick={() => setDeleteOpen(false)}
+                type="button"
+                variant="ghost"
+              >
+                Cancel
+              </Button>
+              <Button
+                disabled={deleteState.isLoading}
+                onClick={handleDelete}
+                type="button"
+                variant="danger"
+              >
+                Delete repository
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+      {indexError ? <p className="w-full text-xs text-danger">{indexError}</p> : null}
     </div>
   );
 }
