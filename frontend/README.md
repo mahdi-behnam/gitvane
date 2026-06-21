@@ -24,6 +24,10 @@ Copy `.env.example` to `.env.local` for local overrides.
 npm run dev
 npm run lint
 npm run format
+npm run generate:api-types
 npm run typecheck
 npm run build
 ```
+
+`npm run generate:api-types` requires the FastAPI backend to be running at
+`http://localhost:8000`.
