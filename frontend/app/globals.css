@@ -6,26 +6,40 @@
   color-scheme: light;
   --color-canvas: 251 251 250;
   --color-panel: 255 255 255;
+  --color-panel-muted: 247 246 243;
   --color-foreground: 31 35 33;
   --color-muted: 109 113 109;
   --color-border: 226 226 221;
   --color-primary: 15 118 110;
+  --color-primary-contrast: 255 255 255;
   --color-warning: 180 83 9;
   --color-success: 4 120 87;
   --color-danger: 190 18 60;
+  --color-graph-node: 225 243 254;
+  --color-graph-edge: 15 118 110;
+  --color-chart-a: 15 118 110;
+  --color-chart-b: 180 83 9;
+  --color-chart-c: 4 120 87;
 }
 
 [data-theme="dark"] {
   color-scheme: dark;
   --color-canvas: 18 20 19;
   --color-panel: 25 28 27;
+  --color-panel-muted: 32 36 34;
   --color-foreground: 235 236 232;
   --color-muted: 158 163 157;
   --color-border: 54 58 55;
   --color-primary: 45 212 191;
+  --color-primary-contrast: 8 47 43;
   --color-warning: 245 158 11;
   --color-success: 52 211 153;
   --color-danger: 251 113 133;
+  --color-graph-node: 31 58 55;
+  --color-graph-edge: 45 212 191;
+  --color-chart-a: 45 212 191;
+  --color-chart-b: 245 158 11;
+  --color-chart-c: 52 211 153;
 }
 
 * {
@@ -46,6 +60,13 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
 a {
   color: inherit;
   text-decoration: none;
@@ -58,4 +79,15 @@ a {
 :focus-visible {
   outline: 2px solid rgb(var(--color-primary));
   outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }

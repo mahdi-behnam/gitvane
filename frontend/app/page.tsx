@@ -1,133 +1,81 @@
-import { env } from "@/lib/env";
+import { ArrowRight, GitBranch, Search } from "lucide-react";
+import Link from "next/link";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Skeleton } from "@/components/ui/skeleton";
 
-const navigationItems = [
-  "Overview",
-  "Repositories",
-  "Search",
-  "Impact",
-  "Graph",
-  "Risk",
-  "Tests",
-  "Evaluation",
-  "Settings",
-];
-
-const workflowItems = [
-  {
-    title: "Register repositories",
-    description:
-      "Connect local paths or clone URLs, then index code when the backend is ready.",
-  },
-  {
-    title: "Trace impact",
-    description:
-      "Prepare changed files, raw diffs, or refs for evidence-based predictions.",
-  },
-  {
-    title: "Review evidence",
-    description:
-      "Inspect scores, reasons, graph relationships, risk, and recommended tests.",
-  },
+const quickActions = [
+  { href: "/repositories", label: "Add repository" },
+  { href: "/repositories/current/search", label: "Run semantic search" },
+  { href: "/repositories/current/impact", label: "Analyze impact" },
+  { href: "/repositories/current/graph", label: "Open graph" },
 ];
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-canvas text-foreground">
-      <div className="grid min-h-screen lg:grid-cols-[264px_1fr]">
-        <aside className="border-b border-border bg-panel px-5 py-4 lg:border-b-0 lg:border-r lg:py-6">
-          <div className="flex items-center gap-3">
-            <div
-              aria-hidden="true"
-              className="grid size-9 place-items-center rounded-md border border-border bg-canvas"
-            >
-              <span className="size-3 rounded-[4px] border-2 border-primary" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold leading-none">RepoLens</p>
-              <p className="mt-1 text-xs text-muted">Trace change before it spreads.</p>
-            </div>
-          </div>
-
-          <nav
-            aria-label="Primary"
-            className="mt-6 flex gap-1 overflow-x-auto lg:block"
-          >
-            {navigationItems.map((item) => (
-              <a
-                className="block rounded-md px-3 py-2 text-sm text-muted transition hover:bg-canvas hover:text-foreground"
-                href="#overview"
-                key={item}
-              >
-                {item}
-              </a>
-            ))}
-          </nav>
-        </aside>
-
-        <section className="px-5 py-6 sm:px-8 lg:px-10">
-          <header className="flex flex-col gap-4 border-b border-border pb-6 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className="font-mono text-xs uppercase tracking-[0.12em] text-muted">
-                Overview
-              </p>
-              <h1 className="mt-2 text-3xl font-semibold tracking-normal md:text-4xl">
-                RepoLens dashboard
-              </h1>
-            </div>
-            <div className="rounded-md border border-border bg-panel px-3 py-2 font-mono text-xs text-muted">
-              {env.NEXT_PUBLIC_API_BASE_URL}
-            </div>
-          </header>
-
-          <div id="overview" className="grid gap-4 py-6 xl:grid-cols-[1.2fr_0.8fr]">
-            <section className="rounded-lg border border-border bg-panel p-6">
-              <p className="text-sm font-medium text-foreground">
-                No repositories registered yet
-              </p>
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">
-                The frontend foundation is ready for the backend integrations that will
-                add repository registration, indexing, semantic search, impact analysis,
-                graphs, risk ranking, test recommendations, and evaluation reports.
-              </p>
-              <div className="mt-6 grid gap-3 md:grid-cols-3">
-                {workflowItems.map((item) => (
-                  <article
-                    className="rounded-lg border border-border bg-canvas p-4"
-                    key={item.title}
-                  >
-                    <h2 className="text-sm font-semibold">{item.title}</h2>
-                    <p className="mt-2 text-sm leading-6 text-muted">
-                      {item.description}
-                    </p>
-                  </article>
-                ))}
-              </div>
-            </section>
-
-            <aside className="rounded-lg border border-border bg-panel p-6">
-              <p className="text-sm font-medium">Project status</p>
-              <dl className="mt-5 space-y-4 text-sm">
-                <div className="flex items-center justify-between gap-4">
-                  <dt className="text-muted">Frontend stack</dt>
-                  <dd className="font-medium">Next.js App Router</dd>
-                </div>
-                <div className="flex items-center justify-between gap-4">
-                  <dt className="text-muted">Styling</dt>
-                  <dd className="font-medium">Tailwind CSS</dd>
-                </div>
-                <div className="flex items-center justify-between gap-4">
-                  <dt className="text-muted">Type safety</dt>
-                  <dd className="font-medium">Strict TypeScript</dd>
-                </div>
-                <div className="flex items-center justify-between gap-4">
-                  <dt className="text-muted">Backend URL</dt>
-                  <dd className="font-mono text-xs text-muted">Configured</dd>
-                </div>
-              </dl>
-            </aside>
-          </div>
-        </section>
+    <div className="mx-auto max-w-7xl space-y-6">
+      <div className="flex flex-col gap-4 border-b border-border pb-6 md:flex-row md:items-end md:justify-between">
+        <div>
+          <Badge tone="info">Overview</Badge>
+          <h1 className="mt-3 text-3xl font-semibold md:text-4xl">
+            RepoLens dashboard
+          </h1>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">
+            Repository intelligence will appear here as backend data is connected.
+          </p>
+        </div>
+        <Button asChild variant="primary">
+          <Link href="/repositories">
+            <GitBranch aria-hidden="true" className="size-4" />
+            Add repository
+          </Link>
+        </Button>
       </div>
-    </main>
+
+      <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
+        <EmptyState
+          action={
+            <Button asChild>
+              <Link href="/repositories">
+                Open repositories
+                <ArrowRight aria-hidden="true" className="size-4" />
+              </Link>
+            </Button>
+          }
+          description="Register a repository to begin indexing, searching, and tracing likely change impact."
+          icon={<Search aria-hidden="true" className="size-5" />}
+          title="No repositories registered"
+        />
+
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-sm font-semibold">Backend status</h2>
+              <Badge>Manual refresh</Badge>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <Skeleton className="h-3 w-2/3" />
+              <Skeleton className="h-3 w-1/2" />
+              <Skeleton className="h-3 w-5/6" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        {quickActions.map((action) => (
+          <Card className="transition hover:bg-panel-muted" key={action.href}>
+            <Link className="block p-5" href={action.href}>
+              <p className="text-sm font-medium">{action.label}</p>
+              <p className="mt-3 font-mono text-xs text-muted">{action.href}</p>
+            </Link>
+          </Card>
+        ))}
+      </section>
+    </div>
   );
 }
