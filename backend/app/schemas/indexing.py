@@ -31,6 +31,7 @@ class IndexRepositoryResponse(BaseModel):
     files_skipped: int
     symbols_indexed: int
     chunks_indexed: int
+    embeddings_indexed: int = 0
     dependency_edges_indexed: int
     commits_indexed: int
     parser_errors: list[dict[str, Any]] = Field(default_factory=list)

@@ -22,6 +22,7 @@ from app.db.models import (
     Repository,
     Symbol,
 )
+from app.embeddings.service import EmbeddingService
 from app.schemas.indexing import IndexRepositoryResponse, IndexStatusResponse
 from app.services.git_service import GitService
 from app.utils.hashing import compute_normalized_hash
@@ -35,10 +36,12 @@ class IndexingService:
         git_service: GitService,
         classifier: FileClassifier | None = None,
         graph_builder: DependencyGraph | None = None,
+        embedding_service: EmbeddingService | None = None,
     ) -> None:
         self.git_service = git_service
         self.classifier = classifier or FileClassifier()
         self.graph_builder = graph_builder or DependencyGraph()
+        self.embedding_service = embedding_service or EmbeddingService()
         self.python_parser = PythonParser()
         self.ts_js_parser = TsJsParser()
 
@@ -132,13 +135,16 @@ class IndexingService:
             symbols_indexed = await self._save_symbols(
                 db, repository_id, parsed_files, code_files_by_path, symbol_records_by_key
             )
-            chunks_indexed = await self._save_chunks(
+            chunks_indexed, chunks = await self._save_chunks(
                 db,
                 repository_id,
                 parsed_files,
                 code_files_by_path,
                 symbol_records_by_key,
                 file_contents,
+            )
+            embeddings_indexed = await self.embedding_service.save_embeddings_for_chunks(
+                db, chunks
             )
             edges = self.graph_builder.build_edges(
                 parsed_files, set(code_files_by_path)
@@ -163,12 +169,6 @@ class IndexingService:
             await db.commit()
             await db.refresh(repo_obj)
 
-            if chunks_indexed:
-                warnings.append(
-                    "Embeddings are not generated until the embedding provider "
-                    "pipeline is enabled."
-                )
-
             return IndexRepositoryResponse(
                 repository_id=repository_id,
                 status=repo_obj.status,
@@ -178,6 +178,7 @@ class IndexingService:
                 files_skipped=skipped,
                 symbols_indexed=symbols_indexed,
                 chunks_indexed=chunks_indexed,
+                embeddings_indexed=embeddings_indexed,
                 dependency_edges_indexed=dependency_edges_indexed,
                 commits_indexed=commits_indexed,
                 parser_errors=parser_errors,
@@ -345,8 +346,9 @@ class IndexingService:
         code_files_by_path: dict[str, CodeFile],
         symbol_records_by_key: dict[tuple[str, str, int], Symbol],
         file_contents: dict[str, str],
-    ) -> int:
+    ) -> tuple[int, list[CodeChunk]]:
         count = 0
+        chunks: list[CodeChunk] = []
         for parsed in parsed_files:
             code_file = code_files_by_path.get(parsed.path)
             content = file_contents.get(parsed.path, "")
@@ -378,9 +380,10 @@ class IndexingService:
                     token_count_estimate=max(len(text) // 4, 1),
                 )
                 db.add(chunk)
+                chunks.append(chunk)
                 count += 1
         await db.flush()
-        return count
+        return count, chunks
 
     async def _save_dependency_edges(
         self,

@@ -63,6 +63,19 @@ class _FakeDb:
         pass
 
 
+class _FakeEmbeddingService:
+    def __init__(self) -> None:
+        self.chunks: list[CodeChunk] = []
+
+    async def save_embeddings_for_chunks(
+        self,
+        db: _FakeDb,
+        chunks: list[CodeChunk],
+    ) -> int:
+        self.chunks = chunks
+        return len(chunks)
+
+
 @pytest.fixture()
 def repo_workspace(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     workspace = tmp_path / "workspace"
@@ -117,8 +130,12 @@ async def test_index_repository_persists_core_index_rows(repo_workspace: Path) -
     ]
     git_service.is_binary_file.return_value = False
     git_service.iter_commits.return_value = []
+    embedding_service = _FakeEmbeddingService()
 
-    result = await IndexingService(git_service).index_repository(
+    result = await IndexingService(
+        git_service,
+        embedding_service=embedding_service,
+    ).index_repository(
         db=db,
         repository_id=1,
         max_commits=0,
@@ -134,6 +151,7 @@ async def test_index_repository_persists_core_index_rows(repo_workspace: Path) -
     assert result.files_skipped == 1
     assert result.symbols_indexed == 3
     assert result.chunks_indexed == 3
+    assert result.embeddings_indexed == 3
     assert result.dependency_edges_indexed == 2
     assert {item.path for item in code_files} == {
         "src/auth/token.py",
@@ -144,5 +162,6 @@ async def test_index_repository_persists_core_index_rows(repo_workspace: Path) -
     assert {item.simple_name for item in symbols} >= {"issue", "route", "test_route"}
     assert all("path:" in item.text for item in chunks)
     assert len(edges) == 2
+    assert embedding_service.chunks == chunks
     assert repo.last_indexed_commit == "abc123"
     assert db.committed is True

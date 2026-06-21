@@ -26,6 +26,7 @@ def test_index_repository_endpoint_success() -> None:
             files_skipped=1,
             symbols_indexed=3,
             chunks_indexed=3,
+            embeddings_indexed=3,
             dependency_edges_indexed=1,
             commits_indexed=4,
         )
