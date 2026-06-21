@@ -1,0 +1,164 @@
+"use client";
+
+import { Plus } from "lucide-react";
+import { FormEvent, useId, useState } from "react";
+import { normalizeApiError } from "@/lib/api/errors";
+import type { RepositoryCreate } from "@/lib/api/types";
+import { useCreateRepositoryMutation } from "@/store/api/repolensApi";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+
+type FormState = {
+  branch: string;
+  cloneUrl: string;
+  indexNow: boolean;
+  localPath: string;
+  name: string;
+};
+
+const initialState: FormState = {
+  branch: "",
+  cloneUrl: "",
+  indexNow: false,
+  localPath: "",
+  name: "",
+};
+
+export function AddRepositoryDialog() {
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState<FormState>(initialState);
+  const [clientError, setClientError] = useState<string | null>(null);
+  const [createRepository, createState] = useCreateRepositoryMutation();
+  const formId = useId();
+
+  const updateForm = <Field extends keyof FormState>(
+    field: Field,
+    value: FormState[Field],
+  ) => {
+    setForm((current) => ({ ...current, [field]: value }));
+    setClientError(null);
+  };
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!form.cloneUrl.trim() && !form.localPath.trim()) {
+      setClientError("Provide a clone URL or a local path.");
+      return;
+    }
+
+    const body: RepositoryCreate = {
+      branch: form.branch.trim() || null,
+      clone_url: form.cloneUrl.trim() || null,
+      index_now: form.indexNow,
+      local_path: form.localPath.trim() || null,
+      name: form.name.trim(),
+    };
+
+    try {
+      await createRepository(body).unwrap();
+      setForm(initialState);
+      setOpen(false);
+    } catch {
+      // The rendered mutation state below carries the normalized API message.
+    }
+  };
+
+  const apiError = createState.error
+    ? normalizeApiError(createState.error).message
+    : null;
+  const error = clientError ?? apiError;
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="primary">
+          <Plus aria-hidden="true" className="size-4" />
+          Add repository
+        </Button>
+      </DialogTrigger>
+      <DialogContent title="Add repository">
+        <form className="space-y-4" onSubmit={handleSubmit}>
+          <label className="block text-sm font-medium" htmlFor={`${formId}-name`}>
+            Name
+          </label>
+          <Input
+            id={`${formId}-name`}
+            onChange={(event) => updateForm("name", event.target.value)}
+            required
+            value={form.name}
+          />
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <label
+                className="block text-sm font-medium"
+                htmlFor={`${formId}-clone-url`}
+              >
+                Clone URL
+              </label>
+              <Input
+                id={`${formId}-clone-url`}
+                onChange={(event) => updateForm("cloneUrl", event.target.value)}
+                placeholder="https://github.com/org/repo.git"
+                value={form.cloneUrl}
+              />
+            </div>
+            <div className="space-y-2">
+              <label
+                className="block text-sm font-medium"
+                htmlFor={`${formId}-local-path`}
+              >
+                Local path
+              </label>
+              <Input
+                id={`${formId}-local-path`}
+                onChange={(event) => updateForm("localPath", event.target.value)}
+                placeholder="D:\\Dev\\Repos\\repolens"
+                value={form.localPath}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-sm font-medium" htmlFor={`${formId}-branch`}>
+              Branch
+            </label>
+            <Input
+              id={`${formId}-branch`}
+              onChange={(event) => updateForm("branch", event.target.value)}
+              placeholder="main"
+              value={form.branch}
+            />
+          </div>
+
+          <label className="flex items-start gap-3 text-sm text-muted">
+            <input
+              checked={form.indexNow}
+              className="mt-1 rounded border-border text-primary focus:ring-primary"
+              onChange={(event) => updateForm("indexNow", event.target.checked)}
+              type="checkbox"
+            />
+            <span>Index after registration</span>
+          </label>
+
+          {error ? (
+            <p className="rounded-md border border-danger/20 bg-danger/10 px-3 py-2 text-sm text-danger">
+              {error}
+            </p>
+          ) : null}
+
+          <div className="flex justify-end gap-2">
+            <Button onClick={() => setOpen(false)} type="button" variant="ghost">
+              Cancel
+            </Button>
+            <Button disabled={createState.isLoading} type="submit" variant="primary">
+              {createState.isLoading ? "Adding" : "Add repository"}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
