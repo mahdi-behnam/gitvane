@@ -1,11 +1,11 @@
-import { SectionPage } from "@/components/app/section-page";
+import { TestRecommendationsPage } from "@/components/tests/test-recommendations-page";
 
-export default function RepositoryTestsPage() {
-  return (
-    <SectionPage
-      description="Test recommendations for this repository will list likely relevant tests without executing them."
-      label="Tests"
-      title="Test recommendations"
-    />
-  );
+export default async function RepositoryTestsPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+
+  return <TestRecommendationsPage repositoryId={Number(id)} />;
 }

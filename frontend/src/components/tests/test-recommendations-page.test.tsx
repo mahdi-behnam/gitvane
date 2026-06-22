@@ -1,0 +1,135 @@
+import { fireEvent, screen, waitFor } from "@testing-library/react";
+import { http, HttpResponse } from "msw";
+import { describe, expect, it } from "vitest";
+import { TestRecommendationsPage } from "@/components/tests/test-recommendations-page";
+import { apiBaseUrl } from "@/lib/api/client";
+import type { Repository, TestRecommendationResponse } from "@/lib/api/types";
+import { renderWithProviders } from "@/test/render";
+import { server } from "@/test/server";
+
+const repository: Repository = {
+  clone_url: "https://github.com/mahdi-behnam/repolens.git",
+  created_at: "2026-06-21T10:00:00Z",
+  current_ref: "main",
+  default_branch: "main",
+  id: 7,
+  indexed_at: "2026-06-21T10:30:00Z",
+  last_indexed_commit: "abc123",
+  local_path: null,
+  name: "repolens",
+  repo_metadata: null,
+  status: "indexed",
+  updated_at: "2026-06-21T10:30:00Z",
+};
+
+const recommendationResponse: TestRecommendationResponse = {
+  changed_files: [{ path: "backend/app/services/indexing_service.py" }],
+  recommended_tests: [
+    {
+      linked_files: [
+        "backend/app/services/indexing_service.py",
+        "backend/app/api/v1/endpoints/indexing.py",
+      ],
+      path: "backend/tests/test_indexing.py",
+      reason: "Covers indexing workflow and endpoint behavior.",
+      score: 0.83,
+    },
+  ],
+  repository_id: 7,
+};
+
+function useRepositoryHandler() {
+  server.use(
+    http.get(`${apiBaseUrl}/repositories/7`, () => HttpResponse.json(repository)),
+  );
+}
+
+describe("TestRecommendationsPage", () => {
+  it("submits changed files and renders recommendations", async () => {
+    const bodies: unknown[] = [];
+    useRepositoryHandler();
+    server.use(
+      http.post(`${apiBaseUrl}/tests/recommend`, async ({ request }) => {
+        bodies.push(await request.json());
+        return HttpResponse.json(recommendationResponse);
+      }),
+    );
+
+    renderWithProviders(<TestRecommendationsPage repositoryId={7} />);
+
+    fireEvent.change(screen.getByLabelText("Changed files"), {
+      target: { value: "backend/app/services/indexing_service.py" },
+    });
+    fireEvent.change(screen.getByLabelText("Top results"), {
+      target: { value: "12" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Recommend tests" }));
+
+    await waitFor(() => expect(bodies).toHaveLength(1));
+    expect(bodies[0]).toMatchObject({
+      changed_files: [{ path: "backend/app/services/indexing_service.py" }],
+      repository_id: 7,
+      top_k: 12,
+    });
+    expect(await screen.findByText("Recommended tests")).toBeInTheDocument();
+    expect(screen.getByText("backend/tests/test_indexing.py")).toBeInTheDocument();
+    expect(screen.getByText("0.830")).toBeInTheDocument();
+    expect(screen.getByText(/Covers indexing workflow/)).toBeInTheDocument();
+    expect(screen.getByText(/does not execute tests/i)).toBeInTheDocument();
+  });
+
+  it("includes optional impacted files when provided", async () => {
+    const bodies: unknown[] = [];
+    useRepositoryHandler();
+    server.use(
+      http.post(`${apiBaseUrl}/tests/recommend`, async ({ request }) => {
+        bodies.push(await request.json());
+        return HttpResponse.json(recommendationResponse);
+      }),
+    );
+
+    renderWithProviders(<TestRecommendationsPage repositoryId={7} />);
+
+    fireEvent.change(screen.getByLabelText("Impacted files"), {
+      target: { value: "backend/app/api/v1/endpoints/indexing.py" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Recommend tests" }));
+
+    await waitFor(() => expect(bodies).toHaveLength(1));
+    expect(bodies[0]).toMatchObject({
+      impacted_files: ["backend/app/api/v1/endpoints/indexing.py"],
+    });
+  });
+
+  it("renders an empty recommendation response", async () => {
+    useRepositoryHandler();
+    server.use(
+      http.post(`${apiBaseUrl}/tests/recommend`, () =>
+        HttpResponse.json({
+          ...recommendationResponse,
+          recommended_tests: [],
+        }),
+      ),
+    );
+
+    renderWithProviders(<TestRecommendationsPage repositoryId={7} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Recommend tests" }));
+
+    expect(await screen.findByText("No recommendations")).toBeInTheDocument();
+  });
+
+  it("requires at least one changed file", () => {
+    useRepositoryHandler();
+    renderWithProviders(<TestRecommendationsPage repositoryId={7} />);
+
+    fireEvent.change(screen.getByLabelText("Changed files"), {
+      target: { value: "" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Recommend tests" }));
+
+    expect(
+      screen.getByText("Enter at least one changed file path."),
+    ).toBeInTheDocument();
+  });
+});
