@@ -25,7 +25,17 @@ describe("AppShell", () => {
     expect(screen.getAllByRole("link", { name: /overview/i }).length).toBeGreaterThan(
       0,
     );
+    expect(
+      screen.getByRole("navigation", { name: "Primary shortcuts" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getAllByRole("link", { current: "page", name: /overview/i }).length,
+    ).toBeGreaterThan(0);
     expect(screen.getByLabelText("Toggle theme")).toBeInTheDocument();
+    expect(screen.getByLabelText("Refresh current view")).toHaveAttribute(
+      "type",
+      "button",
+    );
     expect(screen.getByText("Dashboard content")).toBeInTheDocument();
   });
 });

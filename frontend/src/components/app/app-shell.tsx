@@ -105,6 +105,7 @@ function BackendStatus() {
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
   const activeRepositoryId = useAppSelector(
     (state) => state.repositorySelection.activeRepositoryId,
   );
@@ -154,7 +155,11 @@ export function AppShell({ children }: { children: ReactNode }) {
                   <BackendStatus />
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button aria-label="Refresh current view" size="icon">
+                      <Button
+                        aria-label="Refresh current view"
+                        size="icon"
+                        type="button"
+                      >
                         <RefreshCw aria-hidden="true" className="size-4" />
                       </Button>
                     </TooltipTrigger>
@@ -166,13 +171,21 @@ export function AppShell({ children }: { children: ReactNode }) {
             </header>
 
             <div className="border-b border-border bg-panel px-4 py-2 sm:px-6 lg:hidden">
-              <div className="flex gap-1 overflow-x-auto">
+              <nav
+                aria-label="Primary shortcuts"
+                className="flex gap-1 overflow-x-auto"
+              >
                 {navigationItems.slice(0, 5).map((item) => {
                   const Icon = item.icon;
+                  const active = isActivePath(pathname, item.href);
 
                   return (
                     <Link
-                      className="flex min-w-16 flex-col items-center gap-1 rounded-md px-2 py-1.5 text-[11px] text-muted hover:bg-panel-muted hover:text-foreground"
+                      aria-current={active ? "page" : undefined}
+                      className={cn(
+                        "flex min-w-16 flex-col items-center gap-1 rounded-md px-2 py-1.5 text-[11px] hover:bg-panel-muted hover:text-foreground",
+                        active ? "text-foreground" : "text-muted",
+                      )}
                       href={item.href}
                       key={item.href}
                     >
@@ -181,7 +194,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                     </Link>
                   );
                 })}
-              </div>
+              </nav>
             </div>
 
             <main className="px-4 py-6 sm:px-6 lg:px-8">{children}</main>
