@@ -209,6 +209,7 @@ export const {
   useGetFileNeighborsQuery,
   useGetHealthQuery,
   useGetImpactRunQuery,
+  useLazyGetImpactRunQuery,
   useGetIndexStatusQuery,
   useGetRepositoryQuery,
   useGetRepositoryRiskQuery,

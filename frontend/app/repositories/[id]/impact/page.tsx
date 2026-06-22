@@ -1,11 +1,11 @@
-import { SectionPage } from "@/components/app/section-page";
+import { ImpactAnalysisPage } from "@/components/impact/impact-analysis-page";
 
-export default function RepositoryImpactPage() {
-  return (
-    <SectionPage
-      description="Impact analysis for this repository will support changed files, raw diffs, and refs."
-      label="Impact"
-      title="Impact analysis"
-    />
-  );
+export default async function RepositoryImpactPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+
+  return <ImpactAnalysisPage repositoryId={Number(id)} />;
 }
