@@ -50,6 +50,13 @@ const statusResponse: EvaluationStatusResponse = {
   },
 };
 
+const markdownReport = `# Evaluation Report
+
+Hybrid performed best against the available baseline.
+
+- Review low recall cases
+`;
+
 function useRepositoryHandler() {
   server.use(
     http.get(`${apiBaseUrl}/repositories/7`, () => HttpResponse.json(repository)),
@@ -66,6 +73,9 @@ describe("EvaluationDashboardPage", () => {
         return HttpResponse.json(runResponse);
       }),
       http.get(`${apiBaseUrl}/evaluation/42`, () => HttpResponse.json(statusResponse)),
+      http.get(`${apiBaseUrl}/evaluation/42/report.md`, () =>
+        HttpResponse.text(markdownReport),
+      ),
     );
 
     renderWithProviders(<EvaluationDashboardPage repositoryId={7} />);
@@ -90,12 +100,19 @@ describe("EvaluationDashboardPage", () => {
     expect(await screen.findByText("Nightly quality check")).toBeInTheDocument();
     expect(screen.getByText("completed")).toBeInTheDocument();
     expect(screen.getByText("Run 42")).toBeInTheDocument();
+    expect(screen.getByText("Metrics summary")).toBeInTheDocument();
+    expect(screen.getByText("Baseline comparison")).toBeInTheDocument();
+    expect(await screen.findByText("Evaluation Report")).toBeInTheDocument();
+    expect(screen.getByText(/Hybrid performed best/)).toBeInTheDocument();
   });
 
   it("loads an existing evaluation run manually", async () => {
     useRepositoryHandler();
     server.use(
       http.get(`${apiBaseUrl}/evaluation/42`, () => HttpResponse.json(statusResponse)),
+      http.get(`${apiBaseUrl}/evaluation/42/report.md`, () =>
+        HttpResponse.text(markdownReport),
+      ),
     );
 
     renderWithProviders(<EvaluationDashboardPage repositoryId={7} />);

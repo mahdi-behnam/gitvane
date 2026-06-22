@@ -3,6 +3,16 @@
 import { skipToken } from "@reduxjs/toolkit/query";
 import { BarChart3, Play, RefreshCw, Search } from "lucide-react";
 import { FormEvent, useEffect, useState } from "react";
+import ReactMarkdown from "react-markdown";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -12,6 +22,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { normalizeApiError } from "@/lib/api/errors";
 import type { EvaluationMethod, EvaluationStatusResponse } from "@/lib/api/types";
 import {
+  useGetEvaluationReportMarkdownQuery,
   useGetEvaluationStatusQuery,
   useGetRepositoryQuery,
   useRunEvaluationMutation,
@@ -45,6 +56,7 @@ export function EvaluationDashboardPage({ repositoryId }: { repositoryId: number
   const repository = useGetRepositoryQuery(validRepositoryId ?? skipToken);
   const [runEvaluation, runState] = useRunEvaluationMutation();
   const status = useGetEvaluationStatusQuery(activeRunId ?? skipToken);
+  const report = useGetEvaluationReportMarkdownQuery(activeRunId ?? skipToken);
   const dispatch = useAppDispatch();
 
   useEffect(() => {
@@ -110,6 +122,7 @@ export function EvaluationDashboardPage({ repositoryId }: { repositoryId: number
   const apiError =
     (runState.error && normalizeApiError(runState.error).message) ||
     (status.error && normalizeApiError(status.error).message) ||
+    (report.error && normalizeApiError(report.error).message) ||
     null;
   const error = clientError ?? apiError;
 
@@ -264,7 +277,14 @@ export function EvaluationDashboardPage({ repositoryId }: { repositoryId: number
       {status.isLoading || status.isFetching ? (
         <EvaluationLoadingState />
       ) : status.data ? (
-        <EvaluationStatusCard status={status.data} />
+        <>
+          <EvaluationStatusCard status={status.data} />
+          <EvaluationMetrics summary={status.data.summary} />
+          <EvaluationReport
+            isFetching={report.isFetching}
+            markdown={report.data ?? null}
+          />
+        </>
       ) : (
         <EmptyState
           description="Start an evaluation or load an existing run ID to inspect status."
@@ -328,6 +348,151 @@ function EvaluationStatusCard({ status }: { status: EvaluationStatusResponse }) 
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+function EvaluationMetrics({ summary }: { summary: Record<string, unknown> }) {
+  const chartData = buildMetricRows(summary);
+  const topMetrics = chartData.slice(0, 4);
+
+  if (chartData.length === 0) {
+    return (
+      <EmptyState
+        description="This evaluation status did not include numeric metric summary data."
+        icon={<BarChart3 aria-hidden="true" className="size-5" />}
+        title="No metrics returned"
+      />
+    );
+  }
+
+  return (
+    <section className="grid gap-4 xl:grid-cols-[0.8fr_1.2fr]">
+      <Card>
+        <CardHeader>
+          <h2 className="text-sm font-semibold">Metrics summary</h2>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {topMetrics.map((metric) => (
+              <Metric
+                key={`${metric.method}:${metric.metric}`}
+                label={`${metric.method} ${metric.metric}`}
+                value={metric.value.toFixed(3)}
+              />
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <h2 className="text-sm font-semibold">Baseline comparison</h2>
+        </CardHeader>
+        <CardContent>
+          <div className="h-64 min-w-0">
+            <ResponsiveContainer height="100%" minWidth={300} width="100%">
+              <BarChart data={chartData.slice(0, 8)}>
+                <CartesianGrid stroke="rgb(var(--color-border))" vertical={false} />
+                <XAxis
+                  dataKey="label"
+                  fontSize={12}
+                  interval={0}
+                  stroke="rgb(var(--color-muted))"
+                  tickLine={false}
+                />
+                <YAxis
+                  domain={[0, 1]}
+                  fontSize={12}
+                  stroke="rgb(var(--color-muted))"
+                  tickLine={false}
+                />
+                <Tooltip
+                  contentStyle={{
+                    background: "rgb(var(--color-panel))",
+                    border: "1px solid rgb(var(--color-border))",
+                    borderRadius: 8,
+                    color: "rgb(var(--color-foreground))",
+                  }}
+                />
+                <Bar
+                  dataKey="value"
+                  fill="rgb(var(--color-chart-a))"
+                  radius={[4, 4, 0, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </CardContent>
+      </Card>
+    </section>
+  );
+}
+
+function EvaluationReport({
+  isFetching,
+  markdown,
+}: {
+  isFetching: boolean;
+  markdown: string | null;
+}) {
+  if (isFetching) {
+    return (
+      <Card className="p-5">
+        <Skeleton className="h-4 w-44" />
+        <Skeleton className="mt-5 h-40 w-full" />
+      </Card>
+    );
+  }
+
+  if (!markdown) {
+    return (
+      <EmptyState
+        description="No Markdown report is available for the selected evaluation run yet."
+        icon={<BarChart3 aria-hidden="true" className="size-5" />}
+        title="No report available"
+      />
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <h2 className="text-sm font-semibold">Markdown report</h2>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-3 text-sm leading-6 text-muted [&_code]:rounded [&_code]:bg-panel-muted [&_code]:px-1 [&_code]:py-0.5 [&_code]:font-mono [&_h1]:text-xl [&_h1]:font-semibold [&_h1]:text-foreground [&_h2]:text-lg [&_h2]:font-semibold [&_h2]:text-foreground [&_li]:ml-5 [&_li]:list-disc [&_p]:text-muted [&_strong]:text-foreground">
+          <ReactMarkdown>{markdown}</ReactMarkdown>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function buildMetricRows(summary: Record<string, unknown>) {
+  return Object.entries(summary).flatMap(([method, value]) =>
+    flattenMetrics(value).map((metric) => ({
+      label: `${method}:${metric.name}`,
+      method,
+      metric: metric.name,
+      value: metric.value,
+    })),
+  );
+}
+
+function flattenMetrics(
+  value: unknown,
+  prefix = "",
+): { name: string; value: number }[] {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return [{ name: prefix || "score", value }];
+  }
+
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return [];
+  }
+
+  return Object.entries(value).flatMap(([key, nested]) =>
+    flattenMetrics(nested, prefix ? `${prefix}.${key}` : key),
   );
 }
 
