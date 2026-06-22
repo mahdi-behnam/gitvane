@@ -29,9 +29,10 @@ Current backend capabilities:
 - Rank risky files using churn, dependency centrality, complexity, and size.
 - Explain predictions through NVIDIA NIM or deterministic fallback text.
 - Evaluate prediction quality against historical commits.
-- Return graph data for future visualization.
-
-The frontend is intentionally deferred. `frontend/README.md` documents that scope.
+- Return graph data for frontend visualization.
+- Provide a Next.js dashboard for repository management, search, impact
+  analysis, test recommendations, risk ranking, graph exploration, and
+  evaluation reports.
 
 ## Architecture
 
@@ -109,9 +110,24 @@ uvicorn app.main:app --reload
 
 OpenAPI docs are available at `http://localhost:8000/docs`.
 
+Run the frontend in another shell:
+
+```powershell
+cd frontend
+npm install
+Copy-Item .env.example .env.local
+npm run dev
+```
+
+The frontend opens at `http://localhost:3000` and talks to the backend through:
+
+```env
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api/v1
+```
+
 ## Docker Compose Setup
 
-Run the full backend stack:
+Run the full local stack:
 
 ```powershell
 docker compose up --build
@@ -122,6 +138,9 @@ In another shell, run migrations inside the backend container:
 ```powershell
 docker compose exec backend alembic upgrade head
 ```
+
+The API is available at `http://localhost:8000`; the frontend is available at
+`http://localhost:3000`.
 
 GPU support is optional. Docker Compose is configured for CPU-compatible local
 development. Host execution can use CUDA automatically when PyTorch and the
@@ -134,6 +153,16 @@ cd backend
 $env:DEBUG='true'
 python -m pytest -q
 python -m ruff check app tests
+```
+
+Frontend checks:
+
+```powershell
+cd frontend
+npm run lint
+npm run typecheck
+npm run test
+npm run build
 ```
 
 If the Windows temp directory is locked down, use a repo-local pytest temp dir:
@@ -231,7 +260,7 @@ curl -X POST "http://localhost:8000/api/v1/evaluation/run" \
 - Historical evaluation currently uses the current index as an approximation
   instead of checking out every historical commit.
 - Test execution is intentionally out of scope.
-- The frontend dashboard is intentionally deferred.
+- The frontend does not implement authentication or execute repository tests.
 
 ## Documentation
 
