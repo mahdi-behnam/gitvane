@@ -1,11 +1,11 @@
-import { SectionPage } from "@/components/app/section-page";
+import { EvaluationDashboardPage } from "@/components/evaluation/evaluation-dashboard-page";
 
-export default function RepositoryEvaluationPage() {
-  return (
-    <SectionPage
-      description="Evaluation runs and reports for this repository will appear here."
-      label="Evaluation"
-      title="Evaluation"
-    />
-  );
+export default async function RepositoryEvaluationPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+
+  return <EvaluationDashboardPage repositoryId={Number(id)} />;
 }
