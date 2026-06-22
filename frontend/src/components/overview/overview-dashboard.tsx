@@ -10,6 +10,7 @@ import {
   Play,
   Search,
   Server,
+  ShieldAlert,
 } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
@@ -18,11 +19,12 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { normalizeApiError } from "@/lib/api/errors";
-import type { Repository } from "@/lib/api/types";
+import type { Repository, RiskFile } from "@/lib/api/types";
 import { formatDateTime } from "@/lib/format";
 import {
   useGetHealthQuery,
   useGetIndexStatusQuery,
+  useGetRepositoryRiskQuery,
   useListRepositoriesQuery,
 } from "@/store/api/repolensApi";
 
@@ -32,6 +34,11 @@ export function OverviewDashboard() {
   const repositoryItems = repositories.data?.items ?? [];
   const firstRepository = repositoryItems[0];
   const indexStatus = useGetIndexStatusQuery(firstRepository?.id ?? skipToken);
+  const risk = useGetRepositoryRiskQuery(
+    firstRepository
+      ? { include_tests: false, repositoryId: firstRepository.id, top_k: 3 }
+      : skipToken,
+  );
   const repositoryScopedHref = firstRepository
     ? `/repositories/${firstRepository.id}`
     : "/repositories";
@@ -164,6 +171,18 @@ export function OverviewDashboard() {
           </Card>
         ))}
       </section>
+
+      {firstRepository ? (
+        <section className="grid gap-4 xl:grid-cols-2">
+          <RiskInsightCard
+            error={risk.error ? normalizeApiError(risk.error).message : null}
+            files={risk.data?.files ?? []}
+            isLoading={risk.isLoading}
+            repositoryId={firstRepository.id}
+          />
+          <EvaluationInsightCard repositoryId={firstRepository.id} />
+        </section>
+      ) : null}
     </div>
   );
 }
@@ -248,6 +267,128 @@ function RecentRepositories({ repositories }: { repositories: Repository[] }) {
               </span>
             </Link>
           ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function RiskInsightCard({
+  error,
+  files,
+  isLoading,
+  repositoryId,
+}: {
+  error: string | null;
+  files: RiskFile[];
+  isLoading: boolean;
+  repositoryId: number;
+}) {
+  const highestRisk = files[0];
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-sm font-semibold">Risk summary</h2>
+          <Badge tone={highestRisk ? "warning" : "neutral"}>
+            {isLoading ? "Loading" : highestRisk ? "Available" : "No data"}
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="space-y-3">
+            <Skeleton className="h-4 w-2/3" />
+            <Skeleton className="h-16 w-full" />
+          </div>
+        ) : error ? (
+          <p className="rounded-md border border-danger/20 bg-danger/10 px-3 py-2 text-sm text-danger">
+            {error}
+          </p>
+        ) : highestRisk ? (
+          <div className="space-y-4">
+            <div className="rounded-md border border-border bg-panel-muted px-3 py-2">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">
+                Highest risk
+              </p>
+              <p className="mt-2 break-all font-mono text-sm font-semibold">
+                {highestRisk.path}
+              </p>
+              <p className="mt-2 font-mono text-xs text-muted">
+                {highestRisk.risk_score.toFixed(3)}
+              </p>
+            </div>
+            <div className="space-y-2">
+              {files.slice(0, 3).map((file) => (
+                <div
+                  className="flex items-center justify-between gap-3"
+                  key={file.path}
+                >
+                  <span className="truncate font-mono text-xs text-muted">
+                    {file.path}
+                  </span>
+                  <span className="font-mono text-xs font-semibold">
+                    {file.risk_score.toFixed(2)}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <Button asChild size="sm">
+              <Link href={`/repositories/${repositoryId}/risk`}>
+                <ShieldAlert aria-hidden="true" className="size-4" />
+                Open risk
+              </Link>
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <p className="text-sm leading-6 text-muted">
+              Risk data appears after the repository has indexed file metadata.
+            </p>
+            <Button asChild size="sm">
+              <Link href={`/repositories/${repositoryId}/risk`}>
+                <ShieldAlert aria-hidden="true" className="size-4" />
+                Open risk
+              </Link>
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function EvaluationInsightCard({ repositoryId }: { repositoryId: number }) {
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-sm font-semibold">Evaluation summary</h2>
+          <Badge tone="neutral">Manual run</Badge>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          <p className="text-sm leading-6 text-muted">
+            Evaluation summaries are loaded by run ID. Open the evaluation dashboard to
+            start a run or refresh an existing report.
+          </p>
+          <div className="rounded-md border border-border bg-panel-muted px-3 py-2">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">
+              Current backend surface
+            </p>
+            <p className="mt-2 text-sm text-muted">
+              No latest-run endpoint is available, so this card does not invent
+              evaluation results.
+            </p>
+          </div>
+          <Button asChild size="sm">
+            <Link href={`/repositories/${repositoryId}/evaluation`}>
+              <BarChart3 aria-hidden="true" className="size-4" />
+              Open evaluation
+            </Link>
+          </Button>
         </div>
       </CardContent>
     </Card>

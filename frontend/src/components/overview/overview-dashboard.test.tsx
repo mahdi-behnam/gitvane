@@ -3,7 +3,11 @@ import { http, HttpResponse } from "msw";
 import { describe, expect, it } from "vitest";
 import { OverviewDashboard } from "@/components/overview/overview-dashboard";
 import { apiBaseUrl } from "@/lib/api/client";
-import type { IndexStatusResponse, RepositoryList } from "@/lib/api/types";
+import type {
+  IndexStatusResponse,
+  RepositoryList,
+  RepositoryRiskResponse,
+} from "@/lib/api/types";
 import { renderWithProviders } from "@/test/render";
 import { server } from "@/test/server";
 
@@ -48,11 +52,26 @@ describe("OverviewDashboard", () => {
       status: "indexed",
       symbol_count: 44,
     };
+    const riskResponse: RepositoryRiskResponse = {
+      files: [
+        {
+          components: { dependency: 0.8 },
+          path: "backend/app/services/indexing_service.py",
+          reasons: ["High dependency fan-in."],
+          risk_score: 0.82,
+        },
+      ],
+      metadata: {},
+      repository_id: 7,
+    };
 
     server.use(
       http.get(`${apiBaseUrl}/repositories`, () => HttpResponse.json(response)),
       http.get(`${apiBaseUrl}/repositories/7/index/status`, () =>
         HttpResponse.json(indexStatus),
+      ),
+      http.get(`${apiBaseUrl}/risk/repositories/7/files`, () =>
+        HttpResponse.json(riskResponse),
       ),
     );
 
@@ -63,6 +82,12 @@ describe("OverviewDashboard", () => {
     await waitFor(() => expect(screen.getAllByText("18").length).toBeGreaterThan(0));
     expect(screen.getByText("44")).toBeInTheDocument();
     expect(screen.getByText("Review risk")).toBeInTheDocument();
-    expect(screen.getByText("Open evaluation")).toBeInTheDocument();
+    expect(screen.getAllByText("Open evaluation").length).toBeGreaterThan(0);
+    expect(await screen.findByText("Risk summary")).toBeInTheDocument();
+    expect(
+      screen.getAllByText("backend/app/services/indexing_service.py").length,
+    ).toBeGreaterThan(0);
+    expect(screen.getByText("Evaluation summary")).toBeInTheDocument();
+    expect(screen.getByText(/does not invent evaluation results/)).toBeInTheDocument();
   });
 });
