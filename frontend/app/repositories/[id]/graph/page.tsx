@@ -1,11 +1,11 @@
-import { SectionPage } from "@/components/app/section-page";
+import { GraphExplorerPage } from "@/components/graph/graph-explorer-page";
 
-export default function RepositoryGraphPage() {
-  return (
-    <SectionPage
-      description="Graph exploration for this repository will render dependency nodes and edges."
-      label="Graph"
-      title="Dependency graph"
-    />
-  );
+export default async function RepositoryGraphPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+
+  return <GraphExplorerPage repositoryId={Number(id)} />;
 }
