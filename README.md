@@ -125,6 +125,29 @@ The frontend opens at `http://localhost:3000` and talks to the backend through:
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api/v1
 ```
 
+## Frontend Dashboard
+
+The dashboard is a Next.js app under `frontend/`. It covers repository
+registration and indexing, overview metrics, semantic search, impact analysis,
+test recommendations, risk ranking, dependency graph exploration, and evaluation
+reports.
+
+Use these commands for local frontend work:
+
+```powershell
+cd frontend
+npm install
+Copy-Item .env.example .env.local
+npm run dev
+```
+
+Run the browser smoke tests after installing Playwright's Chromium build:
+
+```powershell
+npx playwright install chromium
+npm run test:e2e
+```
+
 ## Docker Compose Setup
 
 Run the full local stack:
@@ -162,6 +185,7 @@ cd frontend
 npm run lint
 npm run typecheck
 npm run test
+npm run test:e2e
 npm run build
 ```
 

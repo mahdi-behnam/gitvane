@@ -3,13 +3,14 @@
 RepoLens frontend is a Next.js App Router application for the existing
 FastAPI backend.
 
+It includes the repository overview, repository management and indexing,
+semantic search, impact analysis, test recommendation, risk ranking, dependency
+graph, and evaluation report screens.
+
 ## Local Setup
 
 ```bash
 npm install
-npm run lint
-npm run typecheck
-npm run test
 npm run dev
 ```
 
@@ -25,6 +26,23 @@ When the backend runs on the host, keep the default URL:
 
 ```bash
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api/v1
+```
+
+## Quality Checks
+
+```bash
+npm run lint
+npm run typecheck
+npm run test
+npm run test:e2e
+npm run build
+```
+
+The end-to-end smoke tests use Playwright and mock the backend API from the
+browser page. Install the local browser dependency once before running them:
+
+```bash
+npx playwright install chromium
 ```
 
 ## Docker
@@ -49,6 +67,7 @@ npm run format
 npm run generate:api-types
 npm run typecheck
 npm run test
+npm run test:e2e
 npm run build
 ```
 
