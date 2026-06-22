@@ -1,6 +1,21 @@
 import { http, HttpResponse } from "msw";
 import { apiBaseUrl } from "@/lib/api/client";
-import type { HealthResponse, RepositoryList } from "@/lib/api/types";
+import type {
+  EvaluationReportResponse,
+  EvaluationRunResponse,
+  EvaluationStatusResponse,
+  GraphResponse,
+  HealthResponse,
+  ImpactAnalyzeResponse,
+  ImpactRunResponse,
+  IndexRepositoryResponse,
+  IndexStatusResponse,
+  Repository,
+  RepositoryList,
+  RepositoryRiskResponse,
+  SemanticSearchResponse,
+  TestRecommendationResponse,
+} from "@/lib/api/types";
 
 const emptyRepositoryList: RepositoryList = {
   items: [],
@@ -14,7 +29,196 @@ const healthyResponse: HealthResponse = {
   status: "healthy",
 };
 
+const repositoryFixture: Repository = {
+  clone_url: "https://github.com/mahdi-behnam/repolens.git",
+  created_at: "2026-06-21T10:00:00Z",
+  current_ref: "main",
+  default_branch: "main",
+  id: 7,
+  indexed_at: "2026-06-21T10:30:00Z",
+  last_indexed_commit: "abc123",
+  local_path: null,
+  name: "repolens",
+  repo_metadata: null,
+  status: "indexed",
+  updated_at: "2026-06-21T10:30:00Z",
+};
+
+const indexStatusFixture: IndexStatusResponse = {
+  chunk_count: 30,
+  commit_count: 5,
+  current_ref: "main",
+  dependency_edge_count: 12,
+  file_count: 18,
+  indexed_at: "2026-06-21T10:30:00Z",
+  last_indexed_commit: "abc123",
+  repository_id: 7,
+  status: "indexed",
+  symbol_count: 44,
+};
+
+const graphFixture: GraphResponse = {
+  edges: [
+    {
+      confidence: 0.86,
+      edge_type: "imports",
+      evidence: { import: "IndexingService" },
+      id: 31,
+      source_file_id: 1,
+      source_path: "backend/app/api/v1/endpoints/indexing.py",
+      target_file_id: 2,
+      target_path: "backend/app/services/indexing_service.py",
+    },
+  ],
+  nodes: [
+    {
+      id: 1,
+      is_generated: false,
+      is_test: false,
+      language: "python",
+      loc: 80,
+      path: "backend/app/api/v1/endpoints/indexing.py",
+    },
+    {
+      id: 2,
+      is_generated: false,
+      is_test: false,
+      language: "python",
+      loc: 240,
+      path: "backend/app/services/indexing_service.py",
+    },
+  ],
+  repository_id: 7,
+};
+
+const riskFixture: RepositoryRiskResponse = {
+  files: [
+    {
+      components: { dependency: 0.8 },
+      path: "backend/app/services/indexing_service.py",
+      reasons: ["High dependency fan-in."],
+      risk_score: 0.82,
+    },
+  ],
+  metadata: {},
+  repository_id: 7,
+};
+
+const impactFixture: ImpactAnalyzeResponse = {
+  analysis_run_id: 91,
+  base_ref: null,
+  changed_files: [{ path: "backend/app/services/indexing_service.py" }],
+  changed_symbols: [],
+  head_ref: null,
+  impacted_files: [],
+  llm_explanation: null,
+  recommended_tests: [],
+  repository_id: 7,
+  risk_summary: { highest_risk_files: [] },
+};
+
+const evaluationStatusFixture: EvaluationStatusResponse = {
+  commit_limit: 50,
+  error_message: null,
+  evaluation_run_id: 42,
+  methods: ["hybrid"],
+  name: "Repository evaluation",
+  repository_id: 7,
+  status: "completed",
+  summary: { hybrid: { map: 0.62 } },
+};
+
 export const handlers = [
   http.get(`${apiBaseUrl}/health`, () => HttpResponse.json(healthyResponse)),
   http.get(`${apiBaseUrl}/repositories`, () => HttpResponse.json(emptyRepositoryList)),
+  http.post(`${apiBaseUrl}/repositories`, () => HttpResponse.json(repositoryFixture)),
+  http.get(`${apiBaseUrl}/repositories/:repositoryId`, () =>
+    HttpResponse.json(repositoryFixture),
+  ),
+  http.delete(`${apiBaseUrl}/repositories/:repositoryId`, () =>
+    HttpResponse.json(null),
+  ),
+  http.post(`${apiBaseUrl}/repositories/:repositoryId/index`, () => {
+    const response: IndexRepositoryResponse = {
+      chunks_indexed: 30,
+      commits_indexed: 5,
+      current_ref: "main",
+      dependency_edges_indexed: 12,
+      embeddings_indexed: 30,
+      files_indexed: 18,
+      files_skipped: 0,
+      indexed_at: "2026-06-21T10:30:00Z",
+      parser_errors: [],
+      repository_id: 7,
+      status: "indexed",
+      symbols_indexed: 44,
+      warnings: [],
+    };
+
+    return HttpResponse.json(response);
+  }),
+  http.get(`${apiBaseUrl}/repositories/:repositoryId/index/status`, () =>
+    HttpResponse.json(indexStatusFixture),
+  ),
+  http.post(`${apiBaseUrl}/search/semantic`, () => {
+    const response: SemanticSearchResponse = { results: [] };
+
+    return HttpResponse.json(response);
+  }),
+  http.post(`${apiBaseUrl}/impact/analyze`, () => HttpResponse.json(impactFixture)),
+  http.get(`${apiBaseUrl}/impact/runs/:analysisRunId`, () => {
+    const response: ImpactRunResponse = {
+      analysis_run_id: 91,
+      changed_files: impactFixture.changed_files,
+      changed_symbols: [],
+      input_mode: "changed_files",
+      predictions: [],
+      repository_id: 7,
+      status: "completed",
+    };
+
+    return HttpResponse.json(response);
+  }),
+  http.post(`${apiBaseUrl}/tests/recommend`, () => {
+    const response: TestRecommendationResponse = {
+      changed_files: [{ path: "backend/app/services/indexing_service.py" }],
+      recommended_tests: [],
+      repository_id: 7,
+    };
+
+    return HttpResponse.json(response);
+  }),
+  http.get(`${apiBaseUrl}/risk/repositories/:repositoryId/files`, () =>
+    HttpResponse.json(riskFixture),
+  ),
+  http.get(`${apiBaseUrl}/graph/repositories/:repositoryId/subgraph`, () =>
+    HttpResponse.json(graphFixture),
+  ),
+  http.get(
+    `${apiBaseUrl}/graph/repositories/:repositoryId/file/:fileId/neighbors`,
+    () => HttpResponse.json(graphFixture),
+  ),
+  http.post(`${apiBaseUrl}/evaluation/run`, () => {
+    const response: EvaluationRunResponse = {
+      evaluation_run_id: 42,
+      status: "completed",
+      summary: evaluationStatusFixture.summary,
+    };
+
+    return HttpResponse.json(response);
+  }),
+  http.get(`${apiBaseUrl}/evaluation/:evaluationRunId`, () =>
+    HttpResponse.json(evaluationStatusFixture),
+  ),
+  http.get(`${apiBaseUrl}/evaluation/:evaluationRunId/report`, () => {
+    const response: EvaluationReportResponse = {
+      evaluation_run_id: 42,
+      markdown: "# Evaluation Report",
+    };
+
+    return HttpResponse.json(response);
+  }),
+  http.get(`${apiBaseUrl}/evaluation/:evaluationRunId/report.md`, () =>
+    HttpResponse.text("# Evaluation Report"),
+  ),
 ];

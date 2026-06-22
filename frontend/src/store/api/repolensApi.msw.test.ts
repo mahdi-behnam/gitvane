@@ -26,4 +26,36 @@ describe("repolensApi MSW integration", () => {
       total: 0,
     });
   });
+
+  it("reads default fixtures for core repository workflows", async () => {
+    const store = makeStore();
+
+    const repository = await store.dispatch(
+      repolensApi.endpoints.getRepository.initiate(7),
+    );
+    const risk = await store.dispatch(
+      repolensApi.endpoints.getRepositoryRisk.initiate({
+        repositoryId: 7,
+        top_k: 3,
+      }),
+    );
+    const graph = await store.dispatch(
+      repolensApi.endpoints.getRepositorySubgraph.initiate({
+        repositoryId: 7,
+      }),
+    );
+    const evaluation = await store.dispatch(
+      repolensApi.endpoints.getEvaluationStatus.initiate(42),
+    );
+
+    expect(repository.data).toMatchObject({ id: 7, name: "repolens" });
+    expect(risk.data?.files[0]).toMatchObject({
+      path: "backend/app/services/indexing_service.py",
+    });
+    expect(graph.data?.nodes.length).toBeGreaterThan(0);
+    expect(evaluation.data).toMatchObject({
+      evaluation_run_id: 42,
+      status: "completed",
+    });
+  });
 });
