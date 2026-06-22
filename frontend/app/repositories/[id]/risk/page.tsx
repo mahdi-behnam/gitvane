@@ -1,11 +1,11 @@
-import { SectionPage } from "@/components/app/section-page";
+import { RiskDashboardPage } from "@/components/risk/risk-dashboard-page";
 
-export default function RepositoryRiskPage() {
-  return (
-    <SectionPage
-      description="Risk ranking for this repository will show file-level heuristic scores."
-      label="Risk"
-      title="Risk ranking"
-    />
-  );
+export default async function RepositoryRiskPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+
+  return <RiskDashboardPage repositoryId={Number(id)} />;
 }
