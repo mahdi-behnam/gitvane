@@ -8,6 +8,7 @@ import { useCreateRepositoryMutation } from "@/store/api/repolensApi";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Notice } from "@/components/ui/notice";
 
 type FormState = {
   branch: string;
@@ -143,11 +144,7 @@ export function AddRepositoryDialog() {
             <span>Index after registration</span>
           </label>
 
-          {error ? (
-            <p className="rounded-md border border-danger/20 bg-danger/10 px-3 py-2 text-sm text-danger">
-              {error}
-            </p>
-          ) : null}
+          {error ? <Notice tone="danger">{error}</Notice> : null}
 
           <div className="flex justify-end gap-2">
             <Button onClick={() => setOpen(false)} type="button" variant="ghost">

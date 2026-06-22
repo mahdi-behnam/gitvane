@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
+import { Notice } from "@/components/ui/notice";
 import { Skeleton } from "@/components/ui/skeleton";
 import { normalizeApiError } from "@/lib/api/errors";
 import type { GraphEdge, GraphNode } from "@/lib/api/types";
@@ -244,15 +245,15 @@ export function GraphExplorerPage({ repositoryId }: { repositoryId: number }) {
           </form>
 
           {error ? (
-            <p className="mt-4 rounded-md border border-danger/20 bg-danger/10 px-3 py-2 text-sm text-danger">
+            <Notice className="mt-4" tone="danger">
               {error}
-            </p>
+            </Notice>
           ) : null}
           {largeGraph ? (
-            <p className="mt-4 rounded-md border border-warning/20 bg-warning/10 px-3 py-2 text-sm text-warning">
+            <Notice className="mt-4" tone="warning">
               The backend returned the current node limit. Narrow the graph with filters
               or increase the limit if you need more context.
-            </p>
+            </Notice>
           ) : null}
         </CardContent>
       </Card>
@@ -444,9 +445,7 @@ function NodeDetailPanel({
               <Skeleton className="h-4 w-2/3" />
             </div>
           ) : neighborsError ? (
-            <p className="rounded-md border border-danger/20 bg-danger/10 px-3 py-2 text-sm text-danger">
-              {neighborsError}
-            </p>
+            <Notice tone="danger">{neighborsError}</Notice>
           ) : neighbors && neighbors.nodes.length > 0 ? (
             <div className="space-y-2">
               {neighbors.nodes.slice(0, 8).map((neighbor) => (

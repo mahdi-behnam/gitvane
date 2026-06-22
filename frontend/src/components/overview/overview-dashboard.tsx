@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Notice } from "@/components/ui/notice";
 import { Skeleton } from "@/components/ui/skeleton";
 import { normalizeApiError } from "@/lib/api/errors";
 import type { Repository, RiskFile } from "@/lib/api/types";
@@ -303,9 +304,7 @@ function RiskInsightCard({
             <Skeleton className="h-16 w-full" />
           </div>
         ) : error ? (
-          <p className="rounded-md border border-danger/20 bg-danger/10 px-3 py-2 text-sm text-danger">
-            {error}
-          </p>
+          <Notice tone="danger">{error}</Notice>
         ) : highestRisk ? (
           <div className="space-y-4">
             <div className="rounded-md border border-border bg-panel-muted px-3 py-2">

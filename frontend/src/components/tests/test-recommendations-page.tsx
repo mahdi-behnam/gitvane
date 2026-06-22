@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input, Textarea } from "@/components/ui/input";
+import { Notice } from "@/components/ui/notice";
 import { Skeleton } from "@/components/ui/skeleton";
 import { normalizeApiError } from "@/lib/api/errors";
 import type { ChangedFileInput, TestRecommendation } from "@/lib/api/types";
@@ -190,9 +191,9 @@ export function TestRecommendationsPage({ repositoryId }: { repositoryId: number
           </form>
 
           {error ? (
-            <p className="mt-4 rounded-md border border-danger/20 bg-danger/10 px-3 py-2 text-sm text-danger">
+            <Notice className="mt-4" tone="danger">
               {error}
-            </p>
+            </Notice>
           ) : null}
         </CardContent>
       </Card>

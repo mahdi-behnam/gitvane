@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input, Textarea } from "@/components/ui/input";
+import { Notice } from "@/components/ui/notice";
 import { Skeleton } from "@/components/ui/skeleton";
 import { normalizeApiError } from "@/lib/api/errors";
 import type {
@@ -303,11 +304,7 @@ export function ImpactAnalysisPage({ repositoryId }: { repositoryId: number }) {
               </div>
             </div>
 
-            {error ? (
-              <p className="rounded-md border border-danger/20 bg-danger/10 px-3 py-2 text-sm text-danger">
-                {error}
-              </p>
-            ) : null}
+            {error ? <Notice tone="danger">{error}</Notice> : null}
 
             <div className="flex flex-wrap gap-2">
               <Button
@@ -406,9 +403,9 @@ function ImpactResults({ response }: { response: ImpactAnalyzeResponse }) {
             <h2 className="text-sm font-semibold">Evidence summary</h2>
           </CardHeader>
           <CardContent>
-            <p className="mb-3 rounded-md border border-warning/20 bg-warning/10 px-3 py-2 text-sm text-warning">
+            <Notice className="mb-3" tone="warning">
               LLM explanations summarize computed evidence and do not score predictions.
-            </p>
+            </Notice>
             <p className="text-sm leading-6 text-muted">{response.llm_explanation}</p>
           </CardContent>
         </Card>
@@ -600,7 +597,7 @@ function RiskSummary({ files }: { files: Record<string, unknown>[] }) {
         <div className="space-y-2">
           {files.map((file, index) => (
             <div
-              className="rounded-md border border-warning/20 bg-warning/10 px-3 py-2 text-sm text-warning"
+              className="rounded-md border border-warning/20 bg-warning/10 px-3 py-2 text-sm leading-6 text-warning"
               key={index}
             >
               {String(file.path ?? "Unknown file")}

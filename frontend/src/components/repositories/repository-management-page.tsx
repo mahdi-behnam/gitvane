@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Notice } from "@/components/ui/notice";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -223,11 +224,7 @@ function RepositoryRowActions({ repository }: { repository: Repository }) {
               Delete {repository.name} from RepoLens and ask the backend to remove its
               local clone.
             </p>
-            {deleteError ? (
-              <p className="rounded-md border border-danger/20 bg-danger/10 px-3 py-2 text-sm text-danger">
-                {deleteError}
-              </p>
-            ) : null}
+            {deleteError ? <Notice tone="danger">{deleteError}</Notice> : null}
             <div className="flex justify-end gap-2">
               <Button
                 onClick={() => setDeleteOpen(false)}
