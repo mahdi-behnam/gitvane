@@ -323,18 +323,25 @@ function RiskSummary({
         <CardContent>
           <div className="h-64 min-w-0">
             <ResponsiveContainer height="100%" minWidth={300} width="100%">
-              <BarChart data={chartData}>
+              <BarChart
+                data={chartData}
+                margin={{ bottom: 0, left: -12, right: 8, top: 8 }}
+              >
                 <CartesianGrid stroke="rgb(var(--color-border))" vertical={false} />
                 <XAxis
+                  axisLine={false}
                   dataKey="label"
                   fontSize={12}
                   stroke="rgb(var(--color-muted))"
+                  tickMargin={8}
                   tickLine={false}
                 />
                 <YAxis
                   allowDecimals={false}
+                  axisLine={false}
                   fontSize={12}
                   stroke="rgb(var(--color-muted))"
+                  tickMargin={8}
                   tickLine={false}
                 />
                 <Tooltip
@@ -344,8 +351,10 @@ function RiskSummary({
                     borderRadius: 8,
                     color: "rgb(var(--color-foreground))",
                   }}
+                  cursor={{ fill: "rgb(var(--color-panel-muted))" }}
                 />
                 <Bar
+                  barSize={36}
                   dataKey="count"
                   fill="rgb(var(--color-chart-b))"
                   radius={[4, 4, 0, 0]}

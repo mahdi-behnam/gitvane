@@ -3,7 +3,9 @@
 import {
   Background,
   Controls,
+  MarkerType,
   MiniMap,
+  Position,
   ReactFlow,
   type Edge,
   type Node,
@@ -279,18 +281,22 @@ export function GraphExplorerPage({ repositoryId }: { repositoryId: number }) {
               <ReactFlow
                 edges={flowEdges}
                 fitView
+                fitViewOptions={{ padding: 0.24 }}
                 nodes={flowNodes}
                 nodesDraggable
                 onNodeClick={(_event, node) => setSelectedNodeId(Number(node.id))}
               >
                 <Background color="rgb(var(--color-border))" gap={24} />
                 <MiniMap
+                  className="border-l border-t border-border bg-panel"
                   maskColor="rgb(var(--color-panel) / 0.72)"
+                  nodeBorderRadius={8}
                   nodeColor={(node) =>
                     node.data?.isTest
                       ? "rgb(var(--color-success))"
                       : "rgb(var(--color-primary))"
                   }
+                  nodeStrokeColor="rgb(var(--color-border))"
                   pannable
                   zoomable
                 />
@@ -344,20 +350,23 @@ function buildFlowNodes(nodes: GraphNode[], selectedNodeId: number | null): Node
         x: column * 260,
         y: row * 150,
       },
+      sourcePosition: Position.Right,
       style: {
         background: node.is_test
           ? "rgb(var(--color-success) / 0.08)"
-          : "rgb(var(--color-panel))",
-        border: selected
-          ? "2px solid rgb(var(--color-primary))"
-          : "1px solid rgb(var(--color-border))",
+          : "rgb(var(--color-graph-node) / 0.32)",
+        border: "1px solid rgb(var(--color-border))",
         borderRadius: 8,
+        boxShadow: selected ? "0 0 0 2px rgb(var(--color-primary) / 0.22)" : "none",
         color: "rgb(var(--color-foreground))",
         fontFamily: "Geist Mono, SF Mono, monospace",
         fontSize: 11,
+        lineHeight: 1.45,
+        minHeight: 60,
         padding: 10,
         width: 220,
       },
+      targetPosition: Position.Left,
     };
   });
 }
@@ -370,12 +379,27 @@ function buildFlowEdges(edges: GraphEdge[]): Edge[] {
     },
     id: String(edge.id),
     label: edge.edge_type,
+    labelBgPadding: [8, 4],
+    labelBgStyle: {
+      fill: "rgb(var(--color-panel))",
+      fillOpacity: 0.92,
+    },
+    labelStyle: {
+      fill: "rgb(var(--color-muted))",
+      fontSize: 10,
+      fontWeight: 600,
+    },
+    markerEnd: {
+      color: "rgb(var(--color-graph-edge))",
+      type: MarkerType.ArrowClosed,
+    },
     source: String(edge.source_file_id),
     style: {
       stroke: "rgb(var(--color-graph-edge))",
       strokeWidth: Math.max(1, edge.confidence * 2),
     },
     target: String(edge.target_file_id),
+    type: "smoothstep",
   }));
 }
 

@@ -390,19 +390,26 @@ function EvaluationMetrics({ summary }: { summary: Record<string, unknown> }) {
         <CardContent>
           <div className="h-64 min-w-0">
             <ResponsiveContainer height="100%" minWidth={300} width="100%">
-              <BarChart data={chartData.slice(0, 8)}>
+              <BarChart
+                data={chartData.slice(0, 8)}
+                margin={{ bottom: 0, left: -12, right: 8, top: 8 }}
+              >
                 <CartesianGrid stroke="rgb(var(--color-border))" vertical={false} />
                 <XAxis
+                  axisLine={false}
                   dataKey="label"
                   fontSize={12}
                   interval={0}
                   stroke="rgb(var(--color-muted))"
+                  tickMargin={8}
                   tickLine={false}
                 />
                 <YAxis
+                  axisLine={false}
                   domain={[0, 1]}
                   fontSize={12}
                   stroke="rgb(var(--color-muted))"
+                  tickMargin={8}
                   tickLine={false}
                 />
                 <Tooltip
@@ -412,8 +419,10 @@ function EvaluationMetrics({ summary }: { summary: Record<string, unknown> }) {
                     borderRadius: 8,
                     color: "rgb(var(--color-foreground))",
                   }}
+                  cursor={{ fill: "rgb(var(--color-panel-muted))" }}
                 />
                 <Bar
+                  barSize={32}
                   dataKey="value"
                   fill="rgb(var(--color-chart-a))"
                   radius={[4, 4, 0, 0]}
