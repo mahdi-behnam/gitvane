@@ -34,6 +34,35 @@ Current backend capabilities:
   analysis, test recommendations, risk ranking, graph exploration, and
   evaluation reports.
 
+## Dashboard Preview
+
+Here is a look at the RepoLens Next.js dashboard in action, showcasing its core capabilities:
+
+### 1. Repository Management & Indexing
+Manage your repositories, track indexing status, and see high-level metadata (branches, latest commits, files).
+<!-- The repository management dashboard screenshot will be put here -->
+<!-- ![Repository Management Dashboard](docs/assets/repo_dashboard.png) -->
+
+### 2. Semantic Code Search
+Search your codebase using natural language queries (e.g., *"Where are API keys loaded?"*) powered by vector embeddings.
+<!-- The semantic search UI screenshot will be put here -->
+<!-- ![Semantic Search UI](docs/assets/semantic_search.png) -->
+
+### 3. Change Impact & Test Recommendation
+Analyze the potential impact of proposed file edits, find dependency-linked risk areas, and get specific recommendations on which tests to run.
+<!-- The change impact analysis screenshot will be put here -->
+<!-- ![Change Impact Analysis](docs/assets/impact_analysis.png) -->
+
+### 4. Interactive Graph Explorer
+Visualize your code structure, import maps, and dependencies as an interactive file-level node graph.
+<!-- The interactive dependency graph explorer screenshot will be put here -->
+<!-- ![Dependency Graph Explorer](docs/assets/graph_explorer.png) -->
+
+### 5. Historical Evaluation Reports
+Run and compare prediction performance benchmarks (Precision, Recall, MRR, NDCG) against actual historical Git commits.
+<!-- The historical evaluation report screenshot will be put here -->
+<!-- ![Historical Evaluation Report](docs/assets/evaluation_report.png) -->
+
 ## Architecture
 
 ```mermaid
