@@ -16,12 +16,12 @@ export function ThemeToggle() {
 
   return (
     <TooltipProvider delayDuration={200}>
-      <div className="flex items-center rounded-md border border-border bg-panel p-1">
+      <div className="flex items-center rounded-md border border-border bg-panel p-0.5">
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
               aria-label="Toggle theme"
-              className="border-transparent"
+              className="size-8 border-transparent"
               onClick={toggleMode}
               size="icon"
               type="button"
@@ -37,7 +37,7 @@ export function ThemeToggle() {
             <Button
               aria-label="Use system theme"
               aria-pressed={mode === "system"}
-              className="border-transparent"
+              className="size-8 border-transparent"
               onClick={() => setMode("system")}
               size="icon"
               type="button"
