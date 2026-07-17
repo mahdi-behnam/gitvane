@@ -60,7 +60,11 @@ class LocalSentenceTransformerProvider:
             except Exception:
                 device = None
 
-        self._model = SentenceTransformer(self._model_name, device=device)
+        self._model = SentenceTransformer(
+            self._model_name,
+            device=device,
+            model_kwargs={"attn_implementation": "eager"}
+        )
         return self._model
 
     def _as_float_lists(self, embeddings: Any) -> list[list[float]]:
