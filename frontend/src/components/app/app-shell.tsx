@@ -27,8 +27,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useAppSelector } from "@/store/hooks";
-import { useGetRepositoryQuery } from "@/store/api/repolensApi";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { repolensApi, useGetRepositoryQuery } from "@/store/api/repolensApi";
 import { cn } from "@/lib/utils";
 
 const navigationItems = [
@@ -94,6 +94,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     (state) => state.repositorySelection.activeRepositoryId,
   );
   const activeRepository = useGetRepositoryQuery(activeRepositoryId ?? skipToken);
+  const dispatch = useAppDispatch();
 
   return (
     <TooltipProvider delayDuration={200}>
@@ -140,6 +141,18 @@ export function AppShell({ children }: { children: ReactNode }) {
                     <TooltipTrigger asChild>
                       <Button
                         aria-label="Refresh current view"
+                        onClick={() => {
+                          dispatch(
+                            repolensApi.util.invalidateTags([
+                              "Evaluation",
+                              "Graph",
+                              "Impact",
+                              "IndexStatus",
+                              "Repository",
+                              "Risk",
+                            ]),
+                          );
+                        }}
                         size="icon"
                         type="button"
                       >
