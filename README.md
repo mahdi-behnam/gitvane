@@ -194,9 +194,13 @@ docker compose exec backend alembic upgrade head
 The API is available at `http://localhost:8000`; the frontend is available at
 `http://localhost:3000`.
 
-GPU support is optional. Docker Compose is configured for CPU-compatible local
-development. Host execution can use CUDA automatically when PyTorch and the
-local GPU setup are available and `USE_CUDA_IF_AVAILABLE=true`.
+GPU support is optional. By default, Docker Compose runs in CPU-only mode. If you have an NVIDIA GPU and want the container to use it, you can run the stack using the GPU override file:
+
+```powershell
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build -d
+```
+
+*(Note: This requires the NVIDIA Container Toolkit installed on your host machine. If run without the GPU configuration override, the container will automatically and gracefully fall back to CPU-only execution).*
 
 ## Tests And Checks
 
