@@ -14,7 +14,6 @@ type FormState = {
   branch: string;
   cloneUrl: string;
   indexNow: boolean;
-  localPath: string;
   name: string;
 };
 
@@ -22,7 +21,6 @@ const initialState: FormState = {
   branch: "",
   cloneUrl: "",
   indexNow: false,
-  localPath: "",
   name: "",
 };
 
@@ -44,16 +42,15 @@ export function AddRepositoryDialog() {
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (!form.cloneUrl.trim() && !form.localPath.trim()) {
-      setClientError("Provide a clone URL or a local path.");
+    if (!form.cloneUrl.trim()) {
+      setClientError("Provide a clone URL.");
       return;
     }
 
     const body: RepositoryCreate = {
       branch: form.branch.trim() || null,
-      clone_url: form.cloneUrl.trim() || null,
+      clone_url: form.cloneUrl.trim(),
       index_now: form.indexNow,
-      local_path: form.localPath.trim() || null,
       name: form.name.trim(),
     };
 
@@ -91,35 +88,20 @@ export function AddRepositoryDialog() {
             value={form.name}
           />
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <label
-                className="block text-sm font-medium"
-                htmlFor={`${formId}-clone-url`}
-              >
-                Clone URL
-              </label>
-              <Input
-                id={`${formId}-clone-url`}
-                onChange={(event) => updateForm("cloneUrl", event.target.value)}
-                placeholder="https://github.com/org/repo.git"
-                value={form.cloneUrl}
-              />
-            </div>
-            <div className="space-y-2">
-              <label
-                className="block text-sm font-medium"
-                htmlFor={`${formId}-local-path`}
-              >
-                Local path
-              </label>
-              <Input
-                id={`${formId}-local-path`}
-                onChange={(event) => updateForm("localPath", event.target.value)}
-                placeholder="D:\\Dev\\Repos\\repolens"
-                value={form.localPath}
-              />
-            </div>
+          <div className="space-y-2">
+            <label
+              className="block text-sm font-medium"
+              htmlFor={`${formId}-clone-url`}
+            >
+              Clone URL
+            </label>
+            <Input
+              id={`${formId}-clone-url`}
+              onChange={(event) => updateForm("cloneUrl", event.target.value)}
+              placeholder="https://github.com/org/repo.git"
+              required
+              value={form.cloneUrl}
+            />
           </div>
 
           <div className="space-y-2">

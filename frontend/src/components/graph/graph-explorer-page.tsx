@@ -253,7 +253,7 @@ export function GraphExplorerPage({ repositoryId }: { repositoryId: number }) {
           ) : null}
           {largeGraph ? (
             <Notice className="mt-4" tone="warning">
-              The backend returned the current node limit. Narrow the graph with filters
+              Current node limit reached. Narrow the graph with filters
               or increase the limit if you need more context.
             </Notice>
           ) : null}
@@ -264,7 +264,7 @@ export function GraphExplorerPage({ repositoryId }: { repositoryId: number }) {
         <GraphLoadingState />
       ) : subgraph.isSuccess && subgraph.data.nodes.length === 0 ? (
         <EmptyState
-          description="The backend did not return graph nodes for these filters."
+          description="No graph nodes found for these filters."
           icon={<GitGraph aria-hidden="true" className="size-5" />}
           title="No graph nodes"
         />

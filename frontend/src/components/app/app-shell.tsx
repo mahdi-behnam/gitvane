@@ -9,7 +9,6 @@ import {
   Menu,
   RefreshCw,
   Search,
-  Server,
   Settings,
   ShieldAlert,
   Waypoints,
@@ -20,7 +19,6 @@ import type { ReactNode } from "react";
 import { skipToken } from "@reduxjs/toolkit/query";
 import { Logo } from "@/components/app/logo";
 import { ThemeToggle } from "@/components/app/theme-toggle";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
 import {
@@ -30,8 +28,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useAppSelector } from "@/store/hooks";
-import { useGetHealthQuery, useGetRepositoryQuery } from "@/store/api/repolensApi";
-import { env } from "@/lib/env";
+import { useGetRepositoryQuery } from "@/store/api/repolensApi";
 import { cn } from "@/lib/utils";
 
 const navigationItems = [
@@ -89,20 +86,7 @@ function NavigationLinks({ onNavigate }: { onNavigate?: () => void }) {
   );
 }
 
-function BackendStatus() {
-  const health = useGetHealthQuery();
-  const healthy = health.data?.status === "healthy";
 
-  return (
-    <div className="hidden items-center gap-2 rounded-md border border-border bg-panel px-3 py-2 text-xs text-muted md:flex">
-      <Server aria-hidden="true" className="size-4" />
-      <span>{health.isLoading ? "Checking backend" : "Backend"}</span>
-      <Badge tone={healthy ? "success" : health.error ? "danger" : "neutral"}>
-        {healthy ? "Healthy" : health.error ? "Offline" : "Manual"}
-      </Badge>
-    </div>
-  );
-}
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -152,7 +136,6 @@ export function AppShell({ children }: { children: ReactNode }) {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <BackendStatus />
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
@@ -199,9 +182,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
             <main className="px-4 py-6 sm:px-6 lg:px-8">{children}</main>
 
-            <footer className="border-t border-border px-4 py-4 font-mono text-xs text-muted sm:px-6 lg:px-8">
-              API base URL: {env.NEXT_PUBLIC_API_BASE_URL}
-            </footer>
+
           </div>
         </div>
       </div>

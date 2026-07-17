@@ -8,9 +8,8 @@ export type HealthResponse = {
 
 export type RepositoryCreate = {
   branch?: string | null;
-  clone_url?: string | null;
+  clone_url: string;
   index_now?: boolean;
-  local_path?: string | null;
   name: string;
 };
 
@@ -37,7 +36,6 @@ export type RepositoryList = {
 };
 
 export type IndexRepositoryRequest = {
-  max_commits?: number | null;
   ref?: string | null;
 };
 

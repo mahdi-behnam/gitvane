@@ -80,7 +80,6 @@ describe("OverviewDashboard", () => {
     expect(await screen.findByText("Recent repositories")).toBeInTheDocument();
     expect(screen.getByText("repolens")).toBeInTheDocument();
     await waitFor(() => expect(screen.getAllByText("18").length).toBeGreaterThan(0));
-    expect(screen.getByText("44")).toBeInTheDocument();
     expect(screen.getByText("Review risk")).toBeInTheDocument();
     expect(screen.getAllByText("Open evaluation").length).toBeGreaterThan(0);
     expect(await screen.findByText("Risk summary")).toBeInTheDocument();

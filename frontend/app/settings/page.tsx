@@ -6,7 +6,6 @@ import { useTheme } from "@/components/theme/theme-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { env } from "@/lib/env";
 
 const themeOptions = [
   { icon: Monitor, label: "System", value: "system" as const },
@@ -24,18 +23,7 @@ export default function SettingsPage() {
         <h1 className="mt-3 text-3xl font-semibold md:text-4xl">Settings</h1>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <h2 className="text-sm font-semibold">API base URL</h2>
-          </CardHeader>
-          <CardContent>
-            <code className="block overflow-x-auto rounded-md border border-border bg-panel-muted px-3 py-2 font-mono text-xs text-muted">
-              {env.NEXT_PUBLIC_API_BASE_URL}
-            </code>
-          </CardContent>
-        </Card>
-
+      <div className="max-w-2xl">
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between gap-3">

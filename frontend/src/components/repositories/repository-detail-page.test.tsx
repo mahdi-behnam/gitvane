@@ -113,13 +113,10 @@ describe("RepositoryDetailPage", () => {
     fireEvent.change(screen.getByLabelText("Ref"), {
       target: { value: "development" },
     });
-    fireEvent.change(screen.getByLabelText("Max commits"), {
-      target: { value: "50" },
-    });
     fireEvent.click(screen.getByRole("button", { name: "Run index" }));
 
     await waitFor(() => expect(bodies).toHaveLength(1));
-    expect(bodies[0]).toEqual({ max_commits: 50, ref: "development" });
+    expect(bodies[0]).toEqual({ ref: "development" });
     expect(await screen.findByText(/Indexed 10 files/)).toBeInTheDocument();
   });
 

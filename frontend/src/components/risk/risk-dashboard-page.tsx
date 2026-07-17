@@ -202,13 +202,13 @@ export function RiskDashboardPage({ repositoryId }: { repositoryId: number }) {
         </>
       ) : risk.isSuccess ? (
         <EmptyState
-          description="The backend did not return risk-ranked files for these filters."
+          description="No risk-ranked files found for these filters."
           icon={<ShieldAlert aria-hidden="true" className="size-5" />}
           title="No risk results"
         />
       ) : (
         <EmptyState
-          description="Risk data will load from the repository risk endpoint."
+          description="Risk data will load once the repository metadata has been processed."
           icon={<ShieldAlert aria-hidden="true" className="size-5" />}
           title="Risk ranking"
         />

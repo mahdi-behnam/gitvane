@@ -13,11 +13,6 @@ class IndexRepositoryRequest(BaseModel):
         None,
         description="Optional branch, tag, or commit to checkout before indexing.",
     )
-    max_commits: int | None = Field(
-        None,
-        ge=0,
-        description="Optional recent commit limit for metadata mining.",
-    )
 
 
 class IndexRepositoryResponse(BaseModel):

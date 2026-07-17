@@ -202,7 +202,7 @@ export function TestRecommendationsPage({ repositoryId }: { repositoryId: number
         <RecommendationLoadingState />
       ) : recommendationState.isSuccess && recommendations.length === 0 ? (
         <EmptyState
-          description="The backend did not return any recommended tests for these files."
+          description="No recommended tests found for these files."
           icon={<FlaskConical aria-hidden="true" className="size-5" />}
           title="No recommendations"
         />
@@ -282,7 +282,7 @@ function RecommendationCard({
               </h3>
             </div>
             <p className="mt-2 text-sm leading-6 text-muted">
-              {recommendation.reason ?? "No reason returned by the backend."}
+              {recommendation.reason ?? "No reason provided."}
             </p>
           </div>
           <Metric label="Score" value={recommendation.score.toFixed(3)} />

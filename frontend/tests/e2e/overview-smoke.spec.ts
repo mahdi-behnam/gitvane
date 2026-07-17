@@ -82,8 +82,6 @@ test.describe("overview smoke", () => {
     await expect(
       page.getByRole("heading", { name: "RepoLens dashboard" }),
     ).toBeVisible();
-    await expect(page.getByText("Backend").first()).toBeVisible();
-    await expect(page.getByText("Healthy").first()).toBeVisible();
     await expect(page.getByText("Recent repositories")).toBeVisible();
     await expect(page.getByText("Risk summary")).toBeVisible();
     await expect(page.getByText("Evaluation summary")).toBeVisible();

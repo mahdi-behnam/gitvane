@@ -23,7 +23,6 @@ import { normalizeApiError } from "@/lib/api/errors";
 import type { Repository, RiskFile } from "@/lib/api/types";
 import { formatDateTime } from "@/lib/format";
 import {
-  useGetHealthQuery,
   useGetIndexStatusQuery,
   useGetRepositoryRiskQuery,
   useListRepositoriesQuery,
@@ -31,7 +30,6 @@ import {
 
 export function OverviewDashboard() {
   const repositories = useListRepositoriesQuery();
-  const health = useGetHealthQuery();
   const repositoryItems = repositories.data?.items ?? [];
   const firstRepository = repositoryItems[0];
   const indexStatus = useGetIndexStatusQuery(firstRepository?.id ?? skipToken);
@@ -92,7 +90,7 @@ export function OverviewDashboard() {
         />
       </section>
 
-      <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
+      <div>
         {repositories.isLoading ? (
           <Card className="p-8">
             <Skeleton className="h-5 w-48" />
@@ -122,43 +120,6 @@ export function OverviewDashboard() {
         ) : (
           <RecentRepositories repositories={repositoryItems} />
         )}
-
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between gap-3">
-              <h2 className="text-sm font-semibold">Backend status</h2>
-              <Badge tone={health.data?.status === "healthy" ? "success" : "neutral"}>
-                {health.isLoading
-                  ? "Checking"
-                  : health.data?.status === "healthy"
-                    ? "Healthy"
-                    : "Manual"}
-              </Badge>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <dl className="space-y-4 text-sm">
-              <div className="flex items-center justify-between gap-4">
-                <dt className="text-muted">Repositories</dt>
-                <dd className="font-semibold">{repositories.data?.total ?? 0}</dd>
-              </div>
-              <div className="flex items-center justify-between gap-4">
-                <dt className="text-muted">Indexed files</dt>
-                <dd className="font-semibold">{indexStatus.data?.file_count ?? 0}</dd>
-              </div>
-              <div className="flex items-center justify-between gap-4">
-                <dt className="text-muted">Symbols</dt>
-                <dd className="font-semibold">{indexStatus.data?.symbol_count ?? 0}</dd>
-              </div>
-              <div className="flex items-center justify-between gap-4">
-                <dt className="text-muted">Database</dt>
-                <dd className="font-mono text-xs text-muted">
-                  {health.data?.database ?? "Unknown"}
-                </dd>
-              </div>
-            </dl>
-          </CardContent>
-        </Card>
       </div>
 
       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">

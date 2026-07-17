@@ -51,7 +51,6 @@ export function RepositoryDetailPage({ repositoryId }: { repositoryId: number })
   const [deleteRepository, deleteState] = useDeleteRepositoryMutation();
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [ref, setRef] = useState("");
-  const [maxCommits, setMaxCommits] = useState("");
   const dispatch = useAppDispatch();
   const router = useRouter();
   const formId = useId();
@@ -76,7 +75,6 @@ export function RepositoryDetailPage({ repositoryId }: { repositoryId: number })
 
     await indexRepository({
       body: {
-        max_commits: maxCommits ? Number(maxCommits) : null,
         ref: ref.trim() || null,
       },
       repositoryId: validRepositoryId,
@@ -151,7 +149,7 @@ export function RepositoryDetailPage({ repositoryId }: { repositoryId: number })
             {repositoryData.name}
           </h1>
           <p className="mt-3 max-w-3xl truncate font-mono text-sm text-muted">
-            {repositoryData.local_path ?? repositoryData.clone_url ?? "No source"}
+            {repositoryData.clone_url ?? "No source"}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -277,7 +275,7 @@ export function RepositoryDetailPage({ repositoryId }: { repositoryId: number })
         </CardHeader>
         <CardContent>
           <form
-            className="grid gap-4 lg:grid-cols-[1fr_180px_auto]"
+            className="grid gap-4 lg:grid-cols-[1fr_auto]"
             onSubmit={handleIndex}
           >
             <div className="space-y-2">
@@ -289,21 +287,6 @@ export function RepositoryDetailPage({ repositoryId }: { repositoryId: number })
                 onChange={(event) => setRef(event.target.value)}
                 placeholder="branch, tag, or commit"
                 value={ref}
-              />
-            </div>
-            <div className="space-y-2">
-              <label
-                className="block text-sm font-medium"
-                htmlFor={`${formId}-max-commits`}
-              >
-                Max commits
-              </label>
-              <Input
-                id={`${formId}-max-commits`}
-                min={0}
-                onChange={(event) => setMaxCommits(event.target.value)}
-                type="number"
-                value={maxCommits}
               />
             </div>
             <div className="flex items-end">

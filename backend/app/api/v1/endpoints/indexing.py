@@ -27,7 +27,7 @@ async def index_repository(
             db=db,
             repository_id=repository_id,
             ref=body.ref,
-            max_commits=body.max_commits,
+            max_commits=None,
         )
     except RepositoryNotFoundError as exc:
         raise HTTPException(

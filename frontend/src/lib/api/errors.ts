@@ -39,7 +39,7 @@ export function normalizeApiError(
     if (error.status === "FETCH_ERROR") {
       return {
         kind: "offline",
-        message: "Backend is offline or unreachable.",
+        message: "The service is offline or unreachable.",
         status: error.status,
       };
     }
@@ -47,7 +47,7 @@ export function normalizeApiError(
     if (error.status === "PARSING_ERROR" || error.status === "TIMEOUT_ERROR") {
       return {
         kind: "unknown",
-        message: "The backend response could not be read.",
+        message: "The response could not be read.",
         status: error.status,
       };
     }
@@ -81,7 +81,7 @@ export function normalizeApiError(
       return {
         detail: data?.detail,
         kind: "server",
-        message: "The backend returned an unexpected error.",
+        message: "An unexpected error occurred.",
         status,
       };
     }

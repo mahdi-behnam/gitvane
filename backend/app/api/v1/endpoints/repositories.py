@@ -32,7 +32,7 @@ async def create_repository(
             name=body.name,
             clone_url=body.clone_url or "",
             branch=body.branch,
-            local_path=body.local_path,
+            local_path=None,
             index_now=body.index_now,
         )
         return RepositoryOut.model_validate(repo)

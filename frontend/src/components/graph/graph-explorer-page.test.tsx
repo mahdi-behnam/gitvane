@@ -170,7 +170,7 @@ describe("GraphExplorerPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Apply" }));
 
     expect(
-      await screen.findByText(/backend returned the current node limit/i),
+      await screen.findByText(/current node limit reached/i),
     ).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText("Node search"), {

@@ -130,7 +130,7 @@ describe("RepositoryManagementPage", () => {
     ).toBeInTheDocument();
   });
 
-  it("submits clone URL and local path variants", async () => {
+  it("submits clone URL when adding repository", async () => {
     const bodies: unknown[] = [];
 
     server.use(
@@ -157,31 +157,11 @@ describe("RepositoryManagementPage", () => {
     );
 
     await waitFor(() => expect(bodies).toHaveLength(1));
-
-    fireEvent.click(screen.getByRole("button", { name: "Add repository" }));
-    fireEvent.change(screen.getByLabelText("Name"), {
-      target: { value: "local-repo" },
+    expect(bodies[0]).toEqual({
+      branch: null,
+      clone_url: "https://github.com/mahdi-behnam/repolens.git",
+      index_now: false,
+      name: "repolens",
     });
-    fireEvent.change(screen.getByLabelText("Local path"), {
-      target: { value: "D:\\Dev\\Repos\\repolens" },
-    });
-    fireEvent.click(
-      within(screen.getByRole("dialog", { name: "Add repository" })).getByRole(
-        "button",
-        { name: "Add repository" },
-      ),
-    );
-
-    await waitFor(() => expect(bodies).toHaveLength(2));
-    expect(bodies).toEqual([
-      expect.objectContaining({
-        clone_url: "https://github.com/mahdi-behnam/repolens.git",
-        local_path: null,
-      }),
-      expect.objectContaining({
-        clone_url: null,
-        local_path: "D:\\Dev\\Repos\\repolens",
-      }),
-    ]);
   });
 });

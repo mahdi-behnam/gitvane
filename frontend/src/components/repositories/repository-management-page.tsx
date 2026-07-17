@@ -127,7 +127,7 @@ export function RepositoryManagementPage() {
                     <TableCell colSpan={5}>
                       <EmptyState
                         className="m-4 border-0 bg-panel-muted"
-                        description="Add a repository with a clone URL or local path to start indexing code."
+                        description="Add a repository with a clone URL to start indexing code."
                         title="No repository records"
                       />
                     </TableCell>
@@ -139,7 +139,7 @@ export function RepositoryManagementPage() {
                       <div>
                         <p className="font-medium">{repository.name}</p>
                         <p className="mt-1 max-w-md truncate font-mono text-xs text-muted">
-                          {repository.local_path ?? repository.clone_url ?? "No source"}
+                          {repository.clone_url ?? "No source"}
                         </p>
                       </div>
                     </TableCell>
