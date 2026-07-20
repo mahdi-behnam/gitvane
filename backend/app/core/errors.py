@@ -60,8 +60,14 @@ def setup_error_handlers(app: FastAPI) -> None:
             f"RepoLens error occurred during request {request.url.path}: {exc.message}",
             exc_info=True,
         )
+        status_code = status.HTTP_400_BAD_REQUEST
+        if isinstance(exc, AuthenticationError):
+            status_code = status.HTTP_401_UNAUTHORIZED
+        elif isinstance(exc, (AuthorizationError, CSRFError)):
+            status_code = status.HTTP_403_FORBIDDEN
+
         return JSONResponse(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=status_code,
             content={"detail": exc.message, "error_type": exc.__class__.__name__},
         )
 

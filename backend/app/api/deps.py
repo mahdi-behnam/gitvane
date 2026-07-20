@@ -1,3 +1,11 @@
+from fastapi import Depends
+from fastapi.security import OAuth2PasswordBearer
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+
+from app.core.errors import AuthenticationError
+from app.core.security_utils import decode_access_token
+from app.db.models import User
 from app.db.session import get_db
 from app.services.evaluation_service import EvaluationService
 from app.services.git_service import GitService
@@ -8,6 +16,32 @@ from app.services.repository_service import RepositoryService
 from app.services.risk_service import RiskService
 from app.services.semantic_search_service import SemanticSearchService
 from app.services.test_recommendation_service import TestRecommendationService
+
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/auth/login", auto_error=False)
+
+
+async def get_current_user(
+    db: AsyncSession = Depends(get_db),
+    token: str | None = Depends(oauth2_scheme)
+) -> User:
+    if not token:
+        raise AuthenticationError("Not authenticated")
+    try:
+        payload = decode_access_token(token)
+        user_id_str = payload.get("sub")
+        if not user_id_str:
+            raise AuthenticationError("Invalid or expired credentials")
+        user_id = int(user_id_str)
+    except (ValueError, TypeError):
+        raise AuthenticationError("Invalid or expired credentials")
+
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalars().first()
+    if not user:
+        raise AuthenticationError("User not found")
+    return user
+
 
 
 def get_git_service() -> GitService:
@@ -57,6 +91,7 @@ def get_test_recommendation_service() -> TestRecommendationService:
 
 __all__ = [
     "get_db",
+    "get_current_user",
     "get_evaluation_service",
     "get_git_service",
     "get_graph_service",

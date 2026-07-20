@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.router import api_router
 from app.core.config import settings
+from app.core.csrf_middleware import CSRFMiddleware
 from app.core.errors import setup_error_handlers
 from app.core.logging import setup_logging
 
@@ -77,6 +78,8 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allow_headers=["*"],
 )
+
+app.add_middleware(CSRFMiddleware)
 
 # Set up error exception handlers
 setup_error_handlers(app)
