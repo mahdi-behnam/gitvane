@@ -39,6 +39,17 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             logger.error(f"Failed to run database migrations: {e}")
             # Raise exception to prevent application from booting with out-of-sync schema
             raise RuntimeError("Migration failure during startup") from e
+
+        # Warm up embedding model to avoid cold-start latency for the first user request
+        if settings.EMBEDDING_PROVIDER.lower() == "local":
+            logger.info("Warming up local embedding model...")
+            try:
+                from app.embeddings.service import EmbeddingService
+                service = EmbeddingService()
+                service.provider._load_model()
+                logger.info("Local embedding model warmed up successfully.")
+            except Exception as e:
+                logger.error(f"Failed to warm up local embedding model: {e}")
     else:
         logger.info("Skipping database migrations in test environment.")
 
