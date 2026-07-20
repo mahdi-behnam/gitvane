@@ -169,6 +169,7 @@ class Symbol(Base):
             "start_line",
             unique=True,
         ),
+        Index("idx_symbols_file_id", "file_id"),
     )
 
     # Relationships
@@ -207,6 +208,12 @@ class DependencyEdge(Base):
         DateTime(timezone=True), server_default=func.now()
     )
 
+    # Constraints & Indices
+    __table_args__ = (
+        Index("idx_dependency_edges_source_file_id", "source_file_id"),
+        Index("idx_dependency_edges_target_file_id", "target_file_id"),
+    )
+
     # Relationships
     repository = relationship("Repository", back_populates="dependency_edges")
     source_file = relationship("CodeFile", foreign_keys=[source_file_id])
@@ -238,6 +245,11 @@ class CodeChunk(Base):
         DateTime(timezone=True), server_default=func.now()
     )
 
+    # Constraints & Indices
+    __table_args__ = (
+        Index("idx_code_chunks_file_id", "file_id"),
+    )
+
     # Relationships
     repository = relationship("Repository", back_populates="code_chunks")
     code_file = relationship("CodeFile", back_populates="code_chunks")
@@ -260,6 +272,11 @@ class CodeEmbedding(Base):
     embedding: Mapped[Vector] = mapped_column(Vector(768), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
+    )
+
+    # Constraints & Indices
+    __table_args__ = (
+        Index("idx_code_embeddings_chunk_id", "chunk_id"),
     )
 
     # Relationships
