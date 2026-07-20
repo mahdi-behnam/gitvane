@@ -303,8 +303,14 @@ export function RepositoryDetailPage({ repositoryId }: { repositoryId: number })
           ) : null}
           {indexState.data ? (
             <Notice className="mt-4" tone="success">
-              Indexed {indexState.data.files_indexed} files and{" "}
-              {indexState.data.symbols_indexed} symbols.
+              {indexState.data.status === "indexing" ? (
+                "Indexing started in the background. Please refresh in a moment to see the latest counts."
+              ) : (
+                <>
+                  Indexed {indexState.data.files_indexed} files and{" "}
+                  {indexState.data.symbols_indexed} symbols.
+                </>
+              )}
             </Notice>
           ) : null}
         </CardContent>

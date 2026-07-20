@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from typing import Any, AsyncGenerator
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from fastapi.testclient import TestClient
 
@@ -14,48 +14,61 @@ async def _noop_db() -> AsyncGenerator[Any, None]:
     yield MagicMock()
 
 
-def test_index_repository_endpoint_success() -> None:
-    mock_svc = MagicMock()
-    mock_svc.index_repository = AsyncMock(
-        return_value=IndexRepositoryResponse(
-            repository_id=1,
-            status="indexed",
-            current_ref="abc123",
-            indexed_at=datetime(2024, 1, 1, tzinfo=timezone.utc),
-            files_indexed=2,
-            files_skipped=1,
-            symbols_indexed=3,
-            chunks_indexed=3,
-            embeddings_indexed=3,
-            dependency_edges_indexed=1,
-            commits_indexed=4,
-        )
-    )
+@patch("app.api.v1.endpoints.indexing.SessionLocal")
+@patch("app.api.v1.endpoints.indexing.IndexingService")
+def test_index_repository_endpoint_success(
+    mock_indexing_service_cls: MagicMock, mock_session_local_cls: MagicMock
+) -> None:
+    mock_db = MagicMock()
+    mock_repo = MagicMock()
+    mock_repo.id = 1
+    mock_repo.status = "ready"
+    mock_db.get = AsyncMock(return_value=mock_repo)
+    mock_db.commit = AsyncMock()
 
-    app.dependency_overrides[get_db] = _noop_db
-    app.dependency_overrides[get_indexing_service] = lambda: mock_svc
+    async def mock_get_db() -> AsyncGenerator[Any, None]:
+        yield mock_db
+
+    app.dependency_overrides[get_db] = mock_get_db
+
+    mock_async_db = MagicMock()
+    mock_session_local_cls.return_value.__aenter__.return_value = mock_async_db
+
+    mock_svc_instance = mock_indexing_service_cls.return_value
+    mock_svc_instance.index_repository = AsyncMock()
+
     try:
         client = TestClient(app)
         response = client.post(
             "/api/v1/repositories/1/index",
-            json={"ref": "main", "max_commits": 10},
+            json={"ref": "main"},
         )
     finally:
         app.dependency_overrides.clear()
 
-    assert response.status_code == 200
-    assert response.json()["status"] == "indexed"
-    mock_svc.index_repository.assert_awaited_once()
+    assert response.status_code == 202
+    assert response.json()["status"] == "indexing"
+    assert response.json()["repository_id"] == 1
+
+    assert mock_repo.status == "indexing"
+    mock_db.commit.assert_awaited_once()
+
+    mock_session_local_cls.assert_called_once()
+    mock_svc_instance.index_repository.assert_awaited_once_with(
+        db=mock_async_db,
+        repository_id=1,
+        ref="main",
+    )
 
 
 def test_index_repository_endpoint_not_found() -> None:
-    mock_svc = MagicMock()
-    mock_svc.index_repository = AsyncMock(
-        side_effect=RepositoryNotFoundError("Repository with id=99 does not exist")
-    )
+    mock_db = MagicMock()
+    mock_db.get = AsyncMock(return_value=None)
 
-    app.dependency_overrides[get_db] = _noop_db
-    app.dependency_overrides[get_indexing_service] = lambda: mock_svc
+    async def mock_get_db() -> AsyncGenerator[Any, None]:
+        yield mock_db
+
+    app.dependency_overrides[get_db] = mock_get_db
     try:
         client = TestClient(app)
         response = client.post("/api/v1/repositories/99/index", json={})
@@ -65,21 +78,41 @@ def test_index_repository_endpoint_not_found() -> None:
     assert response.status_code == 404
 
 
-def test_index_repository_endpoint_git_error() -> None:
-    mock_svc = MagicMock()
-    mock_svc.index_repository = AsyncMock(
+@patch("app.api.v1.endpoints.indexing.SessionLocal")
+@patch("app.api.v1.endpoints.indexing.IndexingService")
+def test_index_repository_endpoint_git_error(
+    mock_indexing_service_cls: MagicMock, mock_session_local_cls: MagicMock
+) -> None:
+    mock_db = MagicMock()
+    mock_repo = MagicMock()
+    mock_repo.id = 1
+    mock_repo.status = "ready"
+    mock_db.get = AsyncMock(return_value=mock_repo)
+    mock_db.commit = AsyncMock()
+
+    async def mock_get_db() -> AsyncGenerator[Any, None]:
+        yield mock_db
+
+    app.dependency_overrides[get_db] = mock_get_db
+
+    mock_async_db = MagicMock()
+    mock_session_local_cls.return_value.__aenter__.return_value = mock_async_db
+
+    mock_svc_instance = mock_indexing_service_cls.return_value
+    mock_svc_instance.index_repository = AsyncMock(
         side_effect=GitOperationError("Failed to open repository")
     )
 
-    app.dependency_overrides[get_db] = _noop_db
-    app.dependency_overrides[get_indexing_service] = lambda: mock_svc
     try:
         client = TestClient(app)
         response = client.post("/api/v1/repositories/1/index", json={})
     finally:
         app.dependency_overrides.clear()
 
-    assert response.status_code == 422
+    assert response.status_code == 202
+    assert response.json()["status"] == "indexing"
+
+    mock_svc_instance.index_repository.assert_awaited_once()
 
 
 def test_index_status_endpoint_success() -> None:
