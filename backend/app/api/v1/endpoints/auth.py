@@ -148,7 +148,19 @@ async def refresh(
         select(UserRefreshToken).where(UserRefreshToken.token == refresh_token_val)
     )
     db_refresh_token = result.scalars().first()
-    if not db_refresh_token or db_refresh_token.is_revoked:
+    if not db_refresh_token:
+        raise AuthenticationError("Invalid or expired credentials")
+    if db_refresh_token.is_revoked:
+        from sqlalchemy import update
+        await db.execute(
+            update(UserRefreshToken)
+            .where(
+                UserRefreshToken.user_id == db_refresh_token.user_id,
+                UserRefreshToken.is_revoked == False,
+            )
+            .values(is_revoked=True)
+        )
+        await db.commit()
         raise AuthenticationError("Invalid or expired credentials")
 
     # Verify expiration
