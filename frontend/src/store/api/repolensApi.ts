@@ -323,4 +323,5 @@ export const {
   useLogoutMutation,
   useRefreshMutation,
   useMeQuery,
+  useLazyMeQuery,
 } = repolensApi;

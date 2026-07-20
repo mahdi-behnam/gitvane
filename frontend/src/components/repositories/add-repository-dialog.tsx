@@ -15,6 +15,7 @@ type FormState = {
   cloneUrl: string;
   indexNow: boolean;
   name: string;
+  pat: string;
 };
 
 const initialState: FormState = {
@@ -22,6 +23,7 @@ const initialState: FormState = {
   cloneUrl: "",
   indexNow: false,
   name: "",
+  pat: "",
 };
 
 export function AddRepositoryDialog() {
@@ -52,6 +54,7 @@ export function AddRepositoryDialog() {
       clone_url: form.cloneUrl.trim(),
       index_now: form.indexNow,
       name: form.name.trim(),
+      pat: form.pat.trim() || null,
     };
 
     try {
@@ -114,6 +117,20 @@ export function AddRepositoryDialog() {
               placeholder="main"
               value={form.branch}
             />
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-sm font-medium" htmlFor={`${formId}-pat`}>
+              Personal Access Token (PAT) (Optional)
+            </label>
+            <Input
+              id={`${formId}-pat`}
+              onChange={(event) => updateForm("pat", event.target.value)}
+              placeholder="ghp_..."
+              type="password"
+              value={form.pat}
+            />
+            <span className="block text-xs text-muted">Required for private repositories.</span>
           </div>
 
           <label className="flex items-start gap-3 text-sm text-muted">

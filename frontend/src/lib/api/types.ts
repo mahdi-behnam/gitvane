@@ -11,6 +11,7 @@ export type RepositoryCreate = {
   clone_url: string;
   index_now?: boolean;
   name: string;
+  pat?: string | null;
 };
 
 export type Repository = {

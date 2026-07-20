@@ -22,10 +22,12 @@ const authSlice = createSlice({
   reducers: {
     setCredentials(
       state,
-      action: PayloadAction<{ accessToken: string; user: User }>
+      action: PayloadAction<{ accessToken: string; user?: User | null }>
     ) {
       state.accessToken = action.payload.accessToken;
-      state.user = action.payload.user;
+      if (action.payload.user !== undefined) {
+        state.user = action.payload.user;
+      }
     },
     clearCredentials(state) {
       state.accessToken = null;
