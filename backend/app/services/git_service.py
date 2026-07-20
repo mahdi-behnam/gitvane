@@ -1,4 +1,5 @@
 import os
+import re
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, cast
@@ -11,14 +12,30 @@ from app.core.errors import GitOperationError, PrivateRepositoryNotSupportedErro
 class GitService:
     """Service to handle Git operations using GitPython"""
 
-    def verify_public_accessibility(self, clone_url: str) -> None:
+    def _get_authenticated_url(self, url: str, pat: Optional[str] = None) -> str:
+        if not pat:
+            return url
+        if url.startswith("https://"):
+            return f"https://{pat}@{url[8:]}"
+        elif url.startswith("http://"):
+            return f"http://{pat}@{url[7:]}"
+        return url
+
+    def _sanitize_error_message(self, err_msg: str, pat: Optional[str] = None) -> str:
+        if pat:
+            err_msg = err_msg.replace(pat, "****")
+        err_msg = re.sub(r"https?://[^@]+@", "https://****@", err_msg)
+        return err_msg
+
+    def verify_public_accessibility(self, clone_url: str, pat: Optional[str] = None) -> None:
         """Verifies if the remote repository is publicly accessible."""
+        auth_url = self._get_authenticated_url(clone_url, pat)
         try:
             g = git.cmd.Git()
-            g.ls_remote("--symref", clone_url, "HEAD", env={"GIT_TERMINAL_PROMPT": "0"})
+            g.ls_remote("--symref", auth_url, "HEAD", env={"GIT_TERMINAL_PROMPT": "0"})
         except git.exc.GitCommandError as e:
-            err_msg = str(e)
-            stderr_msg = getattr(e, "stderr", "") or ""
+            err_msg = self._sanitize_error_message(str(e), pat)
+            stderr_msg = self._sanitize_error_message(getattr(e, "stderr", "") or "", pat)
             combined_err = f"{err_msg}\n{stderr_msg}".lower()
             
             auth_indicators = [
@@ -28,26 +45,34 @@ class GitService:
                 "permission denied",
             ]
             if any(indicator in combined_err for indicator in auth_indicators):
-                raise PrivateRepositoryNotSupportedError() from e
+                raise PrivateRepositoryNotSupportedError(
+                    self._sanitize_error_message("Private repositories are not yet supported. Please use a public repository URL.", pat)
+                ) from e
             
             raise GitOperationError(f"Git remote check failed: {err_msg}") from e
         except Exception as e:
-            raise GitOperationError(f"Git remote check failed: {str(e)}") from e
+            err_msg = self._sanitize_error_message(str(e), pat)
+            raise GitOperationError(f"Git remote check failed: {err_msg}") from e
 
     def clone_repository(
-        self, clone_url: str, target_path: str | Path, branch: Optional[str] = None
+        self, clone_url: str, target_path: str | Path, branch: Optional[str] = None, pat: Optional[str] = None
     ) -> git.Repo:
         """Clones a remote repository to the specified target path."""
+        auth_url = self._get_authenticated_url(clone_url, pat)
         try:
             os.makedirs(os.path.dirname(target_path), exist_ok=True)
             kwargs = {}
             if branch:
                 kwargs["branch"] = branch
 
-            repo = git.Repo.clone_from(clone_url, str(target_path), **kwargs)  # type: ignore
+            repo = git.Repo.clone_from(auth_url, str(target_path), **kwargs)  # type: ignore
             return repo
+        except git.exc.GitCommandError as e:
+            err_msg = self._sanitize_error_message(str(e), pat)
+            raise GitOperationError(f"Failed to clone repository: {err_msg}") from e
         except Exception as e:
-            raise GitOperationError(f"Failed to clone repository: {str(e)}") from e
+            err_msg = self._sanitize_error_message(str(e), pat)
+            raise GitOperationError(f"Failed to clone repository: {err_msg}") from e
 
     def open_repository(self, local_path: str | Path) -> git.Repo:
         """Opens an existing local repository."""

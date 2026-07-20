@@ -3,9 +3,9 @@ from typing import Annotated
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_db, get_indexing_service
+from app.api.deps import get_db, get_indexing_service, get_repository_service, get_current_user
+from app.db.models import User
 from app.core.errors import GitOperationError, InvalidPathError, RepositoryNotFoundError
-from app.db.models import Repository
 from app.db.session import SessionLocal
 from app.schemas.indexing import (
     IndexRepositoryRequest,
@@ -14,6 +14,7 @@ from app.schemas.indexing import (
 )
 from app.services.git_service import GitService
 from app.services.indexing_service import IndexingService
+from app.services.repository_service import RepositoryService
 
 router = APIRouter()
 
@@ -28,13 +29,15 @@ async def index_repository(
     body: IndexRepositoryRequest,
     background_tasks: BackgroundTasks,
     db: Annotated[AsyncSession, Depends(get_db)],
+    repo_svc: Annotated[RepositoryService, Depends(get_repository_service)],
+    current_user: Annotated[User, Depends(get_current_user)],
 ) -> IndexRepositoryResponse:
-    repo_obj = await db.get(Repository, repository_id)
-    if repo_obj is None:
+    try:
+        repo_obj = await repo_svc.get_repository_or_raise(db, repository_id, owner_id=current_user.id)
+    except RepositoryNotFoundError as exc:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Repository with id={repository_id} does not exist",
-        )
+            status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)
+        ) from exc
 
     repo_obj.status = "indexing"
     await db.commit()
@@ -72,8 +75,11 @@ async def get_index_status(
     repository_id: int,
     db: Annotated[AsyncSession, Depends(get_db)],
     svc: Annotated[IndexingService, Depends(get_indexing_service)],
+    repo_svc: Annotated[RepositoryService, Depends(get_repository_service)],
+    current_user: Annotated[User, Depends(get_current_user)],
 ) -> IndexStatusResponse:
     try:
+        await repo_svc.get_repository_or_raise(db, repository_id, owner_id=current_user.id)
         return await svc.get_index_status(db=db, repository_id=repository_id)
     except RepositoryNotFoundError as exc:
         raise HTTPException(

@@ -7,11 +7,15 @@ from app.api.deps import (
     get_db,
     get_semantic_search_service,
     get_test_recommendation_service,
+    get_repository_service,
+    get_current_user,
 )
+from app.db.models import User
 from app.core.errors import RepositoryNotFoundError
 from app.schemas.tests import TestRecommendationRequest, TestRecommendationResponse
 from app.services.semantic_search_service import SemanticSearchService
 from app.services.test_recommendation_service import TestRecommendationService
+from app.services.repository_service import RepositoryService
 
 router = APIRouter()
 
@@ -28,8 +32,11 @@ async def recommend_tests(
         SemanticSearchService,
         Depends(get_semantic_search_service),
     ],
+    repo_svc: Annotated[RepositoryService, Depends(get_repository_service)],
+    current_user: Annotated[User, Depends(get_current_user)],
 ) -> TestRecommendationResponse:
     try:
+        await repo_svc.get_repository_or_raise(db, body.repository_id, owner_id=current_user.id)
         return await svc.recommend_for_repository(
             db=db,
             repository_id=body.repository_id,

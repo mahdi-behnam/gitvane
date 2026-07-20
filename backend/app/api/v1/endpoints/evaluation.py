@@ -2,11 +2,12 @@ from typing import Annotated
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from fastapi.responses import PlainTextResponse
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_db, get_evaluation_service
+from app.api.deps import get_db, get_evaluation_service, get_repository_service, get_current_user
 from app.core.errors import RepositoryNotFoundError
-from app.db.models import EvaluationRun, Repository
+from app.db.models import EvaluationRun, User
 from app.db.session import SessionLocal
 from app.schemas.evaluation import (
     EvaluationReportResponse,
@@ -15,6 +16,7 @@ from app.schemas.evaluation import (
     EvaluationStatusResponse,
 )
 from app.services.evaluation_service import EvaluationService
+from app.services.repository_service import RepositoryService
 
 router = APIRouter()
 
@@ -28,13 +30,15 @@ async def run_evaluation(
     body: EvaluationRunRequest,
     background_tasks: BackgroundTasks,
     db: Annotated[AsyncSession, Depends(get_db)],
+    repo_svc: Annotated[RepositoryService, Depends(get_repository_service)],
+    current_user: Annotated[User, Depends(get_current_user)],
 ) -> EvaluationRunResponse:
-    repo_obj = await db.get(Repository, body.repository_id)
-    if repo_obj is None:
+    try:
+        await repo_svc.get_repository_or_raise(db, body.repository_id, owner_id=current_user.id)
+    except RepositoryNotFoundError as exc:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Repository with id={body.repository_id} does not exist",
-        )
+            status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)
+        ) from exc
 
     run = EvaluationRun(
         repository_id=body.repository_id,
@@ -81,8 +85,17 @@ async def get_evaluation_status(
     evaluation_run_id: int,
     db: Annotated[AsyncSession, Depends(get_db)],
     svc: Annotated[EvaluationService, Depends(get_evaluation_service)],
+    repo_svc: Annotated[RepositoryService, Depends(get_repository_service)],
+    current_user: Annotated[User, Depends(get_current_user)],
 ) -> EvaluationStatusResponse:
     try:
+        stmt = select(EvaluationRun.repository_id).where(EvaluationRun.id == evaluation_run_id)
+        result = await db.execute(stmt)
+        repository_id = result.scalar_one_or_none()
+        if repository_id is None:
+            raise RepositoryNotFoundError(f"Evaluation run with id={evaluation_run_id} does not exist")
+        
+        await repo_svc.get_repository_or_raise(db, repository_id, owner_id=current_user.id)
         return await svc.get_evaluation(db=db, evaluation_run_id=evaluation_run_id)
     except RepositoryNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
@@ -96,8 +109,17 @@ async def get_evaluation_report(
     evaluation_run_id: int,
     db: Annotated[AsyncSession, Depends(get_db)],
     svc: Annotated[EvaluationService, Depends(get_evaluation_service)],
+    repo_svc: Annotated[RepositoryService, Depends(get_repository_service)],
+    current_user: Annotated[User, Depends(get_current_user)],
 ) -> EvaluationReportResponse:
     try:
+        stmt = select(EvaluationRun.repository_id).where(EvaluationRun.id == evaluation_run_id)
+        result = await db.execute(stmt)
+        repository_id = result.scalar_one_or_none()
+        if repository_id is None:
+            raise RepositoryNotFoundError(f"Evaluation run with id={evaluation_run_id} does not exist")
+        
+        await repo_svc.get_repository_or_raise(db, repository_id, owner_id=current_user.id)
         return await svc.get_report(db=db, evaluation_run_id=evaluation_run_id)
     except RepositoryNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
@@ -108,8 +130,17 @@ async def get_evaluation_report_markdown(
     evaluation_run_id: int,
     db: Annotated[AsyncSession, Depends(get_db)],
     svc: Annotated[EvaluationService, Depends(get_evaluation_service)],
+    repo_svc: Annotated[RepositoryService, Depends(get_repository_service)],
+    current_user: Annotated[User, Depends(get_current_user)],
 ) -> str:
     try:
+        stmt = select(EvaluationRun.repository_id).where(EvaluationRun.id == evaluation_run_id)
+        result = await db.execute(stmt)
+        repository_id = result.scalar_one_or_none()
+        if repository_id is None:
+            raise RepositoryNotFoundError(f"Evaluation run with id={evaluation_run_id} does not exist")
+        
+        await repo_svc.get_repository_or_raise(db, repository_id, owner_id=current_user.id)
         report = await svc.get_report(db=db, evaluation_run_id=evaluation_run_id)
         return report.markdown
     except RepositoryNotFoundError as exc:

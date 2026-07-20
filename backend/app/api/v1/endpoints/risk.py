@@ -3,10 +3,12 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_db, get_risk_service
+from app.api.deps import get_db, get_risk_service, get_repository_service, get_current_user
+from app.db.models import User
 from app.core.errors import RepositoryNotFoundError
 from app.schemas.risk import RepositoryRiskResponse
 from app.services.risk_service import RiskService
+from app.services.repository_service import RepositoryService
 
 router = APIRouter()
 
@@ -19,11 +21,14 @@ async def get_repository_risk(
     repository_id: int,
     db: Annotated[AsyncSession, Depends(get_db)],
     svc: Annotated[RiskService, Depends(get_risk_service)],
+    repo_svc: Annotated[RepositoryService, Depends(get_repository_service)],
+    current_user: Annotated[User, Depends(get_current_user)],
     top_k: int = Query(20, ge=1, le=100),
     language: str | None = Query(None),
     include_tests: bool = Query(False),
 ) -> RepositoryRiskResponse:
     try:
+        await repo_svc.get_repository_or_raise(db, repository_id, owner_id=current_user.id)
         return await svc.get_repository_file_risks(
             db=db,
             repository_id=repository_id,

@@ -19,6 +19,10 @@ class RepositoryCreate(BaseModel):
             "registered. Requires the indexing pipeline to be active."
         ),
     )
+    pat: Optional[str] = Field(
+        None,
+        description="Optional Personal Access Token for authenticating clone/fetch",
+    )
 
 
 class RepositoryOut(BaseModel):

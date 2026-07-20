@@ -3,10 +3,12 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_db, get_graph_service
+from app.api.deps import get_db, get_graph_service, get_repository_service, get_current_user
+from app.db.models import User
 from app.core.errors import RepositoryNotFoundError
 from app.schemas.graph import GraphResponse
 from app.services.graph_service import GraphService
+from app.services.repository_service import RepositoryService
 
 router = APIRouter()
 
@@ -20,8 +22,11 @@ async def get_file_neighbors(
     file_id: int,
     db: Annotated[AsyncSession, Depends(get_db)],
     svc: Annotated[GraphService, Depends(get_graph_service)],
+    repo_svc: Annotated[RepositoryService, Depends(get_repository_service)],
+    current_user: Annotated[User, Depends(get_current_user)],
 ) -> GraphResponse:
     try:
+        await repo_svc.get_repository_or_raise(db, repository_id, owner_id=current_user.id)
         return await svc.get_file_neighbors(
             db=db,
             repository_id=repository_id,
@@ -39,11 +44,14 @@ async def get_repository_subgraph(
     repository_id: int,
     db: Annotated[AsyncSession, Depends(get_db)],
     svc: Annotated[GraphService, Depends(get_graph_service)],
+    repo_svc: Annotated[RepositoryService, Depends(get_repository_service)],
+    current_user: Annotated[User, Depends(get_current_user)],
     max_nodes: int = Query(500, ge=1, le=2000),
     language: str | None = Query(None),
     include_tests: bool = Query(True),
 ) -> GraphResponse:
     try:
+        await repo_svc.get_repository_or_raise(db, repository_id, owner_id=current_user.id)
         return await svc.get_repository_subgraph(
             db=db,
             repository_id=repository_id,

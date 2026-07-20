@@ -3,7 +3,8 @@ from typing import Annotated
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_db, get_repository_service
+from app.api.deps import get_db, get_repository_service, get_current_user
+from app.db.models import User
 from app.core.errors import GitOperationError, InvalidPathError, RepositoryNotFoundError
 from app.schemas.repository import RepositoryCreate, RepositoryList, RepositoryOut
 from app.services.repository_service import RepositoryService
@@ -17,6 +18,7 @@ async def create_repository(
     background_tasks: BackgroundTasks,
     db: Annotated[AsyncSession, Depends(get_db)],
     svc: Annotated[RepositoryService, Depends(get_repository_service)],
+    current_user: Annotated[User, Depends(get_current_user)],
 ) -> RepositoryOut:
     """
     Register and clone (or adopt) a Git repository.
@@ -30,11 +32,13 @@ async def create_repository(
     try:
         repo = await svc.create_repository(
             db=db,
+            owner_id=current_user.id,
             name=body.name,
             clone_url=body.clone_url or "",
             branch=body.branch,
             local_path=None,
             index_now=body.index_now,
+            pat=body.pat,
         )
 
         if body.index_now:
@@ -73,12 +77,13 @@ async def create_repository(
 async def list_repositories(
     db: Annotated[AsyncSession, Depends(get_db)],
     svc: Annotated[RepositoryService, Depends(get_repository_service)],
+    current_user: Annotated[User, Depends(get_current_user)],
     skip: int = Query(0, ge=0, description="Number of records to skip"),
     limit: int = Query(100, ge=1, le=500, description="Maximum records to return"),
 ) -> RepositoryList:
     """Return a paginated list of registered repositories."""
-    repos = await svc.list_repositories(db=db, skip=skip, limit=limit)
-    total = await svc.count_repositories(db=db)
+    repos = await svc.list_repositories(db=db, owner_id=current_user.id, skip=skip, limit=limit)
+    total = await svc.count_repositories(db=db, owner_id=current_user.id)
     return RepositoryList(
         items=[RepositoryOut.model_validate(r) for r in repos],
         total=total,
@@ -92,10 +97,11 @@ async def get_repository(
     repository_id: int,
     db: Annotated[AsyncSession, Depends(get_db)],
     svc: Annotated[RepositoryService, Depends(get_repository_service)],
+    current_user: Annotated[User, Depends(get_current_user)],
 ) -> RepositoryOut:
     """Fetch a single repository by its ID."""
     try:
-        repo = await svc.get_repository_or_raise(db=db, repository_id=repository_id)
+        repo = await svc.get_repository_or_raise(db=db, repository_id=repository_id, owner_id=current_user.id)
         return RepositoryOut.model_validate(repo)
     except RepositoryNotFoundError as exc:
         raise HTTPException(
@@ -108,6 +114,7 @@ async def delete_repository(
     repository_id: int,
     db: Annotated[AsyncSession, Depends(get_db)],
     svc: Annotated[RepositoryService, Depends(get_repository_service)],
+    current_user: Annotated[User, Depends(get_current_user)],
 ) -> None:
     """
     Delete a repository record and remove its local clone from disk.
@@ -115,7 +122,7 @@ async def delete_repository(
     Returns 204 No Content on success, 404 if the repository does not exist.
     """
     try:
-        await svc.delete_repository_or_raise(db=db, repository_id=repository_id)
+        await svc.delete_repository_or_raise(db=db, repository_id=repository_id, owner_id=current_user.id)
     except RepositoryNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)
