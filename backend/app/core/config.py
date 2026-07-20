@@ -39,6 +39,7 @@ class Settings(BaseSettings):
 
     EMBEDDING_PROVIDER: str = "local"
     LOCAL_EMBEDDING_MODEL: str = "jinaai/jina-embeddings-v2-base-code"
+    LOCAL_EMBEDDING_REVISION: Optional[str] = "516f4baf13dec4ddddda8631e019b5737c8bc250"
     EMBEDDING_DIM: int = 768
     EMBEDDING_BATCH_SIZE: int = 16
     USE_CUDA_IF_AVAILABLE: bool = True

@@ -42,6 +42,7 @@ class EmbeddingService:
             dimensions=settings.EMBEDDING_DIM,
             batch_size=settings.EMBEDDING_BATCH_SIZE,
             use_cuda_if_available=settings.USE_CUDA_IF_AVAILABLE,
+            revision=settings.LOCAL_EMBEDDING_REVISION,
         )
 
     async def embed_passages(self, texts: list[str]) -> list[list[float]]:

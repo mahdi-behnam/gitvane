@@ -12,11 +12,13 @@ class LocalSentenceTransformerProvider:
         dimensions: int,
         batch_size: int = 16,
         use_cuda_if_available: bool = True,
+        revision: str | None = None,
     ) -> None:
         self._model_name = model_name
         self._dimensions = dimensions
         self.batch_size = batch_size
         self.use_cuda_if_available = use_cuda_if_available
+        self.revision = revision
         self._model: Any | None = None
 
     @property
@@ -63,6 +65,7 @@ class LocalSentenceTransformerProvider:
         self._model = SentenceTransformer(
             self._model_name,
             device=device,
+            revision=self.revision,
             model_kwargs={"attn_implementation": "eager"}
         )
         return self._model
