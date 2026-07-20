@@ -54,26 +54,57 @@ class EvaluationService:
             },
         )
         db.add(evaluation_run)
-        await db.flush()
+        await db.commit()
+        await db.refresh(evaluation_run)
+
+        await self.execute_evaluation(
+            db=db,
+            evaluation_run_id=evaluation_run.id,
+            commit_limit=request.commit_limit,
+            methods=request.methods,
+            k_values=request.k_values,
+        )
+
+        await db.refresh(evaluation_run)
+        summary = (evaluation_run.config or {}).get("summary", {})
+        return EvaluationRunResponse(
+            evaluation_run_id=evaluation_run.id,
+            status=evaluation_run.status,
+            summary=summary,
+        )
+
+    async def execute_evaluation(
+        self,
+        db: AsyncSession,
+        evaluation_run_id: int,
+        commit_limit: int,
+        methods: list[str],
+        k_values: list[int],
+    ) -> None:
+        evaluation_run = await db.get(EvaluationRun, evaluation_run_id)
+        if evaluation_run is None:
+            raise RepositoryNotFoundError(
+                f"Evaluation run with id={evaluation_run_id} does not exist"
+            )
 
         try:
             code_files, edges, commits = await self._load_indexed_data(
-                db, request.repository_id, request.commit_limit
+                db, evaluation_run.repository_id, commit_limit
             )
             code_paths = {item.path for item in code_files}
             scenarios, skipped = self._build_scenarios(commits, code_paths)
             results: list[dict[str, Any]] = []
             method_summaries: dict[str, list[dict[str, float]]] = {
-                method: [] for method in request.methods
+                method: [] for method in methods
             }
 
             for scenario in scenarios:
                 method_predictions: dict[str, list[str]] = {}
                 method_metrics: dict[str, dict[str, float]] = {}
-                for method in request.methods:
+                for method in methods:
                     predictions = await self._predict(
                         db,
-                        request.repository_id,
+                        evaluation_run.repository_id,
                         method,
                         scenario["known_file"],
                         code_files,
@@ -84,7 +115,7 @@ class EvaluationService:
                     computed = self.metrics.all_at_k(
                         predictions,
                         set(scenario["ground_truth"]),
-                        request.k_values,
+                        k_values,
                     )
                     method_metrics[method] = computed
                     method_summaries[method].append(computed)
@@ -115,12 +146,6 @@ class EvaluationService:
             }
             evaluation_run.finished_at = datetime.now(timezone.utc)
             await db.commit()
-            await db.refresh(evaluation_run)
-            return EvaluationRunResponse(
-                evaluation_run_id=evaluation_run.id,
-                status=evaluation_run.status,
-                summary=summary,
-            )
         except Exception as exc:
             await db.rollback()
             evaluation_run.status = "failed"

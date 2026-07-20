@@ -1,5 +1,5 @@
 from typing import Any, AsyncGenerator
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from fastapi.testclient import TestClient
 
@@ -17,18 +17,33 @@ async def _noop_db() -> AsyncGenerator[Any, None]:
     yield MagicMock()
 
 
-def test_run_evaluation_endpoint_success() -> None:
-    mock_svc = MagicMock()
-    mock_svc.run_evaluation = AsyncMock(
-        return_value=EvaluationRunResponse(
-            evaluation_run_id=1,
-            status="completed",
-            summary={"evaluated_commits": 2},
-        )
-    )
+@patch("app.api.v1.endpoints.evaluation.SessionLocal")
+@patch("app.api.v1.endpoints.evaluation.EvaluationService")
+def test_run_evaluation_endpoint_success(
+    mock_evaluation_service_cls: MagicMock, mock_session_local_cls: MagicMock
+) -> None:
+    mock_db = MagicMock()
+    mock_repo = MagicMock()
+    mock_repo.id = 1
+    mock_db.get = AsyncMock(return_value=mock_repo)
+    mock_db.commit = AsyncMock()
 
-    app.dependency_overrides[get_db] = _noop_db
-    app.dependency_overrides[get_evaluation_service] = lambda: mock_svc
+    async def mock_refresh(run):
+        run.id = 1
+
+    mock_db.refresh = AsyncMock(side_effect=mock_refresh)
+
+    async def mock_get_db() -> AsyncGenerator[Any, None]:
+        yield mock_db
+
+    app.dependency_overrides[get_db] = mock_get_db
+
+    mock_async_db = MagicMock()
+    mock_session_local_cls.return_value.__aenter__.return_value = mock_async_db
+
+    mock_svc_instance = mock_evaluation_service_cls.return_value
+    mock_svc_instance.execute_evaluation = AsyncMock()
+
     try:
         client = TestClient(app)
         response = client.post(
@@ -38,9 +53,19 @@ def test_run_evaluation_endpoint_success() -> None:
     finally:
         app.dependency_overrides.clear()
 
-    assert response.status_code == 200
+    assert response.status_code == 202
     assert response.json()["evaluation_run_id"] == 1
-    mock_svc.run_evaluation.assert_awaited_once()
+    assert response.json()["status"] == "running"
+
+    mock_db.commit.assert_awaited_once()
+    mock_session_local_cls.assert_called_once()
+    mock_svc_instance.execute_evaluation.assert_awaited_once_with(
+        db=mock_async_db,
+        evaluation_run_id=1,
+        commit_limit=100,
+        methods=["hybrid"],
+        k_values=[5],
+    )
 
 
 def test_get_evaluation_endpoint_success() -> None:
