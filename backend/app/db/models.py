@@ -20,6 +20,50 @@ from app.core.config import settings
 from app.db.base import Base
 
 
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    email: Mapped[str] = mapped_column(String, unique=True, index=True, nullable=False)
+    hashed_password: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    full_name: Mapped[str] = mapped_column(String, nullable=False)
+    oauth_provider: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    oauth_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    is_active: Mapped[bool] = mapped_column(default=True, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    # Relationships
+    repositories = relationship(
+        "Repository", back_populates="owner", cascade="all, delete-orphan"
+    )
+    refresh_tokens = relationship(
+        "UserRefreshToken", back_populates="user", cascade="all, delete-orphan"
+    )
+
+
+class UserRefreshToken(Base):
+    __tablename__ = "user_refresh_tokens"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    token: Mapped[str] = mapped_column(String, unique=True, index=True, nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    is_revoked: Mapped[bool] = mapped_column(default=False, nullable=False)
+
+    # Relationships
+    user = relationship("User", back_populates="refresh_tokens")
+
+
 class Repository(Base):
     __tablename__ = "repositories"
 
@@ -43,8 +87,13 @@ class Repository(Base):
     repo_metadata: Mapped[Optional[dict[str, Any]]] = mapped_column(
         "metadata", JSONB, nullable=True
     )
+    owner_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    encrypted_pat: Mapped[Optional[str]] = mapped_column(String, nullable=True)
 
     # Relationships
+    owner = relationship("User", back_populates="repositories")
     commits = relationship(
         "Commit", back_populates="repository", cascade="all, delete-orphan"
     )
