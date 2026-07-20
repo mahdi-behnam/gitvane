@@ -256,3 +256,25 @@ export type GraphResponse = {
   nodes: GraphNode[];
   repository_id: number;
 };
+
+export type UserCreate = {
+  email: string;
+  password: string;
+  full_name: string;
+};
+
+export type LoginRequest = {
+  email: string;
+  password: string;
+};
+
+export type TokenResponse = {
+  access_token: string;
+};
+
+export type UserResponse = {
+  id: number;
+  email: string;
+  full_name: string;
+};
+

@@ -22,6 +22,10 @@ import type {
   SemanticSearchResponse,
   TestRecommendationRequest,
   TestRecommendationResponse,
+  UserCreate,
+  LoginRequest,
+  TokenResponse,
+  UserResponse,
 } from "@/lib/api/types";
 
 type ListRepositoriesArgs = {
@@ -46,10 +50,75 @@ type GraphNeighborsArgs = {
   repositoryId: number;
 };
 
+const rawBaseQuery = fetchBaseQuery({
+  baseUrl: apiBaseUrl,
+  prepareHeaders: (headers, { getState }) => {
+    const state = getState() as { auth?: { accessToken: string | null } };
+    const token = state.auth?.accessToken;
+    if (token) {
+      headers.set("Authorization", `Bearer ${token}`);
+    }
+    return headers;
+  },
+});
+
+function getCookie(name: string): string | undefined {
+  if (typeof document === "undefined") return undefined;
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop()?.split(";").shift();
+  return undefined;
+}
+
+const baseQuery: typeof rawBaseQuery = async (args, api, extraOptions) => {
+  const adjustedArgs = typeof args === "string" ? { url: args } : { ...args };
+
+  // For requests that require sending cookies (like refresh and logout), ensure credentials: "include" is set
+  const isRefreshOrLogout =
+    adjustedArgs.url?.includes("/auth/refresh") ||
+    adjustedArgs.url?.includes("/auth/logout");
+
+  if (isRefreshOrLogout) {
+    adjustedArgs.credentials = "include";
+  }
+
+  // Inject CSRF token for state-changing requests or refresh/logout requests
+  const method = adjustedArgs.method?.toUpperCase() || "GET";
+  const isStateChanging = !["GET", "HEAD", "OPTIONS"].includes(method);
+
+  if (isStateChanging || isRefreshOrLogout) {
+    const csrfToken = getCookie("csrf_token");
+    if (csrfToken) {
+      const headers = new Headers();
+      if (adjustedArgs.headers) {
+        const rawHeaders = adjustedArgs.headers;
+        if (rawHeaders instanceof Headers) {
+          rawHeaders.forEach((val, key) => headers.set(key, val));
+        } else if (Array.isArray(rawHeaders)) {
+          for (const pair of rawHeaders) {
+            if (pair[0] && pair[1]) {
+              headers.set(pair[0], pair[1]);
+            }
+          }
+        } else {
+          for (const key of Object.keys(rawHeaders)) {
+            const val = (rawHeaders as Record<string, string | undefined>)[key];
+            if (val !== undefined) {
+              headers.set(key, val);
+            }
+          }
+        }
+      }
+      headers.set("X-CSRF-Token", csrfToken);
+      adjustedArgs.headers = headers;
+    }
+  }
+
+  return rawBaseQuery(adjustedArgs, api, extraOptions);
+};
+
 export const repolensApi = createApi({
-  baseQuery: fetchBaseQuery({
-    baseUrl: apiBaseUrl,
-  }),
+  baseQuery,
   endpoints: (builder) => ({
     createRepository: builder.mutation<Repository, RepositoryCreate>({
       invalidatesTags: ["Repository"],
@@ -195,6 +264,35 @@ export const repolensApi = createApi({
         url: "/search/semantic",
       }),
     }),
+    signup: builder.mutation<TokenResponse, UserCreate>({
+      query: (body) => ({
+        body,
+        method: "POST",
+        url: "/auth/signup",
+      }),
+    }),
+    login: builder.mutation<TokenResponse, LoginRequest>({
+      query: (body) => ({
+        body,
+        method: "POST",
+        url: "/auth/login",
+      }),
+    }),
+    logout: builder.mutation<{ status: string; message: string }, void>({
+      query: () => ({
+        method: "POST",
+        url: "/auth/logout",
+      }),
+    }),
+    refresh: builder.mutation<TokenResponse, void>({
+      query: () => ({
+        method: "POST",
+        url: "/auth/refresh",
+      }),
+    }),
+    me: builder.query<UserResponse, void>({
+      query: () => "/auth/me",
+    }),
   }),
   reducerPath: "repolensApi",
   tagTypes: ["Evaluation", "Graph", "Impact", "IndexStatus", "Repository", "Risk"],
@@ -220,4 +318,9 @@ export const {
   useRunEvaluationMutation,
   useRunImpactAnalysisMutation,
   useSemanticSearchMutation,
+  useSignupMutation,
+  useLoginMutation,
+  useLogoutMutation,
+  useRefreshMutation,
+  useMeQuery,
 } = repolensApi;

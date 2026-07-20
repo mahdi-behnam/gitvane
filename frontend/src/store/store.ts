@@ -2,11 +2,13 @@ import { configureStore } from "@reduxjs/toolkit";
 import { repolensApi } from "@/store/api/repolensApi";
 import { appPreferencesReducer } from "@/store/slices/appPreferencesSlice";
 import { repositorySelectionReducer } from "@/store/slices/repositorySelectionSlice";
+import { authReducer } from "@/store/slices/authSlice";
 
 export function makeStore() {
   return configureStore({
     reducer: {
       appPreferences: appPreferencesReducer,
+      auth: authReducer,
       [repolensApi.reducerPath]: repolensApi.reducer,
       repositorySelection: repositorySelectionReducer,
     },
