@@ -1,5 +1,5 @@
 import os
-from typing import Optional
+from typing import Any, Optional
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -57,6 +57,34 @@ class Settings(BaseSettings):
     IMPACT_COCHANGE_WEIGHT: float = 0.20
     IMPACT_TEST_WEIGHT: float = 0.10
     IMPACT_RISK_WEIGHT: float = 0.10
+
+    JWT_SECRET_KEY: str = ""
+    JWT_ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 90
+    ENCRYPTION_KEY: str = ""
+    GOOGLE_CLIENT_ID: Optional[str] = ""
+    GOOGLE_CLIENT_SECRET: Optional[str] = ""
+    GOOGLE_REDIRECT_URI: str = "http://localhost:8000/api/v1/auth/oauth2/callback/google"
+
+    def model_post_init(self, __context: Any) -> None:
+        if not self.JWT_SECRET_KEY:
+            import logging
+            import secrets
+            self.JWT_SECRET_KEY = secrets.token_hex(32)
+            logging.getLogger("repolens").warning(
+                "JWT_SECRET_KEY is not set in environment or env file. "
+                "Generating a random ephemeral secret key. This is not suitable for horizontal scaling."
+            )
+        if not self.ENCRYPTION_KEY:
+            import logging
+
+            from cryptography.fernet import Fernet
+            self.ENCRYPTION_KEY = Fernet.generate_key().decode()
+            logging.getLogger("repolens").warning(
+                "ENCRYPTION_KEY is not set in environment or env file. "
+                "Generating a random ephemeral Fernet key. This is not suitable for horizontal scaling."
+            )
 
 
 settings = Settings()
