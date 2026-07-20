@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db, get_repository_service
@@ -14,6 +14,7 @@ router = APIRouter()
 @router.post("", response_model=RepositoryOut, status_code=status.HTTP_201_CREATED)
 async def create_repository(
     body: RepositoryCreate,
+    background_tasks: BackgroundTasks,
     db: Annotated[AsyncSession, Depends(get_db)],
     svc: Annotated[RepositoryService, Depends(get_repository_service)],
 ) -> RepositoryOut:
@@ -35,6 +36,28 @@ async def create_repository(
             local_path=None,
             index_now=body.index_now,
         )
+
+        if body.index_now:
+            repo.status = "indexing"
+            await db.commit()
+            await db.refresh(repo)
+
+            async def run_indexing_task():
+                from app.db.session import SessionLocal
+                from app.api.deps import get_indexing_service
+                async with SessionLocal() as async_db:
+                    try:
+                        indexing_svc = get_indexing_service()
+                        await indexing_svc.index_repository(
+                            db=async_db,
+                            repository_id=repo.id,
+                            ref=body.branch,  # Index the specified branch
+                        )
+                    except Exception:
+                        pass
+
+            background_tasks.add_task(run_indexing_task)
+
         return RepositoryOut.model_validate(repo)
     except InvalidPathError as exc:
         raise HTTPException(

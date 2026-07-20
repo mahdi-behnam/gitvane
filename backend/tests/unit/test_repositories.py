@@ -6,7 +6,7 @@ RepositoryService, so no live database is required.
 
 from datetime import datetime, timezone
 from typing import Any, AsyncGenerator
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from fastapi.testclient import TestClient
 
@@ -76,6 +76,63 @@ def test_create_repository_success() -> None:
         assert data["status"] == "ready"
     finally:
         app.dependency_overrides.clear()
+
+
+@patch("app.db.session.SessionLocal")
+@patch("app.api.deps.get_indexing_service")
+def test_create_repository_with_index_now(
+    mock_get_indexing_service: MagicMock, mock_session_local_cls: MagicMock
+) -> None:
+    """POST with index_now=True sets status to indexing and runs indexing task in background."""
+    repo = _make_repo(status="indexing_queued")
+
+    mock_db = MagicMock()
+    mock_db.commit = AsyncMock()
+    mock_db.refresh = AsyncMock()
+
+    async def mock_get_db() -> AsyncGenerator[Any, None]:
+        yield mock_db
+
+    mock_svc = MagicMock()
+    mock_svc.create_repository = AsyncMock(return_value=repo)
+
+    app.dependency_overrides[get_db] = mock_get_db
+    app.dependency_overrides[get_repository_service] = lambda: mock_svc
+
+    mock_async_db = MagicMock()
+    mock_session_local_cls.return_value.__aenter__.return_value = mock_async_db
+
+    mock_indexing_svc = MagicMock()
+    mock_indexing_svc.index_repository = AsyncMock()
+    mock_get_indexing_service.return_value = mock_indexing_svc
+
+    try:
+        client = TestClient(app)
+        response = client.post(
+            "/api/v1/repositories",
+            json={
+                "name": "test-repo",
+                "clone_url": "https://github.com/example/test-repo.git",
+                "branch": "main",
+                "index_now": True,
+            },
+        )
+        assert response.status_code == 201
+        data = response.json()
+        assert data["status"] == "indexing"
+        assert repo.status == "indexing"
+        mock_db.commit.assert_awaited_once()
+        mock_db.refresh.assert_awaited_once_with(repo)
+    finally:
+        app.dependency_overrides.clear()
+
+    mock_session_local_cls.assert_called_once()
+    mock_get_indexing_service.assert_called_once()
+    mock_indexing_svc.index_repository.assert_awaited_once_with(
+        db=mock_async_db,
+        repository_id=repo.id,
+        ref="main",
+    )
 
 
 def test_create_repository_missing_url_and_path() -> None:
