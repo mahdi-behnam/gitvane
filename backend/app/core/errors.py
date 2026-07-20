@@ -39,6 +39,18 @@ class PrivateRepositoryNotSupportedError(RepoLensError):
     message = "Private repositories are not yet supported. Please use a public repository URL."
 
 
+class AuthenticationError(RepoLensError):
+    message = "Invalid or expired credentials"
+
+
+class AuthorizationError(RepoLensError):
+    message = "Access denied: insufficient permissions"
+
+
+class CSRFError(RepoLensError):
+    message = "CSRF token validation failed"
+
+
 def setup_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(RepoLensError)
     async def repolens_exception_handler(
