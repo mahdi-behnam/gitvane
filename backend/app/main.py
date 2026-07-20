@@ -1,4 +1,8 @@
 from contextlib import asynccontextmanager
+import logging
+import os
+import subprocess
+import sys
 from typing import AsyncGenerator
 
 from fastapi import FastAPI
@@ -9,11 +13,35 @@ from app.core.config import settings
 from app.core.errors import setup_error_handlers
 from app.core.logging import setup_logging
 
+logger = logging.getLogger("repolens")
+
+# Locate backend directory containing alembic.ini relative to this file
+backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Initialize logging
     setup_logging()
+
+    # Run database migrations
+    if "pytest" not in sys.modules:
+        logger.info("Running database migrations...")
+        try:
+            # We run 'alembic upgrade head' as a subprocess inside the virtual env
+            subprocess.run(
+                [sys.executable, "-m", "alembic", "upgrade", "head"],
+                cwd=backend_dir,
+                check=True,
+            )
+            logger.info("Database migrations applied successfully.")
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Failed to run database migrations: {e}")
+            # Raise exception to prevent application from booting with out-of-sync schema
+            raise RuntimeError("Migration failure during startup") from e
+    else:
+        logger.info("Skipping database migrations in test environment.")
+
     yield
 
 
