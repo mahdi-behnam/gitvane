@@ -22,8 +22,13 @@ import {
   useLazyGetImpactRunQuery,
   useRunImpactAnalysisMutation,
 } from "@/store/api/repolensApi";
-import { useAppDispatch } from "@/store/hooks";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { setActiveRepositoryId } from "@/store/slices/repositorySelectionSlice";
+import {
+  setDependencyDepth,
+  setIncludeChangedFilesInImpact,
+  setIncludeExplanations,
+} from "@/store/slices/appPreferencesSlice";
 
 type InputMode = "changed_files" | "raw_diff" | "refs";
 
@@ -57,9 +62,10 @@ export function ImpactAnalysisPage({ repositoryId }: { repositoryId: number }) {
   const [baseRef, setBaseRef] = useState("");
   const [headRef, setHeadRef] = useState("");
   const [topK, setTopK] = useState(20);
-  const [includeExplanation, setIncludeExplanation] = useState(true);
-  const [includeChangedFiles, setIncludeChangedFiles] = useState(false);
-  const [dependencyDepth, setDependencyDepth] = useState(3);
+  const preferences = useAppSelector((state) => state.appPreferences);
+  const includeExplanation = preferences.includeExplanations;
+  const includeChangedFiles = preferences.includeChangedFilesInImpact;
+  const dependencyDepth = preferences.dependencyDepth;
   const [analysisRunId, setAnalysisRunId] = useState("");
   const [clientError, setClientError] = useState<string | null>(null);
   const repository = useGetRepositoryQuery(validRepositoryId ?? skipToken);
@@ -277,7 +283,11 @@ export function ImpactAnalysisPage({ repositoryId }: { repositoryId: number }) {
                   id={`${formId}-depth`}
                   max={5}
                   min={1}
-                  onChange={(event) => setDependencyDepth(Number(event.target.value))}
+                  onChange={(event) =>
+                    dispatch(
+                      setDependencyDepth(Math.max(1, Number(event.target.value))),
+                    )
+                  }
                   type="number"
                   value={dependencyDepth}
                 />
@@ -287,7 +297,9 @@ export function ImpactAnalysisPage({ repositoryId }: { repositoryId: number }) {
                   <input
                     checked={includeExplanation}
                     className="rounded border-border text-primary focus:ring-primary"
-                    onChange={(event) => setIncludeExplanation(event.target.checked)}
+                    onChange={(event) =>
+                      dispatch(setIncludeExplanations(event.target.checked))
+                    }
                     type="checkbox"
                   />
                   Include explanation
@@ -296,7 +308,9 @@ export function ImpactAnalysisPage({ repositoryId }: { repositoryId: number }) {
                   <input
                     checked={includeChangedFiles}
                     className="rounded border-border text-primary focus:ring-primary"
-                    onChange={(event) => setIncludeChangedFiles(event.target.checked)}
+                    onChange={(event) =>
+                      dispatch(setIncludeChangedFilesInImpact(event.target.checked))
+                    }
                     type="checkbox"
                   />
                   Include changed files in predictions

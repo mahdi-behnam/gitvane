@@ -14,9 +14,9 @@ import {
   Waypoints,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
-import { skipToken } from "@reduxjs/toolkit/query";
 import { Logo } from "@/components/app/logo";
 import { ThemeToggle } from "@/components/app/theme-toggle";
 import { Button } from "@/components/ui/button";
@@ -28,7 +28,11 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { repolensApi, useGetRepositoryQuery } from "@/store/api/repolensApi";
+import {
+  repolensApi,
+  useListRepositoriesQuery,
+} from "@/store/api/repolensApi";
+import { setActiveRepositoryId } from "@/store/slices/repositorySelectionSlice";
 import { cn } from "@/lib/utils";
 
 const navigationItems = [
@@ -52,17 +56,37 @@ function isActivePath(pathname: string, href: string) {
     return pathname === "/";
   }
 
-  return pathname === href || pathname.startsWith(`${href}/`);
+  const normalize = (p: string) =>
+    p.replace(/\/repositories\/(?:current|\d+)/, "/repositories/current");
+
+  const normalizedPathname = normalize(pathname);
+  const normalizedHref = normalize(href);
+
+  return (
+    normalizedPathname === normalizedHref ||
+    normalizedPathname.startsWith(`${normalizedHref}/`)
+  );
 }
 
 function NavigationLinks({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
+  const activeRepositoryId = useAppSelector(
+    (state) => state.repositorySelection.activeRepositoryId,
+  );
 
   return (
     <nav aria-label="Primary" className="space-y-1">
       {navigationItems.map((item) => {
         const Icon = item.icon;
-        const active = isActivePath(pathname, item.href);
+        let resolvedHref = item.href;
+        if (item.href.startsWith("/repositories/current/")) {
+          const tool = item.href.replace("/repositories/current/", "");
+          resolvedHref = activeRepositoryId
+            ? `/repositories/${activeRepositoryId}/${tool}`
+            : `/repositories/current/${tool}`;
+        }
+
+        const active = isActivePath(pathname, resolvedHref);
 
         return (
           <Link
@@ -73,7 +97,7 @@ function NavigationLinks({ onNavigate }: { onNavigate?: () => void }) {
                 ? "bg-panel-muted text-foreground"
                 : "text-muted hover:bg-panel-muted hover:text-foreground",
             )}
-            href={item.href}
+            href={resolvedHref}
             key={item.href}
             onClick={onNavigate}
           >
@@ -86,15 +110,28 @@ function NavigationLinks({ onNavigate }: { onNavigate?: () => void }) {
   );
 }
 
-
-
 export function AppShell({ children }: { children: ReactNode }) {
+  const router = useRouter();
   const pathname = usePathname();
   const activeRepositoryId = useAppSelector(
     (state) => state.repositorySelection.activeRepositoryId,
   );
-  const activeRepository = useGetRepositoryQuery(activeRepositoryId ?? skipToken);
+  const repositories = useListRepositoriesQuery();
   const dispatch = useAppDispatch();
+
+  const handleRepositoryChange = (newId: number | null) => {
+    dispatch(setActiveRepositoryId(newId));
+
+    const match = pathname.match(/^\/repositories\/(?:current|\d+)(.*)$/);
+    if (match) {
+      const suffix = match[1];
+      if (newId) {
+        router.push(`/repositories/${newId}${suffix}`);
+      } else {
+        router.push(`/repositories/current${suffix}`);
+      }
+    }
+  };
 
   return (
     <TooltipProvider delayDuration={200}>
@@ -127,12 +164,28 @@ export function AppShell({ children }: { children: ReactNode }) {
                     </Drawer>
                   </div>
                   <div className="min-w-0">
-                    <p className="truncate font-mono text-xs uppercase tracking-[0.12em] text-muted">
+                    <label
+                      className="block truncate font-mono text-xs uppercase tracking-[0.12em] text-muted"
+                      htmlFor="header-active-repo-select"
+                    >
                       Active repository
-                    </p>
-                    <p className="truncate text-sm font-medium">
-                      {activeRepository.data?.name ?? "None selected"}
-                    </p>
+                    </label>
+                    <select
+                      className="mt-1 block h-8 w-full max-w-[200px] truncate rounded-md border border-border bg-panel px-2 text-xs font-medium text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/20"
+                      id="header-active-repo-select"
+                      onChange={(event) => {
+                        const val = event.target.value;
+                        handleRepositoryChange(val ? Number(val) : null);
+                      }}
+                      value={activeRepositoryId ?? ""}
+                    >
+                      <option value="">None selected</option>
+                      {repositories.data?.items.map((repo) => (
+                        <option key={repo.id} value={repo.id}>
+                          {repo.name}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
 
