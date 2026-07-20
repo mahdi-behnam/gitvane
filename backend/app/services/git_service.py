@@ -5,11 +5,34 @@ from typing import Any, Dict, List, Optional, cast
 
 import git
 
-from app.core.errors import GitOperationError
+from app.core.errors import GitOperationError, PrivateRepositoryNotSupportedError
 
 
 class GitService:
     """Service to handle Git operations using GitPython"""
+
+    def verify_public_accessibility(self, clone_url: str) -> None:
+        """Verifies if the remote repository is publicly accessible."""
+        try:
+            g = git.cmd.Git()
+            g.ls_remote("--symref", clone_url, "HEAD", env={"GIT_TERMINAL_PROMPT": "0"})
+        except git.exc.GitCommandError as e:
+            err_msg = str(e)
+            stderr_msg = getattr(e, "stderr", "") or ""
+            combined_err = f"{err_msg}\n{stderr_msg}".lower()
+            
+            auth_indicators = [
+                "terminal prompts disabled",
+                "authentication failed",
+                "could not read username",
+                "permission denied",
+            ]
+            if any(indicator in combined_err for indicator in auth_indicators):
+                raise PrivateRepositoryNotSupportedError() from e
+            
+            raise GitOperationError(f"Git remote check failed: {err_msg}") from e
+        except Exception as e:
+            raise GitOperationError(f"Git remote check failed: {str(e)}") from e
 
     def clone_repository(
         self, clone_url: str, target_path: str | Path, branch: Optional[str] = None

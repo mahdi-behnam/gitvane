@@ -6,11 +6,11 @@ operates on plain bytes / files) is tested without mocking.
 """
 
 from pathlib import Path
-from unittest.mock import MagicMock, PropertyMock
+from unittest.mock import MagicMock, PropertyMock, patch
 
 import pytest
 
-from app.core.errors import GitOperationError
+from app.core.errors import GitOperationError, PrivateRepositoryNotSupportedError
 from app.services.git_service import GitService
 
 # ---------------------------------------------------------------------------
@@ -196,3 +196,57 @@ def test_is_binary_file_returns_false_when_no_args() -> None:
     svc = GitService()
     # No content and no path → defaults to False (cannot determine)
     assert svc.is_binary_file() is False
+
+
+# ---------------------------------------------------------------------------
+# verify_public_accessibility
+# ---------------------------------------------------------------------------
+
+
+@patch("git.cmd.Git")
+def test_verify_public_accessibility_success(mock_git_cls: MagicMock, svc: GitService) -> None:
+    mock_git_instance = MagicMock()
+    mock_git_cls.return_value = mock_git_instance
+
+    svc.verify_public_accessibility("https://github.com/public/repo.git")
+
+    mock_git_instance.ls_remote.assert_called_once_with(
+        "--symref",
+        "https://github.com/public/repo.git",
+        "HEAD",
+        env={"GIT_TERMINAL_PROMPT": "0"},
+    )
+
+
+@patch("git.cmd.Git")
+def test_verify_public_accessibility_private_error(mock_git_cls: MagicMock, svc: GitService) -> None:
+    from git.exc import GitCommandError
+
+    mock_git_instance = MagicMock()
+    exc = GitCommandError(
+        command=["git", "ls-remote"],
+        status=128,
+        stderr="fatal: could not read Username: terminal prompts disabled",
+    )
+    mock_git_instance.ls_remote.side_effect = exc
+    mock_git_cls.return_value = mock_git_instance
+
+    with pytest.raises(PrivateRepositoryNotSupportedError):
+        svc.verify_public_accessibility("https://github.com/private/repo.git")
+
+
+@patch("git.cmd.Git")
+def test_verify_public_accessibility_general_error(mock_git_cls: MagicMock, svc: GitService) -> None:
+    from git.exc import GitCommandError
+
+    mock_git_instance = MagicMock()
+    exc = GitCommandError(
+        command=["git", "ls-remote"],
+        status=128,
+        stderr="fatal: remote error: Some other git error",
+    )
+    mock_git_instance.ls_remote.side_effect = exc
+    mock_git_cls.return_value = mock_git_instance
+
+    with pytest.raises(GitOperationError, match="Git remote check failed"):
+        svc.verify_public_accessibility("https://github.com/invalid/repo.git")

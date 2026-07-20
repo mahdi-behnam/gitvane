@@ -59,6 +59,7 @@ class RepositoryService:
         try:
             # 3. Clone or open repository
             if clone_url:
+                self.git_service.verify_public_accessibility(clone_url)
                 # If target path already exists and is not empty, clean it
                 if target_path.exists() and any(target_path.iterdir()):
                     shutil.rmtree(target_path)

@@ -35,6 +35,10 @@ class GitOperationError(RepoLensError):
     message = "Git operation failed"
 
 
+class PrivateRepositoryNotSupportedError(RepoLensError):
+    message = "Private repositories are not yet supported. Please use a public repository URL."
+
+
 def setup_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(RepoLensError)
     async def repolens_exception_handler(

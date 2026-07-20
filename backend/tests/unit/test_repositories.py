@@ -11,7 +11,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from fastapi.testclient import TestClient
 
 from app.api.deps import get_db, get_repository_service
-from app.core.errors import GitOperationError, RepositoryNotFoundError
+from app.core.errors import GitOperationError, RepositoryNotFoundError, PrivateRepositoryNotSupportedError
 from app.db.models import Repository
 from app.main import app
 
@@ -161,6 +161,27 @@ def test_create_repository_git_error() -> None:
             json={"name": "bad-repo", "clone_url": "https://invalid.example/repo.git"},
         )
         assert response.status_code == 422
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_create_repository_private_error() -> None:
+    """POST returns 400 when GitService/RepositoryService raises PrivateRepositoryNotSupportedError."""
+    mock_svc = MagicMock()
+    mock_svc.create_repository = AsyncMock(
+        side_effect=PrivateRepositoryNotSupportedError()
+    )
+
+    app.dependency_overrides[get_db] = _noop_db
+    app.dependency_overrides[get_repository_service] = lambda: mock_svc
+    try:
+        client = TestClient(app)
+        response = client.post(
+            "/api/v1/repositories",
+            json={"name": "private-repo", "clone_url": "https://github.com/microsoft/private.git"},
+        )
+        assert response.status_code == 400
+        assert response.json()["detail"] == "Private repositories are not yet supported. Please use a public repository URL."
     finally:
         app.dependency_overrides.clear()
 
