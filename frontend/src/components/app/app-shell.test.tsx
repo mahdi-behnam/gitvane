@@ -7,6 +7,11 @@ import { renderWithProviders } from "@/test/render";
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/",
+  useRouter: () => ({
+    push: vi.fn(),
+    replace: vi.fn(),
+    prefetch: vi.fn(),
+  }),
 }));
 
 describe("AppShell", () => {

@@ -1,3 +1,11 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/repolens-dark-readme-header.jpeg">
+    <source media="(prefers-color-scheme: light)" srcset="docs/assets/repolens-light-readme-header.jpg">
+    <img alt="RepoLens" src="docs/assets/repolens-light-readme-header.jpg" width="100%">
+  </picture>
+</p>
+
 # RepoLens
 
 RepoLens is an AI-assisted software engineering backend that analyzes Git

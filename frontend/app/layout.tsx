@@ -8,6 +8,12 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "RepoLens",
   description: "Trace change before it spreads.",
+  icons: {
+    icon: [
+      { url: "/repolens-light-logo.png", media: "(prefers-color-scheme: light)" },
+      { url: "/repolens-dark-logo.png", media: "(prefers-color-scheme: dark)" },
+    ],
+  },
 };
 
 export default function RootLayout({
