@@ -34,16 +34,25 @@ export default function LoginPage() {
 
     try {
       const tokenRes = await login({ email, password }).unwrap();
+
+      dispatch(
+        setCredentials({
+          accessToken: tokenRes.access_token,
+        })
+      );
+
       const userRes = await triggerMe().unwrap();
       
-      dispatch(setCredentials({
-        accessToken: tokenRes.access_token,
-        user: {
-          id: userRes.id,
-          email: userRes.email,
-          full_name: userRes.full_name,
-        },
-      }));
+      dispatch(
+        setCredentials({
+          accessToken: tokenRes.access_token,
+          user: {
+            id: userRes.id,
+            email: userRes.email,
+            full_name: userRes.full_name,
+          },
+        })
+      );
 
       document.cookie = "repolens_logged_in=true; path=/; max-age=31536000; SameSite=Lax";
       router.push("/repositories");

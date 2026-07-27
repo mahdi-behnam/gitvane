@@ -252,19 +252,8 @@ async def get_csrf() -> dict[str, str]:
 
 
 @router.get("/oauth2/google")
-async def oauth2_google(response: Response) -> RedirectResponse:
+async def oauth2_google() -> RedirectResponse:
     state = generate_secure_token()
-
-    # Save state in HttpOnly cookie
-    secure = settings.ENVIRONMENT != "local"
-    response.set_cookie(
-        key="oauth_state",
-        value=state,
-        httponly=True,
-        samesite="lax",
-        secure=secure,
-        path="/",
-    )
 
     # Build auth parameters
     auth_url = "https://accounts.google.com/o/oauth2/v2/auth"
@@ -278,7 +267,20 @@ async def oauth2_google(response: Response) -> RedirectResponse:
     }
     
     redirect_url = f"{auth_url}?{urlencode(params)}"
-    return RedirectResponse(redirect_url)
+    redirect_res = RedirectResponse(redirect_url)
+
+    # Save state in HttpOnly cookie
+    secure = settings.ENVIRONMENT != "local"
+    redirect_res.set_cookie(
+        key="oauth_state",
+        value=state,
+        httponly=True,
+        samesite="lax",
+        secure=secure,
+        path="/",
+    )
+
+    return redirect_res
 
 
 @router.get("/oauth2/callback/google")
