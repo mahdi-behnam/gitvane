@@ -11,3 +11,5 @@ __pycache__/
 .tmp/
 backend/.test-tmp/
 backend/.pytest-basetemp-*/
+backend/workspace/
+workspace/

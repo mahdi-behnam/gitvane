@@ -106,7 +106,7 @@ dependencies globally.
 cd repolens
 .\venv\Scripts\activate
 cd backend
-python -m pip install -e ".[dev]"
+python -m pip install -r requirements.txt
 ```
 
 Copy the example environment file:

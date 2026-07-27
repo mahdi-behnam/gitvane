@@ -3,7 +3,7 @@ name = "repolens-backend"
 version = "0.1.0"
 description = "FastAPI backend for RepoLens change prediction system"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.11, <3.14"
 dependencies = [
     "fastapi>=0.100.0,<1.0.0",
     "pydantic>=2.0.0,<3.0.0",
@@ -21,6 +21,7 @@ dependencies = [
     "tree-sitter-typescript>=0.23.0",
     "networkx>=3.0",
     "sentence-transformers>=2.2.0",
+    "torch==2.5.1+cu121",
     "numpy>=1.24.0",
     "httpx>=0.24.0",
     "python-multipart>=0.0.6",
@@ -67,3 +68,14 @@ python_files = ["test_*.py"]
 
 [tool.setuptools.packages.find]
 include = ["app*"]
+
+[tool.uv]
+index-strategy = "unsafe-best-match"
+
+[[tool.uv.index]]
+name = "pytorch-cu121"
+url = "https://download.pytorch.org/whl/cu121"
+
+
+
+
