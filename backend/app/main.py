@@ -51,6 +51,37 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
                 logger.info("Local embedding model warmed up successfully.")
             except Exception as e:
                 logger.error(f"Failed to warm up local embedding model: {e}")
+        # Recovery: Resume indexing for any repositories that were interrupted by server restart
+        try:
+            import asyncio
+            from sqlalchemy import select
+            from app.db.session import SessionLocal
+            from app.db.models import Repository
+            from app.services.git_service import GitService
+            from app.services.indexing_service import IndexingService
+
+            async def recover_indexing_jobs():
+                async with SessionLocal() as async_db:
+                    result = await async_db.execute(
+                        select(Repository).where(Repository.status == "indexing")
+                    )
+                    interrupted_repos = result.scalars().all()
+                    for repo in interrupted_repos:
+                        logger.info(f"Recovering interrupted indexing for repository ID={repo.id} ({repo.name})...")
+                        try:
+                            git_service = GitService()
+                            indexing_service = IndexingService(git_service=git_service)
+                            await indexing_service.index_repository(
+                                db=async_db,
+                                repository_id=repo.id,
+                                ref=repo.current_ref,
+                            )
+                        except Exception as recovery_err:
+                            logger.error(f"Failed recovery indexing for repo {repo.id}: {recovery_err}")
+
+            asyncio.create_task(recover_indexing_jobs())
+        except Exception as recovery_setup_err:
+            logger.error(f"Failed setting up indexing recovery task: {recovery_setup_err}")
     else:
         logger.info("Skipping database migrations in test environment.")
 

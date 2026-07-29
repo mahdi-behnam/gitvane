@@ -214,6 +214,7 @@ export const repolensApi = createApi({
       invalidatesTags: (_result, _error, { repositoryId }) => [
         { id: repositoryId, type: "IndexStatus" },
         { id: repositoryId, type: "Repository" },
+        "Repository",
       ],
       query: ({ body, repositoryId }) => ({
         body,
@@ -222,7 +223,13 @@ export const repolensApi = createApi({
       }),
     }),
     listRepositories: builder.query<RepositoryList, ListRepositoriesArgs | void>({
-      providesTags: ["Repository"],
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.items.map(({ id }) => ({ type: "Repository" as const, id })),
+              "Repository",
+            ]
+          : ["Repository"],
       query: (args) => ({
         params: {
           limit: args?.limit ?? 100,

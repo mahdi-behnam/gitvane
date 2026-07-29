@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FormEvent, useEffect, useId, useState } from "react";
+import { FormEvent, useCallback, useEffect, useId, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -31,8 +31,10 @@ import {
   useGetRepositoryQuery,
   useIndexRepositoryMutation,
 } from "@/store/api/repolensApi";
-import { useAppDispatch } from "@/store/hooks";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { setActiveRepositoryId } from "@/store/slices/repositorySelectionSlice";
+import { useIndexingSSE } from "@/lib/hooks/useIndexingSSE";
+import { IndexingProgressCard } from "./indexing-progress-card";
 
 const toolLinks = [
   { icon: Search, label: "Search", suffix: "search" },
@@ -55,16 +57,35 @@ export function RepositoryDetailPage({ repositoryId }: { repositoryId: number })
   const router = useRouter();
   const formId = useId();
 
+  const token = useAppSelector((state) => state.auth.accessToken);
+
   useEffect(() => {
     if (validRepositoryId) {
       dispatch(setActiveRepositoryId(validRepositoryId));
     }
   }, [dispatch, validRepositoryId]);
 
-  const handleRefresh = () => {
+  const handleRefresh = useCallback(() => {
     void repository.refetch();
     void indexStatus.refetch();
-  };
+  }, [repository, indexStatus]);
+
+  const isIndexing =
+    repository.data?.status === "indexing" ||
+    indexStatus.data?.status === "indexing" ||
+    indexState.isLoading ||
+    indexState.data?.status === "indexing";
+
+  const { connectionState, progress } = useIndexingSSE({
+    repositoryId: validRepositoryId,
+    enabled: isIndexing,
+    token,
+    initialProgress: indexStatus.data?.progress,
+    onComplete: () => {
+      indexState.reset();
+      handleRefresh();
+    },
+  });
 
   const handleIndex = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -194,6 +215,13 @@ export function RepositoryDetailPage({ repositoryId }: { repositoryId: number })
         </div>
       </div>
 
+      {isIndexing || progress?.status === "indexing" ? (
+        <IndexingProgressCard
+          connectionState={connectionState}
+          progress={progress ?? indexStatus.data?.progress ?? null}
+        />
+      ) : null}
+
       <div className="grid gap-4 xl:grid-cols-[0.8fr_1.2fr]">
         <Card>
           <CardHeader>
@@ -301,16 +329,10 @@ export function RepositoryDetailPage({ repositoryId }: { repositoryId: number })
               {indexError}
             </Notice>
           ) : null}
-          {indexState.data ? (
+          {indexState.data && indexState.data.status !== "indexing" ? (
             <Notice className="mt-4" tone="success">
-              {indexState.data.status === "indexing" ? (
-                "Indexing started in the background. Please refresh in a moment to see the latest counts."
-              ) : (
-                <>
-                  Indexed {indexState.data.files_indexed} files and{" "}
-                  {indexState.data.symbols_indexed} symbols.
-                </>
-              )}
+              Indexed {indexState.data.files_indexed} files and{" "}
+              {indexState.data.symbols_indexed} symbols.
             </Notice>
           ) : null}
         </CardContent>

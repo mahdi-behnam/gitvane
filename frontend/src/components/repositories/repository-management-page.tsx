@@ -1,7 +1,8 @@
 "use client";
 
-import { AlertCircle, Play, RefreshCw, Trash2 } from "lucide-react";
+import { AlertCircle, Loader2, Play, RefreshCw, Trash2 } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
 import { AddRepositoryDialog } from "@/components/repositories/add-repository-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,14 +20,15 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { normalizeApiError } from "@/lib/api/errors";
-import type { Repository } from "@/lib/api/types";
+import type { IndexingProgressEvent, Repository } from "@/lib/api/types";
 import { formatDateTime } from "@/lib/format";
+import { useIndexingSSE } from "@/lib/hooks/useIndexingSSE";
 import {
   useDeleteRepositoryMutation,
   useIndexRepositoryMutation,
   useListRepositoriesQuery,
 } from "@/store/api/repolensApi";
-import { useState } from "react";
+import { useAppSelector } from "@/store/hooks";
 
 function RepositorySkeletonRows() {
   return (
@@ -59,11 +61,83 @@ function RepositorySkeletonRows() {
   );
 }
 
+function RepositoryStatusCell({
+  repository,
+  isLocallyIndexing = false,
+  onComplete,
+}: {
+  isLocallyIndexing?: boolean;
+  onComplete: () => void;
+  repository: Repository;
+}) {
+  const token = useAppSelector((state) => state.auth.accessToken);
+  const isIndexing = repository.status === "indexing" || isLocallyIndexing;
+
+  const initialProgress = (repository.repo_metadata?.indexing_progress as
+    | IndexingProgressEvent
+    | undefined) ?? null;
+
+  const { progress } = useIndexingSSE({
+    enabled: isIndexing,
+    initialProgress,
+    onComplete,
+    repositoryId: repository.id,
+    token,
+  });
+
+  if (isIndexing) {
+    const pct = progress?.progress_percentage ?? 0;
+    const eta = progress?.estimated_seconds_remaining;
+
+    const etaText =
+      eta === null || eta === undefined
+        ? "Calculating..."
+        : eta <= 0
+        ? "Wrapping up..."
+        : `~${eta}s left`;
+
+    return (
+      <div className="space-y-1">
+        <div className="flex items-center gap-2">
+          <Badge tone="info" className="flex items-center gap-1 text-xs">
+            <Loader2 className="size-3 animate-spin" />
+            Indexing ({pct.toFixed(0)}%)
+          </Badge>
+          <span className="font-mono text-xs text-muted">{etaText}</span>
+        </div>
+        <div className="h-1.5 w-28 overflow-hidden rounded-full bg-secondary">
+          <div
+            className="h-full rounded-full bg-primary transition-[width] duration-300 ease-out"
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <Badge tone={repository.status === "indexed" ? "success" : "neutral"}>
+      {repository.status}
+    </Badge>
+  );
+}
+
 export function RepositoryManagementPage() {
   const repositories = useListRepositoriesQuery();
+  const [activeIndexingIds, setActiveIndexingIds] = useState<Record<number, boolean>>({});
+
   const apiError = repositories.error
     ? normalizeApiError(repositories.error).message
     : null;
+
+  const handleIndexingStarted = (repositoryId: number) => {
+    setActiveIndexingIds((prev) => ({ ...prev, [repositoryId]: true }));
+  };
+
+  const handleIndexingEnded = (repositoryId: number) => {
+    setActiveIndexingIds((prev) => ({ ...prev, [repositoryId]: false }));
+    void repositories.refetch();
+  };
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
@@ -144,11 +218,11 @@ export function RepositoryManagementPage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge
-                        tone={repository.status === "indexed" ? "success" : "neutral"}
-                      >
-                        {repository.status}
-                      </Badge>
+                      <RepositoryStatusCell
+                        isLocallyIndexing={Boolean(activeIndexingIds[repository.id])}
+                        onComplete={() => handleIndexingEnded(repository.id)}
+                        repository={repository}
+                      />
                     </TableCell>
                     <TableCell className="font-mono text-xs text-muted">
                       {repository.default_branch ?? repository.current_ref ?? "Unknown"}
@@ -157,7 +231,12 @@ export function RepositoryManagementPage() {
                       {formatDateTime(repository.indexed_at)}
                     </TableCell>
                     <TableCell>
-                      <RepositoryRowActions repository={repository} />
+                      <RepositoryRowActions
+                        isLocallyIndexing={Boolean(activeIndexingIds[repository.id])}
+                        onIndexFailed={() => handleIndexingEnded(repository.id)}
+                        onIndexStarted={() => handleIndexingStarted(repository.id)}
+                        repository={repository}
+                      />
                     </TableCell>
                   </TableRow>
                 ))}
@@ -170,10 +249,24 @@ export function RepositoryManagementPage() {
   );
 }
 
-function RepositoryRowActions({ repository }: { repository: Repository }) {
+function RepositoryRowActions({
+  isLocallyIndexing = false,
+  onIndexFailed,
+  onIndexStarted,
+  repository,
+}: {
+  isLocallyIndexing?: boolean;
+  onIndexFailed: () => void;
+  onIndexStarted: () => void;
+  repository: Repository;
+}) {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [indexRepository, indexState] = useIndexRepositoryMutation();
   const [deleteRepository, deleteState] = useDeleteRepositoryMutation();
+
+  const isIndexingActive =
+    repository.status === "indexing" || isLocallyIndexing || indexState.isLoading;
+
   const indexError = indexState.error
     ? normalizeApiError(indexState.error).message
     : null;
@@ -181,11 +274,16 @@ function RepositoryRowActions({ repository }: { repository: Repository }) {
     ? normalizeApiError(deleteState.error).message
     : null;
 
-  const handleIndex = () => {
-    void indexRepository({
-      body: {},
-      repositoryId: repository.id,
-    });
+  const handleIndex = async () => {
+    onIndexStarted();
+    try {
+      await indexRepository({
+        body: {},
+        repositoryId: repository.id,
+      }).unwrap();
+    } catch {
+      onIndexFailed();
+    }
   };
 
   const handleDelete = async () => {
@@ -203,13 +301,13 @@ function RepositoryRowActions({ repository }: { repository: Repository }) {
         <Link href={`/repositories/${repository.id}`}>View</Link>
       </Button>
       <Button
-        disabled={indexState.isLoading}
+        disabled={isIndexingActive}
         onClick={handleIndex}
         size="sm"
         type="button"
       >
         <Play aria-hidden="true" className="size-3.5" />
-        Index
+        {isIndexingActive ? "Indexing" : "Index"}
       </Button>
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <DialogTrigger asChild>

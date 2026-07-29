@@ -56,6 +56,20 @@ export type IndexRepositoryResponse = {
   warnings: string[];
 };
 
+export type IndexingProgressEvent = {
+  chunks_processed: number;
+  chunks_total: number;
+  error: string | null;
+  estimated_seconds_remaining: number | null;
+  files_processed: number;
+  files_total: number;
+  phase: string;
+  phase_name: string;
+  progress_percentage: number;
+  repository_id: number;
+  status: string;
+};
+
 export type IndexStatusResponse = {
   chunk_count: number;
   commit_count: number;
@@ -64,6 +78,7 @@ export type IndexStatusResponse = {
   file_count: number;
   indexed_at: ISODateTime | null;
   last_indexed_commit: string | null;
+  progress?: IndexingProgressEvent | null;
   repository_id: number;
   status: string;
   symbol_count: number;

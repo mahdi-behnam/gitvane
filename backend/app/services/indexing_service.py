@@ -25,6 +25,7 @@ from app.db.models import (
 from app.embeddings.service import EmbeddingService
 from app.schemas.indexing import IndexRepositoryResponse, IndexStatusResponse
 from app.services.git_service import GitService
+from app.services.progress_tracker import IndexingProgressTracker
 from app.utils.hashing import compute_normalized_hash
 
 
@@ -44,6 +45,7 @@ class IndexingService:
         self.embedding_service = embedding_service or EmbeddingService()
         self.python_parser = PythonParser()
         self.ts_js_parser = TsJsParser()
+        self.tracker = IndexingProgressTracker.get_instance()
 
     async def index_repository(
         self,
@@ -72,10 +74,24 @@ class IndexingService:
                 self.git_service.checkout_ref(git_repo, ref)
             current_sha = self.git_service.get_current_sha(git_repo)
             tracked_files = self.git_service.list_tracked_files(git_repo)
+            total_files = len(tracked_files)
+
+            self.tracker.init_progress(repository_id, files_total=total_files)
+            await self.tracker.sync_to_db(db, repository_id)
 
             await self._clear_index_rows(db, repository_id)
 
-            for tracked_path in tracked_files:
+            for idx, tracked_path in enumerate(tracked_files, start=1):
+                self.tracker.update_progress(
+                    repository_id,
+                    phase="parsing",
+                    phase_name="Phase 1/4: Discovering & Parsing Files",
+                    files_total=total_files,
+                    files_processed=idx,
+                )
+                if idx % 10 == 0 or idx == total_files:
+                    await self.tracker.sync_to_db(db, repository_id)
+
                 full_path = repo_path / tracked_path
                 if self._should_skip_path(full_path, tracked_path):
                     skipped += 1
@@ -132,6 +148,14 @@ class IndexingService:
                 parsed_files.append(parsed)
                 file_contents[tracked_path] = content
 
+            self.tracker.update_progress(
+                repository_id,
+                phase="saving",
+                phase_name="Phase 2/4: Saving Code Symbols & Chunks",
+                files_processed=total_files,
+            )
+            await self.tracker.sync_to_db(db, repository_id)
+
             symbols_indexed = await self._save_symbols(
                 db, repository_id, parsed_files, code_files_by_path, symbol_records_by_key
             )
@@ -143,9 +167,37 @@ class IndexingService:
                 symbol_records_by_key,
                 file_contents,
             )
-            embeddings_indexed = await self.embedding_service.save_embeddings_for_chunks(
-                db, chunks
+
+            self.tracker.update_progress(
+                repository_id,
+                phase="embeddings",
+                phase_name="Phase 3/4: Generating Vector Embeddings",
+                chunks_total=len(chunks),
+                chunks_processed=0,
             )
+            await self.tracker.sync_to_db(db, repository_id)
+
+            async def on_embedding_progress(processed: int, total: int) -> None:
+                self.tracker.update_progress(
+                    repository_id,
+                    phase="embeddings",
+                    phase_name="Phase 3/4: Generating Vector Embeddings",
+                    chunks_total=total,
+                    chunks_processed=processed,
+                )
+                await self.tracker.sync_to_db(db, repository_id)
+
+            embeddings_indexed = await self.embedding_service.save_embeddings_for_chunks(
+                db, chunks, progress_callback=on_embedding_progress
+            )
+
+            self.tracker.update_progress(
+                repository_id,
+                phase="graph_and_commits",
+                phase_name="Phase 4/4: Building Graph & Mining Commits",
+            )
+            await self.tracker.sync_to_db(db, repository_id)
+
             edges = self.graph_builder.build_edges(
                 parsed_files, set(code_files_by_path)
             )
@@ -166,6 +218,10 @@ class IndexingService:
             repo_obj.last_indexed_commit = current_sha
             repo_obj.indexed_at = datetime.now(timezone.utc)
             repo_obj.status = "indexed"
+
+            self.tracker.set_completed(repository_id, len(code_files_by_path), chunks_indexed)
+            await self.tracker.sync_to_db(db, repository_id)
+
             await db.commit()
             await db.refresh(repo_obj)
 
@@ -192,6 +248,9 @@ class IndexingService:
                 **(repo_obj.repo_metadata or {}),
                 "last_index_error": str(exc),
             }
+            self.tracker.set_failed(repository_id, str(exc))
+            await self.tracker.sync_to_db(db, repository_id)
+
             await db.commit()
             if isinstance(exc, (GitOperationError, InvalidPathError)):
                 raise
@@ -201,6 +260,12 @@ class IndexingService:
         self, db: AsyncSession, repository_id: int
     ) -> IndexStatusResponse:
         repo_obj = await self._get_repository_or_raise(db, repository_id)
+        progress = self.tracker.get_progress(repository_id)
+        if not progress:
+            progress = self.tracker.load_from_metadata(
+                repository_id, repo_obj.repo_metadata, repo_obj.status
+            )
+
         return IndexStatusResponse(
             repository_id=repository_id,
             status=repo_obj.status,
@@ -212,6 +277,7 @@ class IndexingService:
             chunk_count=await self._count(db, CodeChunk, repository_id),
             dependency_edge_count=await self._count(db, DependencyEdge, repository_id),
             commit_count=await self._count(db, Commit, repository_id),
+            progress=progress,
         )
 
     async def _get_repository_or_raise(

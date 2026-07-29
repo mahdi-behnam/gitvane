@@ -82,6 +82,7 @@ class EmbeddingService:
         self,
         db: AsyncSession,
         chunks: Sequence[CodeChunk],
+        progress_callback: object = None,
     ) -> int:
         chunks_to_embed = [
             chunk for chunk in chunks if await self.needs_embedding(db, chunk)
@@ -89,19 +90,29 @@ class EmbeddingService:
         if not chunks_to_embed:
             return 0
 
-        embeddings = await self.embed_passages([chunk.text for chunk in chunks_to_embed])
-        for chunk, embedding in zip(chunks_to_embed, embeddings, strict=True):
-            db.add(
-                CodeEmbedding(
-                    chunk_id=chunk.id,
-                    provider=settings.EMBEDDING_PROVIDER,
-                    model=self.provider.model_name,
-                    dimensions=settings.EMBEDDING_DIM,
-                    embedding=embedding,
+        total_to_embed = len(chunks_to_embed)
+        batch_size = max(1, settings.EMBEDDING_BATCH_SIZE)
+        embedded_count = 0
+
+        for i in range(0, total_to_embed, batch_size):
+            batch = chunks_to_embed[i : i + batch_size]
+            embeddings = await self.embed_passages([chunk.text for chunk in batch])
+            for chunk, embedding in zip(batch, embeddings, strict=True):
+                db.add(
+                    CodeEmbedding(
+                        chunk_id=chunk.id,
+                        provider=settings.EMBEDDING_PROVIDER,
+                        model=self.provider.model_name,
+                        dimensions=settings.EMBEDDING_DIM,
+                        embedding=embedding,
+                    )
                 )
-            )
-        await db.flush()
-        return len(chunks_to_embed)
+            await db.flush()
+            embedded_count += len(batch)
+            if callable(progress_callback):
+                await progress_callback(embedded_count, total_to_embed)
+
+        return embedded_count
 
     async def _get_existing_embedding(
         self, db: AsyncSession, chunk: CodeChunk
