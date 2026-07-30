@@ -61,7 +61,7 @@ function isActivePath(pathname: string, href: string) {
   }
 
   const normalize = (p: string) =>
-    p.replace(/\/repositories\/(?:current|\d+)/, "/repositories/current");
+    p.replace(/\/repositories\/(?:current|[^/]+)/, "/repositories/current");
 
   const normalizedPathname = normalize(pathname);
   const normalizedHref = normalize(href);
@@ -184,10 +184,10 @@ export function AppShell({ children }: { children: ReactNode }) {
     }
   };
 
-  const handleRepositoryChange = (newId: number | null) => {
+  const handleRepositoryChange = (newId: string | null) => {
     dispatch(setActiveRepositoryId(newId));
 
-    const match = pathname.match(/^\/repositories\/(?:current|\d+)(.*)$/);
+    const match = pathname.match(/^\/repositories\/(?:current|[^/]+)(.*)$/);
     if (match) {
       const suffix = match[1];
       if (newId) {
@@ -319,7 +319,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                       id="header-active-repo-select"
                       onChange={(event) => {
                         const val = event.target.value;
-                        handleRepositoryChange(val ? Number(val) : null);
+                        handleRepositoryChange(val || null);
                       }}
                       value={activeRepositoryId ?? ""}
                     >
@@ -370,7 +370,15 @@ export function AppShell({ children }: { children: ReactNode }) {
               >
                 {navigationItems.slice(0, 5).map((item) => {
                   const Icon = item.icon;
-                  const active = isActivePath(pathname, item.href);
+                  let resolvedHref = item.href;
+                  if (item.href.startsWith("/repositories/current/")) {
+                    const tool = item.href.replace("/repositories/current/", "");
+                    resolvedHref = activeRepositoryId
+                      ? `/repositories/${activeRepositoryId}/${tool}`
+                      : `/repositories/current/${tool}`;
+                  }
+
+                  const active = isActivePath(pathname, resolvedHref);
 
                   return (
                     <Link
@@ -379,7 +387,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                         "flex min-w-16 flex-col items-center gap-1 rounded-md px-2 py-1.5 text-[11px] hover:bg-panel-muted hover:text-foreground",
                         active ? "text-foreground" : "text-muted",
                       )}
-                      href={item.href}
+                      href={resolvedHref}
                       key={item.href}
                     >
                       <Icon aria-hidden="true" className="size-4" />
