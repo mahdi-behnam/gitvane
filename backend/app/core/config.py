@@ -68,6 +68,12 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_SECRET: Optional[str] = ""
     GOOGLE_REDIRECT_URI: str = "http://localhost:8000/api/v1/auth/oauth2/callback/google"
 
+    SMTP_HOST: Optional[str] = None
+    SMTP_PORT: int = 587
+    SMTP_USER: Optional[str] = None
+    SMTP_PASSWORD: Optional[str] = None
+    EMAILS_FROM_EMAIL: str = "noreply@repolens.dev" 
+
     def model_post_init(self, __context: Any) -> None:
         if not self.JWT_SECRET_KEY:
             if self.ENVIRONMENT.lower() not in ("local", "test", "testing"):

@@ -32,3 +32,17 @@ class LoginRequest(BaseModel):
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
+
+
+class PasswordResetRequest(BaseModel):
+    email: str
+
+
+class PasswordResetConfirm(BaseModel):
+    token: str
+    new_password: str = Field(..., min_length=8, description="Password must be at least 8 characters long")
+
+
+class UserUpdate(BaseModel):
+    full_name: Optional[str] = None
+    password: Optional[str] = Field(None, min_length=8, description="Password must be at least 8 characters long")

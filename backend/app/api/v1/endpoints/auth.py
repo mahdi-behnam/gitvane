@@ -15,9 +15,46 @@ from app.core.security_utils import (
     verify_password,
     create_access_token,
     generate_secure_token,
+    create_password_reset_token,
+    verify_password_reset_token,
 )
 from app.db.models import User, UserRefreshToken
-from app.schemas.user import UserCreate, UserResponse, LoginRequest, TokenResponse
+from app.schemas.user import (
+    UserCreate,
+    UserResponse,
+    LoginRequest,
+    TokenResponse,
+    PasswordResetRequest,
+    PasswordResetConfirm,
+    UserUpdate,
+)
+
+import smtplib
+from email.message import EmailMessage
+from typing import Any
+
+def send_reset_email(to_email: str, reset_url: str) -> None:
+    msg = EmailMessage()
+    msg["Subject"] = "Password Reset Request - RepoLens"
+    msg["From"] = settings.EMAILS_FROM_EMAIL
+    msg["To"] = to_email
+    msg.set_content(
+        f"Hello,\n\nYou requested a password reset for your RepoLens account.\n"
+        f"Please click the following link to reset your password:\n\n{reset_url}\n\n"
+        f"If you did not request this, please ignore this email.\n"
+    )
+
+    if not settings.SMTP_HOST:
+        return
+
+    with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
+        try:
+            server.starttls()
+        except Exception:
+            pass
+        if settings.SMTP_USER and settings.SMTP_PASSWORD:
+            server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+        server.send_message(msg)
 
 router = APIRouter()
 
@@ -406,3 +443,82 @@ async def oauth2_callback_google(
     )
 
     return redirect_res
+
+
+@router.post("/forgot-password")
+async def forgot_password(
+    request_data: PasswordResetRequest,
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, Any]:
+    result = await db.execute(select(User).where(User.email == request_data.email))
+    user = result.scalars().first()
+
+    if not user:
+        return {"message": "If your email is registered, you will receive a password reset link."}
+
+    token = create_password_reset_token(user.email)
+    reset_url = f"http://localhost:3000/reset-password?token={token}"
+
+    import logging
+    logger = logging.getLogger("repolens")
+
+    if settings.ENVIRONMENT == "local" or not settings.SMTP_HOST:
+        logger.info(f"[DEV MODE] Password reset URL for {user.email}: {reset_url}")
+        return {
+            "message": "Password reset email sent (dev mode)",
+            "reset_url": reset_url,
+        }
+
+    try:
+        send_reset_email(user.email, reset_url)
+        logger.info(f"Dispatched password reset email to {user.email}")
+    except Exception as e:
+        logger.error(f"Failed to dispatch password reset email: {e}")
+
+    return {"message": "If your email is registered, you will receive a password reset link."}
+
+
+@router.post("/reset-password")
+async def reset_password(
+    reset_data: PasswordResetConfirm,
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, str]:
+    email = verify_password_reset_token(reset_data.token)
+
+    result = await db.execute(select(User).where(User.email == email))
+    user = result.scalars().first()
+    if not user:
+        raise AuthenticationError("User not found")
+
+    user.hashed_password = hash_password(reset_data.new_password)
+
+    # Revoke all active refresh tokens for user
+    from sqlalchemy import update
+    await db.execute(
+        update(UserRefreshToken)
+        .where(
+            UserRefreshToken.user_id == user.id,
+            UserRefreshToken.is_revoked == False,
+        )
+        .values(is_revoked=True)
+    )
+
+    await db.commit()
+    return {"status": "success", "message": "Password reset successfully"}
+
+
+@router.put("/me", response_model=UserResponse)
+async def update_me(
+    user_update: UserUpdate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> User:
+    if user_update.full_name is not None:
+        current_user.full_name = user_update.full_name
+
+    if user_update.password is not None:
+        current_user.hashed_password = hash_password(user_update.password)
+
+    await db.commit()
+    await db.refresh(current_user)
+    return current_user

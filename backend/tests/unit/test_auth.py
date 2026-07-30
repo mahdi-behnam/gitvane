@@ -287,7 +287,6 @@ def test_get_me_success() -> None:
         app.dependency_overrides.clear()
 
 
-
 def test_jwt_secret_key_validation_in_non_local_environment() -> None:
     import pytest
     from app.core.config import Settings
@@ -352,3 +351,102 @@ def test_oauth2_callback_google_redirect_secure() -> None:
             assert "?access_token=" not in location
     finally:
         app.dependency_overrides.clear()
+
+
+def test_forgot_password_dev_simulation() -> None:
+    mock_user = MagicMock(spec=User)
+    mock_user.id = 42
+    mock_user.email = "reset@example.com"
+
+    class MockExecuteResult:
+        def scalars(self) -> Any:
+            mock_scalar = MagicMock()
+            mock_scalar.first.return_value = mock_user
+            return mock_scalar
+
+    async def override_get_db() -> AsyncGenerator[Any, None]:
+        db = _mock_db_with_add()
+        db.execute.return_value = MockExecuteResult()
+        yield db
+
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        client = TestClient(app)
+        response = client.post(
+            "/api/v1/auth/forgot-password",
+            json={"email": "reset@example.com"},
+        )
+        assert response.status_code == 200
+        assert "reset_url" in response.json()
+        assert "dev mode" in response.json()["message"]
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_reset_password_success() -> None:
+    from app.core.security_utils import create_password_reset_token
+    token = create_password_reset_token("reset@example.com")
+
+    mock_user = MagicMock(spec=User)
+    mock_user.id = 42
+    mock_user.email = "reset@example.com"
+
+    class MockExecuteResult:
+        def scalars(self) -> Any:
+            mock_scalar = MagicMock()
+            mock_scalar.first.return_value = mock_user
+            return mock_scalar
+
+    async def override_get_db() -> AsyncGenerator[Any, None]:
+        db = _mock_db_with_add()
+        db.execute.return_value = MockExecuteResult()
+        yield db
+
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        client = TestClient(app)
+        response = client.post(
+            "/api/v1/auth/reset-password",
+            json={"token": token, "new_password": "newsecurepassword123"},
+        )
+        assert response.status_code == 200
+        assert response.json() == {"status": "success", "message": "Password reset successfully"}
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_update_me_success() -> None:
+    mock_user = MagicMock(spec=User)
+    mock_user.id = 42
+    mock_user.email = "update@example.com"
+    mock_user.full_name = "Original Name"
+    mock_user.is_active = True
+    mock_user.oauth_provider = None
+    mock_user.created_at = datetime.now(UTC)
+    mock_user.updated_at = datetime.now(UTC)
+
+    class MockExecuteResult:
+        def scalars(self) -> Any:
+            mock_scalar = MagicMock()
+            mock_scalar.first.return_value = mock_user
+            return mock_scalar
+
+    async def override_get_db() -> AsyncGenerator[Any, None]:
+        db = _mock_db_with_add()
+        db.execute.return_value = MockExecuteResult()
+        yield db
+
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        with patch("app.api.deps.decode_access_token", return_value={"sub": "42"}):
+            client = TestClient(app)
+            client.headers.update({"Authorization": "Bearer some_access_token"})
+            response = client.put(
+                "/api/v1/auth/me",
+                json={"full_name": "Updated Name", "password": "newpassword123"},
+            )
+            assert response.status_code == 200
+            assert response.json()["full_name"] == "Updated Name"
+    finally:
+        app.dependency_overrides.clear()
+

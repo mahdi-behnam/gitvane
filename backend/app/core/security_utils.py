@@ -97,3 +97,42 @@ def decrypt_pat(encrypted_pat: str) -> str:
     fernet = Fernet(settings.ENCRYPTION_KEY.encode("utf-8"))
     decrypted_bytes = fernet.decrypt(encrypted_pat.encode("utf-8"))
     return decrypted_bytes.decode("utf-8")
+
+
+def create_password_reset_token(email: str) -> str:
+    """
+    Encodes a JWT with sub (email), type="password_reset", and exp claims.
+    """
+    now = datetime.now(timezone.utc)
+    expire = now + timedelta(hours=1)
+    to_encode = {
+        "sub": email,
+        "type": "password_reset",
+        "exp": expire,
+        "iat": now,
+    }
+    encoded = jwt.encode(
+        to_encode, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM
+    )
+    if isinstance(encoded, bytes):
+        return encoded.decode("utf-8")
+    return encoded
+
+
+def verify_password_reset_token(token: str) -> str:
+    """
+    Decodes password reset token and returns email.
+    Raises AuthenticationError if expired or invalid.
+    """
+    try:
+        payload = jwt.decode(
+            token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM]
+        )
+        if payload.get("type") != "password_reset":
+            raise AuthenticationError("Invalid or expired password reset token")
+        email = payload.get("sub")
+        if not email:
+            raise AuthenticationError("Invalid or expired password reset token")
+        return str(email)
+    except (jwt.PyJWTError, ValueError) as e:
+        raise AuthenticationError("Invalid or expired password reset token") from e
