@@ -285,3 +285,70 @@ def test_get_me_success() -> None:
             assert response.json()["full_name"] == "Me"
     finally:
         app.dependency_overrides.clear()
+
+
+
+def test_jwt_secret_key_validation_in_non_local_environment() -> None:
+    import pytest
+    from app.core.config import Settings
+
+    with pytest.raises(ValueError, match="JWT_SECRET_KEY environment variable is required in non-local environments"):
+        Settings(ENVIRONMENT="production", JWT_SECRET_KEY="")
+
+
+def test_jwt_secret_key_generation_in_local_environment() -> None:
+    from app.core.config import Settings
+
+    s = Settings(ENVIRONMENT="local", JWT_SECRET_KEY="")
+    assert s.JWT_SECRET_KEY != ""
+
+
+def test_oauth2_callback_google_redirect_secure() -> None:
+    mock_user = MagicMock(spec=User)
+    mock_user.id = 42
+    mock_user.email = "oauth@example.com"
+    mock_user.full_name = "OAuth User"
+
+    class MockExecuteResult:
+        def scalars(self) -> Any:
+            mock_scalar = MagicMock()
+            mock_scalar.first.return_value = mock_user
+            return mock_scalar
+
+    async def override_get_db() -> AsyncGenerator[Any, None]:
+        db = _mock_db_with_add()
+        db.execute.return_value = MockExecuteResult()
+        yield db
+
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        mock_token_resp = MagicMock()
+        mock_token_resp.status_code = 200
+        mock_token_resp.json.return_value = {"access_token": "google_tok"}
+
+        mock_profile_resp = MagicMock()
+        mock_profile_resp.status_code = 200
+        mock_profile_resp.json.return_value = {
+            "email": "oauth@example.com",
+            "sub": "google123",
+            "name": "OAuth User",
+        }
+
+        mock_client = AsyncMock()
+        mock_client.post.return_value = mock_token_resp
+        mock_client.get.return_value = mock_profile_resp
+
+        with patch("httpx.AsyncClient") as mock_httpx_cls:
+            mock_httpx_cls.return_value.__aenter__.return_value = mock_client
+            client = TestClient(app, follow_redirects=False)
+            client.cookies.set("oauth_state", "validstate")
+            response = client.get("/api/v1/auth/oauth2/callback/google?code=validcode&state=validstate")
+
+            assert response.status_code == 307
+            location = response.headers["location"]
+            from app.core.config import settings
+            assert location.startswith(settings.FRONTEND_URL)
+            assert "#access_token=" in location
+            assert "?access_token=" not in location
+    finally:
+        app.dependency_overrides.clear()

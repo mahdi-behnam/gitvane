@@ -14,7 +14,10 @@ function AuthCallbackHandler() {
 
   useEffect(() => {
     async function handleCallback() {
-      const accessToken = searchParams.get("access_token");
+      const hashParams = typeof window !== "undefined" && window.location.hash
+        ? new URLSearchParams(window.location.hash.substring(1))
+        : null;
+      const accessToken = searchParams.get("access_token") || hashParams?.get("access_token");
       if (!accessToken) {
         router.replace("/login");
         return;

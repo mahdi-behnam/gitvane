@@ -58,6 +58,7 @@ class Settings(BaseSettings):
     IMPACT_TEST_WEIGHT: float = 0.10
     IMPACT_RISK_WEIGHT: float = 0.10
 
+    FRONTEND_URL: str = "http://localhost:3000/auth/callback"
     JWT_SECRET_KEY: str = ""
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
@@ -69,6 +70,10 @@ class Settings(BaseSettings):
 
     def model_post_init(self, __context: Any) -> None:
         if not self.JWT_SECRET_KEY:
+            if self.ENVIRONMENT.lower() not in ("local", "test", "testing"):
+                raise ValueError(
+                    "JWT_SECRET_KEY environment variable is required in non-local environments"
+                )
             import logging
             import secrets
             self.JWT_SECRET_KEY = secrets.token_hex(32)

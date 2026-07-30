@@ -378,8 +378,8 @@ async def oauth2_callback_google(
     await db.commit()
 
     # Build response redirect
-    frontend_url = "http://localhost:3000/auth/callback"
-    redirect_res = RedirectResponse(f"{frontend_url}?access_token={access_token}")
+    frontend_url = settings.FRONTEND_URL
+    redirect_res = RedirectResponse(f"{frontend_url}#access_token={access_token}")
 
     secure = settings.ENVIRONMENT != "local"
     redirect_res.set_cookie(
