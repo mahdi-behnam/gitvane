@@ -1,4 +1,4 @@
-import asyncio
+﻿import asyncio
 import json
 from typing import Annotated
 from uuid import UUID
@@ -121,21 +121,19 @@ async def index_events(
         elif "access_token" in request.cookies:
             auth_token = request.cookies.get("access_token")
 
-    user_id: int | None = None
-    if auth_token:
-        try:
-            payload = decode_access_token(auth_token)
-            user_id = int(payload["sub"])
-        except Exception:
-            pass
+    if not auth_token:
+        raise AuthenticationError("Not authenticated")
 
     try:
-        if user_id is not None:
-            repo_obj = await repo_svc.get_repository_or_raise(
-                db, repository_id, owner_id=user_id
-            )
-        else:
-            repo_obj = await repo_svc.get_repository_or_raise(db, repository_id)
+        payload = decode_access_token(auth_token)
+        user_id = int(payload["sub"])
+    except Exception as exc:
+        raise AuthenticationError("Invalid or expired token") from exc
+
+    try:
+        repo_obj = await repo_svc.get_repository_or_raise(
+            db, repository_id, owner_id=user_id
+        )
     except RepositoryNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)
@@ -188,4 +186,3 @@ async def index_events(
             "X-Accel-Buffering": "no",
         },
     )
-
