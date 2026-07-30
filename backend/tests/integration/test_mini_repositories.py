@@ -68,6 +68,10 @@ class _IntegrationDb:
             self.next_id += 1
         self.added.append(obj)
 
+    def add_all(self, instances: list[Any]) -> None:
+        for obj in instances:
+            self.add(obj)
+
     async def flush(self) -> None:
         pass
 

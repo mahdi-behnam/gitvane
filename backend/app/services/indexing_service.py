@@ -133,21 +133,29 @@ class IndexingService:
                         }
                     )
 
-                code_file = await self._upsert_code_file(
-                    db=db,
+                code_file = CodeFile(
                     repository_id=repository_id,
-                    path=tracked_path,
-                    language=classification["language"],
-                    content=content,
+                    path=Path(tracked_path).as_posix(),
+                    language=str(
+                        classification["language"].value
+                        if isinstance(classification["language"], Language)
+                        else classification["language"]
+                    ),
+                    content_hash=compute_normalized_hash(content),
                     loc=int(classification["loc"]),
                     is_test=bool(classification["is_test"]),
                     is_generated=bool(classification["is_generated"]),
                     last_seen_commit=current_sha,
-                    parser_errors=parser_errors[-1:] if parsed.errors else [],
+                    file_metadata=(
+                        {"parser_errors": parser_errors[-1:]} if parsed.errors else {}
+                    ),
                 )
                 code_files_by_path[tracked_path] = code_file
                 parsed_files.append(parsed)
                 file_contents[tracked_path] = content
+
+            code_files_to_add = list(code_files_by_path.values())
+            await self._upsert_code_files(db, code_files_to_add)
 
             self.tracker.update_progress(
                 repository_id,
@@ -335,33 +343,15 @@ class IndexingService:
         await db.execute(delete(Commit).where(Commit.repository_id == repository_id))
         await db.flush()
 
-    async def _upsert_code_file(
+    async def _upsert_code_files(
         self,
         db: AsyncSession,
-        repository_id: UUID | Any,
-        path: str,
-        language: object,
-        content: str,
-        loc: int,
-        is_test: bool,
-        is_generated: bool,
-        last_seen_commit: str,
-        parser_errors: list[dict[str, Any]],
-    ) -> CodeFile:
-        code_file = CodeFile(
-            repository_id=repository_id,
-            path=Path(path).as_posix(),
-            language=str(language.value if isinstance(language, Language) else language),
-            content_hash=compute_normalized_hash(content),
-            loc=loc,
-            is_test=is_test,
-            is_generated=is_generated,
-            last_seen_commit=last_seen_commit,
-            file_metadata={"parser_errors": parser_errors} if parser_errors else {},
-        )
-        db.add(code_file)
-        await db.flush()
-        return code_file
+        code_files: list[CodeFile],
+    ) -> list[CodeFile]:
+        if code_files:
+            db.add_all(code_files)
+            await db.flush()
+        return code_files
 
     async def _save_symbols(
         self,
@@ -371,7 +361,7 @@ class IndexingService:
         code_files_by_path: dict[str, CodeFile],
         symbol_records_by_key: dict[tuple[str, str, int], Symbol],
     ) -> int:
-        count = 0
+        symbols_to_add: list[Symbol] = []
         for parsed in parsed_files:
             code_file = code_files_by_path.get(parsed.path)
             if code_file is None:
@@ -397,13 +387,14 @@ class IndexingService:
                         **parsed_symbol.metadata,
                     },
                 )
-                db.add(symbol)
-                await db.flush()
+                symbols_to_add.append(symbol)
                 symbol_records_by_key[
                     (parsed.path, parsed_symbol.qualified_name, parsed_symbol.start_line)
                 ] = symbol
-                count += 1
-        return count
+        if symbols_to_add:
+            db.add_all(symbols_to_add)
+            await db.flush()
+        return len(symbols_to_add)
 
     async def _save_chunks(
         self,
@@ -414,7 +405,6 @@ class IndexingService:
         symbol_records_by_key: dict[tuple[str, str, int], Symbol],
         file_contents: dict[str, str],
     ) -> tuple[int, list[CodeChunk]]:
-        count = 0
         chunks: list[CodeChunk] = []
         for parsed in parsed_files:
             code_file = code_files_by_path.get(parsed.path)
@@ -446,11 +436,11 @@ class IndexingService:
                     content_hash=compute_normalized_hash(text),
                     token_count_estimate=max(len(text) // 4, 1),
                 )
-                db.add(chunk)
                 chunks.append(chunk)
-                count += 1
-        await db.flush()
-        return count, chunks
+        if chunks:
+            db.add_all(chunks)
+            await db.flush()
+        return len(chunks), chunks
 
     async def _save_dependency_edges(
         self,
@@ -459,13 +449,13 @@ class IndexingService:
         edges: list[DependencyEdgeData],
         code_files_by_path: dict[str, CodeFile],
     ) -> int:
-        count = 0
+        edges_to_add: list[DependencyEdge] = []
         for edge in edges:
             source = code_files_by_path.get(edge.source_path)
             target = code_files_by_path.get(edge.target_path)
             if source is None or target is None:
                 continue
-            db.add(
+            edges_to_add.append(
                 DependencyEdge(
                     repository_id=repository_id,
                     source_file_id=source.id,
@@ -475,9 +465,10 @@ class IndexingService:
                     evidence=edge.evidence,
                 )
             )
-            count += 1
-        await db.flush()
-        return count
+        if edges_to_add:
+            db.add_all(edges_to_add)
+            await db.flush()
+        return len(edges_to_add)
 
     async def _save_commit_metadata(
         self,
@@ -486,10 +477,10 @@ class IndexingService:
         git_repo: Any,
         max_commits: int,
     ) -> int:
-        count = 0
+        commits_to_add: list[Commit] = []
         for commit in self.git_service.iter_commits(git_repo, max_count=max_commits):
             metadata = self.git_service.get_commit_metadata(git_repo, commit.hexsha)
-            db.add(
+            commits_to_add.append(
                 Commit(
                     repository_id=repository_id,
                     sha=metadata["sha"],
@@ -503,9 +494,10 @@ class IndexingService:
                     deletions=metadata.get("deletions"),
                 )
             )
-            count += 1
-        await db.flush()
-        return count
+        if commits_to_add:
+            db.add_all(commits_to_add)
+            await db.flush()
+        return len(commits_to_add)
 
     async def _count(
         self, db: AsyncSession, model: type[Any], repository_id: UUID | Any

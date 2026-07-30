@@ -94,6 +94,11 @@ class Repository(Base):
     owner_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
+
+    # Constraints & Indices
+    __table_args__ = (
+        Index("idx_repositories_owner_id", "owner_id"),
+    )
     encrypted_pat: Mapped[Optional[str]] = mapped_column(String, nullable=True)
 
     # Relationships
@@ -223,6 +228,7 @@ class Symbol(Base):
             "start_line",
             unique=True,
         ),
+        Index("idx_symbols_repository_id", "repository_id"),
         Index("idx_symbols_file_id", "file_id"),
     )
 
@@ -264,6 +270,7 @@ class DependencyEdge(Base):
 
     # Constraints & Indices
     __table_args__ = (
+        Index("idx_dependency_edges_repository_id", "repository_id"),
         Index("idx_dependency_edges_source_file_id", "source_file_id"),
         Index("idx_dependency_edges_target_file_id", "target_file_id"),
     )
@@ -301,6 +308,7 @@ class CodeChunk(Base):
 
     # Constraints & Indices
     __table_args__ = (
+        Index("idx_code_chunks_repository_id", "repository_id"),
         Index("idx_code_chunks_file_id", "file_id"),
     )
 
@@ -358,6 +366,11 @@ class AnalysisRun(Base):
         DateTime(timezone=True), nullable=True
     )
     error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    # Constraints & Indices
+    __table_args__ = (
+        Index("idx_analysis_runs_repository_id", "repository_id"),
+    )
 
     # Relationships
     repository = relationship("Repository", back_populates="analysis_runs")
@@ -423,6 +436,11 @@ class EvaluationRun(Base):
         DateTime(timezone=True), nullable=True
     )
     error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    # Constraints & Indices
+    __table_args__ = (
+        Index("idx_evaluation_runs_repository_id", "repository_id"),
+    )
 
     # Relationships
     repository = relationship("Repository", back_populates="evaluation_runs")
