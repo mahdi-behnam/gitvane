@@ -1,7 +1,7 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 
 type RepositorySelectionState = {
-  activeRepositoryId: number | null;
+  activeRepositoryId: string | null;
   recentAnalysisRunId: number | null;
   recentEvaluationRunId: number | null;
 };
@@ -19,7 +19,7 @@ const repositorySelectionSlice = createSlice({
     clearActiveRepository(state) {
       state.activeRepositoryId = null;
     },
-    setActiveRepositoryId(state, action: PayloadAction<number | null>) {
+    setActiveRepositoryId(state, action: PayloadAction<string | null>) {
       state.activeRepositoryId = action.payload;
     },
     setRecentAnalysisRunId(state, action: PayloadAction<number | null>) {

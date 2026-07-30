@@ -7,5 +7,5 @@ export default async function RepositoryRiskPage({
 }) {
   const { id } = await params;
 
-  return <RiskDashboardPage repositoryId={Number(id)} />;
+  return <RiskDashboardPage repositoryId={id} />;
 }

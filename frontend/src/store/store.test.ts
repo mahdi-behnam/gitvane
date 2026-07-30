@@ -12,10 +12,10 @@ describe("store", () => {
 
     store.dispatch(setThemePreference("dark"));
     store.dispatch(setDependencyDepth(3));
-    store.dispatch(setActiveRepositoryId(42));
+    store.dispatch(setActiveRepositoryId("77777777-7777-7777-7777-777777777777"));
 
     expect(store.getState().appPreferences.theme).toBe("dark");
     expect(store.getState().appPreferences.dependencyDepth).toBe(3);
-    expect(store.getState().repositorySelection.activeRepositoryId).toBe(42);
+    expect(store.getState().repositorySelection.activeRepositoryId).toBe("77777777-7777-7777-7777-777777777777");
   });
 });

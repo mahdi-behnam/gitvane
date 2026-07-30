@@ -130,11 +130,11 @@ export function RepositoryManagementPage() {
     ? normalizeApiError(repositories.error).message
     : null;
 
-  const handleIndexingStarted = (repositoryId: number) => {
+  const handleIndexingStarted = (repositoryId: string) => {
     setActiveIndexingIds((prev) => ({ ...prev, [repositoryId]: true }));
   };
 
-  const handleIndexingEnded = (repositoryId: number) => {
+  const handleIndexingEnded = (repositoryId: string) => {
     setActiveIndexingIds((prev) => ({ ...prev, [repositoryId]: false }));
     void repositories.refetch();
   };

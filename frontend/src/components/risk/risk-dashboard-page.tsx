@@ -48,8 +48,8 @@ const defaultFilters: RiskFilters = {
   topK: 20,
 };
 
-export function RiskDashboardPage({ repositoryId }: { repositoryId: number }) {
-  const validRepositoryId = Number.isFinite(repositoryId) ? repositoryId : null;
+export function RiskDashboardPage({ repositoryId }: { repositoryId: string }) {
+  const validRepositoryId = typeof repositoryId === "string" && repositoryId.trim() !== "" ? repositoryId : null;
   const [draftFilters, setDraftFilters] = useState(defaultFilters);
   const [appliedFilters, setAppliedFilters] = useState(defaultFilters);
   const repository = useGetRepositoryQuery(validRepositoryId ?? skipToken);

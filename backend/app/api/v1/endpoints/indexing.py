@@ -1,6 +1,7 @@
 import asyncio
 import json
 from typing import Annotated
+from uuid import UUID
 
 from fastapi import (
     APIRouter,
@@ -38,7 +39,7 @@ router = APIRouter()
     status_code=status.HTTP_202_ACCEPTED,
 )
 async def index_repository(
-    repository_id: int,
+    repository_id: UUID,
     body: IndexRepositoryRequest,
     background_tasks: BackgroundTasks,
     db: Annotated[AsyncSession, Depends(get_db)],
@@ -87,7 +88,7 @@ async def index_repository(
 
 @router.get("/{repository_id}/index/status", response_model=IndexStatusResponse)
 async def get_index_status(
-    repository_id: int,
+    repository_id: UUID,
     db: Annotated[AsyncSession, Depends(get_db)],
     svc: Annotated[IndexingService, Depends(get_indexing_service)],
     repo_svc: Annotated[RepositoryService, Depends(get_repository_service)],
@@ -106,7 +107,7 @@ async def get_index_status(
 
 @router.get("/{repository_id}/index/events")
 async def index_events(
-    repository_id: int,
+    repository_id: UUID,
     request: Request,
     db: Annotated[AsyncSession, Depends(get_db)],
     repo_svc: Annotated[RepositoryService, Depends(get_repository_service)],
@@ -151,7 +152,7 @@ async def index_events(
             )
 
         if initial_event:
-            data = json.dumps(initial_event.model_dump())
+            data = initial_event.model_dump_json()
             yield f"event: progress\ndata: {data}\n\n"
 
         if repo_obj.status not in {"indexing"}:
@@ -165,7 +166,7 @@ async def index_events(
                 # Wait for next event or heartbeat timeout
                 try:
                     event = await asyncio.wait_for(subscriber_gen.__anext__(), timeout=15.0)
-                    data = json.dumps(event.model_dump())
+                    data = event.model_dump_json()
                     yield f"event: progress\ndata: {data}\n\n"
                     if event.status in {"indexed", "index_failed"}:
                         await asyncio.sleep(0.5)

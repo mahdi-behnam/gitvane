@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from pathlib import PurePosixPath
 from typing import Any
+from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -26,7 +27,7 @@ class TestRecommendationService:
     async def recommend_for_repository(
         self,
         db: AsyncSession,
-        repository_id: int,
+        repository_id: UUID | Any,
         changed_files: list[ChangedFileInput],
         impacted_files: list[str] | None = None,
         top_k: int = 10,
@@ -208,7 +209,7 @@ class TestRecommendationService:
         return paths
 
     async def _load_indexed_data(
-        self, db: AsyncSession, repository_id: int
+        self, db: AsyncSession, repository_id: UUID | Any
     ) -> tuple[list[CodeFile], list[DependencyEdge], list[Commit]]:
         code_files = (
             await db.execute(
@@ -230,7 +231,7 @@ class TestRecommendationService:
     async def _semantic_scores(
         self,
         db: AsyncSession,
-        repository_id: int,
+        repository_id: UUID | Any,
         changed_paths: set[str],
         impacted_paths: set[str],
         test_paths: set[str],

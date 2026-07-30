@@ -321,6 +321,11 @@ def test_rtr_reuse_revoked_token_invalidates_all() -> None:
         app.dependency_overrides.clear()
 
 
+from uuid import UUID
+
+TEST_UUID = UUID("11111111-1111-1111-1111-111111111111")
+
+
 # 3. Database Multi-Tenancy Isolation Tests
 
 def test_database_multi_tenancy_isolation() -> None:
@@ -341,7 +346,7 @@ def test_database_multi_tenancy_isolation() -> None:
     )
     
     repo_a = Repository(
-        id=10,
+        id=TEST_UUID,
         name="usera-repo",
         clone_url="https://github.com/usera/repo.git",
         status="ready",
@@ -361,16 +366,16 @@ def test_database_multi_tenancy_isolation() -> None:
         client = TestClient(app)
         client.headers.update({"Authorization": f"Bearer {user_b_token}"})
 
-        # GET /api/v1/repositories/10
-        response = client.get("/api/v1/repositories/10")
+        # GET /api/v1/repositories/{TEST_UUID}
+        response = client.get(f"/api/v1/repositories/{TEST_UUID}")
         assert response.status_code == 404
 
-        # DELETE /api/v1/repositories/10
-        response = client.delete("/api/v1/repositories/10")
+        # DELETE /api/v1/repositories/{TEST_UUID}
+        response = client.delete(f"/api/v1/repositories/{TEST_UUID}")
         assert response.status_code == 404
 
-        # POST /api/v1/repositories/10/index
-        response = client.post("/api/v1/repositories/10/index", json={"ref": "main"})
+        # POST /api/v1/repositories/{TEST_UUID}/index
+        response = client.post(f"/api/v1/repositories/{TEST_UUID}/index", json={"ref": "main"})
         assert response.status_code == 404
         
     finally:

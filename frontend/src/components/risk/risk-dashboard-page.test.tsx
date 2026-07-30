@@ -12,7 +12,7 @@ const repository: Repository = {
   created_at: "2026-06-21T10:00:00Z",
   current_ref: "main",
   default_branch: "main",
-  id: 7,
+  id: "77777777-7777-7777-7777-777777777777",
   indexed_at: "2026-06-21T10:30:00Z",
   last_indexed_commit: "abc123",
   local_path: null,
@@ -50,12 +50,12 @@ const riskResponse: RepositoryRiskResponse = {
   metadata: {
     generated_at: "2026-06-22T09:00:00Z",
   },
-  repository_id: 7,
+  repository_id: "77777777-7777-7777-7777-777777777777",
 };
 
 function useRepositoryHandler() {
   server.use(
-    http.get(`${apiBaseUrl}/repositories/7`, () => HttpResponse.json(repository)),
+    http.get(`${apiBaseUrl}/repositories/77777777-7777-7777-7777-777777777777`, () => HttpResponse.json(repository)),
   );
 }
 
@@ -63,12 +63,12 @@ describe("RiskDashboardPage", () => {
   it("renders risk summary, chart, table, and component details", async () => {
     useRepositoryHandler();
     server.use(
-      http.get(`${apiBaseUrl}/risk/repositories/7/files`, () =>
+      http.get(`${apiBaseUrl}/risk/repositories/77777777-7777-7777-7777-777777777777/files`, () =>
         HttpResponse.json(riskResponse),
       ),
     );
 
-    renderWithProviders(<RiskDashboardPage repositoryId={7} />);
+    renderWithProviders(<RiskDashboardPage repositoryId="77777777-7777-7777-7777-777777777777" />);
 
     expect(await screen.findByText("Risk summary")).toBeInTheDocument();
     expect(screen.getByText("Risk distribution")).toBeInTheDocument();
@@ -86,13 +86,13 @@ describe("RiskDashboardPage", () => {
     const requests: string[] = [];
     useRepositoryHandler();
     server.use(
-      http.get(`${apiBaseUrl}/risk/repositories/7/files`, ({ request }) => {
+      http.get(`${apiBaseUrl}/risk/repositories/77777777-7777-7777-7777-777777777777/files`, ({ request }) => {
         requests.push(request.url);
         return HttpResponse.json(riskResponse);
       }),
     );
 
-    renderWithProviders(<RiskDashboardPage repositoryId={7} />);
+    renderWithProviders(<RiskDashboardPage repositoryId="77777777-7777-7777-7777-777777777777" />);
 
     await waitFor(() => expect(requests.length).toBeGreaterThan(0));
     fireEvent.change(screen.getByLabelText("Top files"), {
@@ -114,12 +114,12 @@ describe("RiskDashboardPage", () => {
   it("renders an empty risk response", async () => {
     useRepositoryHandler();
     server.use(
-      http.get(`${apiBaseUrl}/risk/repositories/7/files`, () =>
+      http.get(`${apiBaseUrl}/risk/repositories/77777777-7777-7777-7777-777777777777/files`, () =>
         HttpResponse.json({ ...riskResponse, files: [] }),
       ),
     );
 
-    renderWithProviders(<RiskDashboardPage repositoryId={7} />);
+    renderWithProviders(<RiskDashboardPage repositoryId="77777777-7777-7777-7777-777777777777" />);
 
     expect(await screen.findByText("No risk results")).toBeInTheDocument();
   });

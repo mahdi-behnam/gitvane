@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Any, Optional
+from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -30,7 +31,7 @@ class RepositoryOut(BaseModel):
 
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
-    id: int
+    id: UUID
     name: str
     clone_url: Optional[str] = None
     local_path: Optional[str] = None

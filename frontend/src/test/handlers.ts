@@ -34,7 +34,7 @@ const repositoryFixture: Repository = {
   created_at: "2026-06-21T10:00:00Z",
   current_ref: "main",
   default_branch: "main",
-  id: 7,
+  id: "77777777-7777-7777-7777-777777777777",
   indexed_at: "2026-06-21T10:30:00Z",
   last_indexed_commit: "abc123",
   local_path: null,
@@ -52,7 +52,7 @@ const indexStatusFixture: IndexStatusResponse = {
   file_count: 18,
   indexed_at: "2026-06-21T10:30:00Z",
   last_indexed_commit: "abc123",
-  repository_id: 7,
+  repository_id: "77777777-7777-7777-7777-777777777777",
   status: "indexed",
   symbol_count: 44,
 };
@@ -88,7 +88,7 @@ const graphFixture: GraphResponse = {
       path: "backend/app/services/indexing_service.py",
     },
   ],
-  repository_id: 7,
+  repository_id: "77777777-7777-7777-7777-777777777777",
 };
 
 const riskFixture: RepositoryRiskResponse = {
@@ -101,7 +101,7 @@ const riskFixture: RepositoryRiskResponse = {
     },
   ],
   metadata: {},
-  repository_id: 7,
+  repository_id: "77777777-7777-7777-7777-777777777777",
 };
 
 const impactFixture: ImpactAnalyzeResponse = {
@@ -113,7 +113,7 @@ const impactFixture: ImpactAnalyzeResponse = {
   impacted_files: [],
   llm_explanation: null,
   recommended_tests: [],
-  repository_id: 7,
+  repository_id: "77777777-7777-7777-7777-777777777777",
   risk_summary: { highest_risk_files: [] },
 };
 
@@ -123,7 +123,7 @@ const evaluationStatusFixture: EvaluationStatusResponse = {
   evaluation_run_id: 42,
   methods: ["hybrid"],
   name: "Repository evaluation",
-  repository_id: 7,
+  repository_id: "77777777-7777-7777-7777-777777777777",
   status: "completed",
   summary: { hybrid: { map: 0.62 } },
 };
@@ -149,7 +149,7 @@ export const handlers = [
       files_skipped: 0,
       indexed_at: "2026-06-21T10:30:00Z",
       parser_errors: [],
-      repository_id: 7,
+      repository_id: "77777777-7777-7777-7777-777777777777",
       status: "indexed",
       symbols_indexed: 44,
       warnings: [],
@@ -173,7 +173,7 @@ export const handlers = [
       changed_symbols: [],
       input_mode: "changed_files",
       predictions: [],
-      repository_id: 7,
+      repository_id: "77777777-7777-7777-7777-777777777777",
       status: "completed",
     };
 
@@ -183,7 +183,7 @@ export const handlers = [
     const response: TestRecommendationResponse = {
       changed_files: [{ path: "backend/app/services/indexing_service.py" }],
       recommended_tests: [],
-      repository_id: 7,
+      repository_id: "77777777-7777-7777-7777-777777777777",
     };
 
     return HttpResponse.json(response);

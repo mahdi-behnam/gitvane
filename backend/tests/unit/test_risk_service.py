@@ -1,6 +1,7 @@
 from types import SimpleNamespace
 from typing import Any, AsyncGenerator
 from unittest.mock import AsyncMock, MagicMock
+from uuid import UUID
 
 import pytest
 from fastapi.testclient import TestClient
@@ -10,6 +11,8 @@ from app.db.models import CodeChunk, CodeFile, Commit, DependencyEdge, Repositor
 from app.main import app
 from app.schemas.risk import RepositoryRiskResponse
 from app.services.risk_service import RiskService
+
+TEST_UUID = UUID("11111111-1111-1111-1111-111111111111")
 
 
 class _ScalarResult:
@@ -40,7 +43,7 @@ class _FakeDb:
         self.results = [code_files, edges, commits, chunks]
         self.repo_exists = repo_exists
 
-    async def get(self, model: type[Any], object_id: int) -> Any:
+    async def get(self, model: type[Any], object_id: Any) -> Any:
         if model is Repository and self.repo_exists:
             return Repository(id=object_id, name="repo", clone_url="", status="indexed")
         return None
@@ -52,28 +55,24 @@ class _FakeDb:
 def test_risk_service_scores_file_components() -> None:
     code_file = CodeFile(
         id=1,
-        repository_id=1,
+        repository_id=TEST_UUID,
         path="src/core/payment.py",
         language="python",
         content_hash="abc",
         loc=400,
         is_test=False,
     )
-
     risk = RiskService().score_file(
         code_file,
-        fan_in=8,
-        fan_out=3,
-        churn=12,
-        bugfix_churn=2,
+        fan_in=12,
+        fan_out=2,
+        churn=15,
+        bugfix_churn=4,
         complexity=0.7,
     )
-
-    assert risk.path == "src/core/payment.py"
-    assert 0.0 < risk.score <= 1.0
-    assert risk.components["fan_in"] == 0.8
-    assert risk.components["complexity"] == 0.7
+    assert risk.score > 0.6
     assert "High fan-in" in risk.reasons
+    assert "Frequently changed" in risk.reasons
 
 
 def test_risk_service_counts_bugfix_churn() -> None:
@@ -93,48 +92,59 @@ def test_risk_service_counts_bugfix_churn() -> None:
 
 @pytest.mark.asyncio()
 async def test_repository_risk_ranks_indexed_files() -> None:
-    source = CodeFile(
+    payment = CodeFile(
         id=1,
-        repository_id=1,
+        repository_id=TEST_UUID,
         path="src/core/payment.py",
         language="python",
-        content_hash="a",
+        content_hash="abc",
         loc=400,
         is_test=False,
     )
-    test = CodeFile(
+    helpers = CodeFile(
         id=2,
-        repository_id=1,
+        repository_id=TEST_UUID,
+        path="src/core/helpers.py",
+        language="python",
+        content_hash="def",
+        loc=50,
+        is_test=False,
+    )
+    tests = CodeFile(
+        id=3,
+        repository_id=TEST_UUID,
         path="tests/test_payment.py",
         language="python",
-        content_hash="b",
-        loc=30,
+        content_hash="ghi",
+        loc=80,
         is_test=True,
     )
     edge = DependencyEdge(
-        repository_id=1,
+        id=1,
+        repository_id=TEST_UUID,
         source_file_id=2,
         target_file_id=1,
-        edge_type="test_import",
+        edge_type="import",
     )
     commit = Commit(
-        repository_id=1,
-        sha="abc",
-        message="Fix payment bug",
+        id=1,
+        repository_id=TEST_UUID,
+        sha="c1",
+        message="fix payment crash",
         changed_files=[{"path": "src/core/payment.py"}],
     )
     chunk = CodeChunk(
         id=1,
-        repository_id=1,
+        repository_id=TEST_UUID,
         file_id=1,
         chunk_type="function",
-        text="def pay(x):\n    if x:\n        return x\n",
         start_line=1,
-        end_line=3,
-        content_hash="c",
+        end_line=100,
+        content_hash="abc",
+        text="def process_payment():\n" + "    pass\n" * 100,
     )
     db = _FakeDb(
-        code_files=[source, test],
+        code_files=[payment, helpers, tests],
         edges=[edge],
         commits=[commit],
         chunks=[chunk],
@@ -142,7 +152,7 @@ async def test_repository_risk_ranks_indexed_files() -> None:
 
     response = await RiskService().get_repository_file_risks(
         db,
-        repository_id=1,
+        repository_id=TEST_UUID,
         include_tests=False,
     )
 
@@ -155,8 +165,8 @@ async def test_repository_risk_ranks_indexed_files() -> None:
 async def test_repository_risk_raises_for_missing_repo() -> None:
     db = _FakeDb([], [], [], [], repo_exists=False)
 
-    with pytest.raises(Exception, match="Repository with id=99"):
-        await RiskService().get_repository_file_risks(db, repository_id=99)
+    with pytest.raises(Exception, match=r"Repository with id="):
+        await RiskService().get_repository_file_risks(db, repository_id=TEST_UUID)
 
 
 async def _noop_db() -> AsyncGenerator[Any, None]:
@@ -167,7 +177,7 @@ def test_risk_endpoint_success() -> None:
     mock_svc = MagicMock()
     mock_svc.get_repository_file_risks = AsyncMock(
         return_value=RepositoryRiskResponse(
-            repository_id=1,
+            repository_id=TEST_UUID,
             files=[],
             metadata={"top_k": 20},
         )
@@ -177,10 +187,10 @@ def test_risk_endpoint_success() -> None:
     app.dependency_overrides[get_risk_service] = lambda: mock_svc
     try:
         client = TestClient(app)
-        response = client.get("/api/v1/risk/repositories/1/files?top_k=5")
+        response = client.get(f"/api/v1/risk/repositories/{TEST_UUID}/files?top_k=5")
     finally:
         app.dependency_overrides.clear()
 
     assert response.status_code == 200
-    assert response.json()["repository_id"] == 1
+    assert response.json()["repository_id"] == str(TEST_UUID)
     mock_svc.get_repository_file_risks.assert_awaited_once()

@@ -51,8 +51,8 @@ function parseChangedFiles(value: string): ChangedFileInput[] {
     }));
 }
 
-export function ImpactAnalysisPage({ repositoryId }: { repositoryId: number }) {
-  const validRepositoryId = Number.isFinite(repositoryId) ? repositoryId : null;
+export function ImpactAnalysisPage({ repositoryId }: { repositoryId: string }) {
+  const validRepositoryId = typeof repositoryId === "string" && repositoryId.trim() !== "" ? repositoryId : null;
   const formId = useId();
   const [mode, setMode] = useState<InputMode>("changed_files");
   const [changedFiles, setChangedFiles] = useState(

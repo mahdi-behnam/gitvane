@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from typing import Any
+from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -196,7 +197,7 @@ class EvaluationService:
         )
 
     async def _load_indexed_data(
-        self, db: AsyncSession, repository_id: int, commit_limit: int
+        self, db: AsyncSession, repository_id: UUID | Any, commit_limit: int
     ) -> tuple[list[CodeFile], list[DependencyEdge], list[Commit]]:
         code_files = (
             await db.execute(
@@ -255,7 +256,7 @@ class EvaluationService:
     async def _predict(
         self,
         db: AsyncSession,
-        repository_id: int,
+        repository_id: UUID | Any,
         method: str,
         known_file: str,
         code_files: list[CodeFile],
@@ -297,7 +298,7 @@ class EvaluationService:
         ]
 
     async def _semantic_predictions(
-        self, db: AsyncSession, repository_id: int, known_file: str
+        self, db: AsyncSession, repository_id: UUID | Any, known_file: str
     ) -> list[str]:
         if self.semantic_search_service is None:
             return []
@@ -414,7 +415,7 @@ class EvaluationService:
         return paths
 
     async def _get_repository_or_raise(
-        self, db: AsyncSession, repository_id: int
+        self, db: AsyncSession, repository_id: UUID | Any
     ) -> Repository:
         repo_obj = await db.get(Repository, repository_id)
         if repo_obj is None:

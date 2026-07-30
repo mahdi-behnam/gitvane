@@ -20,8 +20,8 @@ import { useAppDispatch } from "@/store/hooks";
 import { setActiveRepositoryId } from "@/store/slices/repositorySelectionSlice";
 import { skipToken } from "@reduxjs/toolkit/query";
 
-export function SemanticSearchPage({ repositoryId }: { repositoryId: number }) {
-  const validRepositoryId = Number.isFinite(repositoryId) ? repositoryId : null;
+export function SemanticSearchPage({ repositoryId }: { repositoryId: string }) {
+  const validRepositoryId = typeof repositoryId === "string" && repositoryId.trim() !== "" ? repositoryId : null;
   const formId = useId();
   const [query, setQuery] = useState("");
   const [topK, setTopK] = useState(10);

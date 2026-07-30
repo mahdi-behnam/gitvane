@@ -1,11 +1,12 @@
 from datetime import datetime
 from typing import Any
+from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
 
 class IndexingBase(BaseModel):
-    repository_id: int
+    repository_id: UUID
 
 
 class IndexRepositoryRequest(BaseModel):
@@ -18,7 +19,7 @@ class IndexRepositoryRequest(BaseModel):
 class IndexRepositoryResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    repository_id: int
+    repository_id: UUID
     status: str
     current_ref: str | None = None
     indexed_at: datetime | None = None
@@ -34,7 +35,7 @@ class IndexRepositoryResponse(BaseModel):
 
 
 class IndexingProgressEvent(BaseModel):
-    repository_id: int
+    repository_id: UUID
     status: str  # "indexing", "indexed", "index_failed"
     phase: str  # "parsing", "saving", "embeddings", "graph_and_commits", "completed"
     phase_name: str
@@ -48,7 +49,7 @@ class IndexingProgressEvent(BaseModel):
 
 
 class IndexStatusResponse(BaseModel):
-    repository_id: int
+    repository_id: UUID
     status: str
     current_ref: str | None = None
     last_indexed_commit: str | None = None

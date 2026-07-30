@@ -1,4 +1,5 @@
 from typing import Annotated
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,7 +19,7 @@ router = APIRouter()
     response_model=RepositoryRiskResponse,
 )
 async def get_repository_risk(
-    repository_id: int,
+    repository_id: UUID,
     db: Annotated[AsyncSession, Depends(get_db)],
     svc: Annotated[RiskService, Depends(get_risk_service)],
     repo_svc: Annotated[RepositoryService, Depends(get_repository_service)],

@@ -59,7 +59,7 @@ Hybrid performed best against the available baseline.
 
 function useRepositoryHandler() {
   server.use(
-    http.get(`${apiBaseUrl}/repositories/7`, () => HttpResponse.json(repository)),
+    http.get(`${apiBaseUrl}/repositories/77777777-7777-7777-7777-777777777777`, () => HttpResponse.json(repository)),
   );
 }
 
@@ -78,7 +78,7 @@ describe("EvaluationDashboardPage", () => {
       ),
     );
 
-    renderWithProviders(<EvaluationDashboardPage repositoryId={7} />);
+    renderWithProviders(<EvaluationDashboardPage repositoryId="77777777-7777-7777-7777-777777777777" />);
 
     fireEvent.change(screen.getByLabelText("Name"), {
       target: { value: "Nightly quality check" },
@@ -95,7 +95,7 @@ describe("EvaluationDashboardPage", () => {
       k_values: [5, 10, 20],
       methods: ["hybrid", "dependency_only"],
       name: "Nightly quality check",
-      repository_id: 7,
+      repository_id: "77777777-7777-7777-7777-777777777777",
     });
     expect(await screen.findByText("Nightly quality check")).toBeInTheDocument();
     expect(screen.getByText("completed")).toBeInTheDocument();
@@ -115,7 +115,7 @@ describe("EvaluationDashboardPage", () => {
       ),
     );
 
-    renderWithProviders(<EvaluationDashboardPage repositoryId={7} />);
+    renderWithProviders(<EvaluationDashboardPage repositoryId="77777777-7777-7777-7777-777777777777" />);
 
     fireEvent.change(screen.getByLabelText("Evaluation run ID"), {
       target: { value: "42" },
@@ -127,7 +127,7 @@ describe("EvaluationDashboardPage", () => {
 
   it("validates methods and lookup IDs", () => {
     useRepositoryHandler();
-    renderWithProviders(<EvaluationDashboardPage repositoryId={7} />);
+    renderWithProviders(<EvaluationDashboardPage repositoryId="77777777-7777-7777-7777-777777777777" />);
 
     fireEvent.click(screen.getByLabelText("hybrid"));
     fireEvent.click(screen.getByRole("button", { name: "Run evaluation" }));

@@ -26,6 +26,21 @@ Object.defineProperty(window, "ResizeObserver", {
   value: ResizeObserverMock,
 });
 
+class EventSourceMock {
+  close = vi.fn();
+  addEventListener = vi.fn();
+  removeEventListener = vi.fn();
+  onopen: any = null;
+  onmessage: any = null;
+  onerror: any = null;
+  constructor(public url: string, public options?: any) {}
+}
+
+Object.defineProperty(window, "EventSource", {
+  writable: true,
+  value: EventSourceMock,
+});
+
 beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());

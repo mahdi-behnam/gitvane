@@ -1,7 +1,8 @@
 import asyncio
 import logging
 import time
-from typing import AsyncGenerator, Dict, Set
+from typing import Any, AsyncGenerator, Dict, Set
+from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -17,9 +18,9 @@ class IndexingProgressTracker:
     _instance: "IndexingProgressTracker | None" = None
 
     def __init__(self) -> None:
-        self._states: Dict[int, IndexingProgressEvent] = {}
-        self._listeners: Dict[int, Set[asyncio.Queue[IndexingProgressEvent]]] = {}
-        self._start_times: Dict[int, float] = {}
+        self._states: Dict[UUID | Any, IndexingProgressEvent] = {}
+        self._listeners: Dict[UUID | Any, Set[asyncio.Queue[IndexingProgressEvent]]] = {}
+        self._start_times: Dict[UUID | Any, float] = {}
 
     @classmethod
     def get_instance(cls) -> "IndexingProgressTracker":
@@ -28,7 +29,7 @@ class IndexingProgressTracker:
         return cls._instance
 
     def init_progress(
-        self, repository_id: int, files_total: int = 0
+        self, repository_id: UUID | Any, files_total: int = 0
     ) -> IndexingProgressEvent:
         self._start_times[repository_id] = time.time()
         event = IndexingProgressEvent(
@@ -50,7 +51,7 @@ class IndexingProgressTracker:
 
     def update_progress(
         self,
-        repository_id: int,
+        repository_id: UUID | Any,
         phase: str,
         phase_name: str,
         files_total: int | None = None,
@@ -93,7 +94,7 @@ class IndexingProgressTracker:
         return current
 
     def set_completed(
-        self, repository_id: int, files_indexed: int, chunks_indexed: int
+        self, repository_id: UUID | Any, files_indexed: int, chunks_indexed: int
     ) -> IndexingProgressEvent:
         event = IndexingProgressEvent(
             repository_id=repository_id,
@@ -112,7 +113,7 @@ class IndexingProgressTracker:
         self._start_times.pop(repository_id, None)
         return event
 
-    def set_failed(self, repository_id: int, error_message: str) -> IndexingProgressEvent:
+    def set_failed(self, repository_id: UUID | Any, error_message: str) -> IndexingProgressEvent:
         current = self._states.get(repository_id)
         event = IndexingProgressEvent(
             repository_id=repository_id,
@@ -132,11 +133,11 @@ class IndexingProgressTracker:
         self._start_times.pop(repository_id, None)
         return event
 
-    def get_progress(self, repository_id: int) -> IndexingProgressEvent | None:
+    def get_progress(self, repository_id: UUID | Any) -> IndexingProgressEvent | None:
         return self._states.get(repository_id)
 
     def load_from_metadata(
-        self, repository_id: int, metadata: dict | None, status: str
+        self, repository_id: UUID | Any, metadata: dict | None, status: str
     ) -> IndexingProgressEvent | None:
         if status == "indexed":
             return IndexingProgressEvent(
@@ -177,7 +178,7 @@ class IndexingProgressTracker:
 
         return None
 
-    async def sync_to_db(self, db: AsyncSession, repository_id: int) -> None:
+    async def sync_to_db(self, db: AsyncSession, repository_id: UUID | Any) -> None:
         event = self._states.get(repository_id)
         if not event:
             return
@@ -186,7 +187,7 @@ class IndexingProgressTracker:
             repo_obj = await db.get(Repository, repository_id)
             if repo_obj:
                 metadata = repo_obj.repo_metadata or {}
-                metadata["indexing_progress"] = event.model_dump()
+                metadata["indexing_progress"] = event.model_dump(mode="json")
                 repo_obj.repo_metadata = metadata
                 await db.commit()
         except Exception as exc:
@@ -195,7 +196,7 @@ class IndexingProgressTracker:
             )
 
     async def subscribe(
-        self, repository_id: int
+        self, repository_id: UUID | Any
     ) -> AsyncGenerator[IndexingProgressEvent, None]:
         queue: asyncio.Queue[IndexingProgressEvent] = asyncio.Queue()
         if repository_id not in self._listeners:
@@ -218,7 +219,7 @@ class IndexingProgressTracker:
                 if not self._listeners[repository_id]:
                     self._listeners.pop(repository_id, None)
 
-    def _broadcast(self, repository_id: int, event: IndexingProgressEvent) -> None:
+    def _broadcast(self, repository_id: UUID | Any, event: IndexingProgressEvent) -> None:
         if repository_id in self._listeners:
             for queue in list(self._listeners[repository_id]):
                 try:
@@ -264,7 +265,7 @@ class IndexingProgressTracker:
         return round(min(pct, 99.0), 1)
 
     def _calc_eta(
-        self, repository_id: int, event: IndexingProgressEvent
+        self, repository_id: UUID | Any, event: IndexingProgressEvent
     ) -> int | None:
         if event.status in {"indexed", "index_failed"} or event.phase == "completed":
             return 0

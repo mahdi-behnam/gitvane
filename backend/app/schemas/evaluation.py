@@ -1,10 +1,11 @@
 from typing import Any, Literal
+from uuid import UUID
 
 from pydantic import BaseModel, Field
 
 
 class EvaluationBase(BaseModel):
-    repository_id: int
+    repository_id: UUID
 
 
 EvaluationMethod = Literal[
@@ -37,7 +38,7 @@ class EvaluationRunResponse(BaseModel):
 
 class EvaluationStatusResponse(BaseModel):
     evaluation_run_id: int
-    repository_id: int
+    repository_id: UUID
     name: str
     status: str
     methods: list[str]

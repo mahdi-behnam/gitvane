@@ -7,5 +7,5 @@ export default async function RepositoryImpactPage({
 }) {
   const { id } = await params;
 
-  return <ImpactAnalysisPage repositoryId={Number(id)} />;
+  return <ImpactAnalysisPage repositoryId={id} />;
 }

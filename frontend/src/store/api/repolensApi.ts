@@ -35,19 +35,19 @@ type ListRepositoriesArgs = {
 
 type IndexRepositoryArgs = {
   body: IndexRepositoryRequest;
-  repositoryId: number;
+  repositoryId: string;
 };
 
 type GraphSubgraphArgs = {
   include_tests?: boolean;
   language?: string | null;
   max_nodes?: number;
-  repositoryId: number;
+  repositoryId: string;
 };
 
 type GraphNeighborsArgs = {
   fileId: number;
-  repositoryId: number;
+  repositoryId: string;
 };
 
 const rawBaseQuery = fetchBaseQuery({
@@ -128,7 +128,7 @@ export const repolensApi = createApi({
         url: "/repositories",
       }),
     }),
-    deleteRepository: builder.mutation<void, number>({
+    deleteRepository: builder.mutation<void, string>({
       invalidatesTags: ["Repository"],
       query: (repositoryId) => ({
         method: "DELETE",
@@ -172,13 +172,13 @@ export const repolensApi = createApi({
       ],
       query: (analysisRunId) => `/impact/runs/${analysisRunId}`,
     }),
-    getIndexStatus: builder.query<IndexStatusResponse, number>({
+    getIndexStatus: builder.query<IndexStatusResponse, string>({
       providesTags: (_result, _error, repositoryId) => [
         { id: repositoryId, type: "IndexStatus" },
       ],
       query: (repositoryId) => `/repositories/${repositoryId}/index/status`,
     }),
-    getRepository: builder.query<Repository, number>({
+    getRepository: builder.query<Repository, string>({
       providesTags: (_result, _error, repositoryId) => [
         { id: repositoryId, type: "Repository" },
       ],

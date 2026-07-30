@@ -7,5 +7,5 @@ export default async function RepositorySearchPage({
 }) {
   const { id } = await params;
 
-  return <SemanticSearchPage repositoryId={Number(id)} />;
+  return <SemanticSearchPage repositoryId={id} />;
 }

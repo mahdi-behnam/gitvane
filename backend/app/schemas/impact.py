@@ -1,10 +1,11 @@
 from typing import Any, Literal
+from uuid import UUID
 
 from pydantic import BaseModel, Field
 
 
 class ImpactBase(BaseModel):
-    repository_id: int
+    repository_id: UUID
 
 
 class ChangedFileInput(BaseModel):
@@ -62,7 +63,7 @@ class RiskSummaryOut(BaseModel):
 
 class ImpactAnalyzeResponse(BaseModel):
     analysis_run_id: int
-    repository_id: int
+    repository_id: UUID
     base_ref: str | None = None
     head_ref: str | None = None
     changed_files: list[ChangedFileInput]
@@ -75,7 +76,7 @@ class ImpactAnalyzeResponse(BaseModel):
 
 class ImpactRunResponse(BaseModel):
     analysis_run_id: int
-    repository_id: int
+    repository_id: UUID
     status: str
     input_mode: Literal["git_diff", "raw_diff", "changed_files"]
     changed_files: list[dict[str, Any]]

@@ -1,5 +1,6 @@
 from typing import Any, AsyncGenerator
 from unittest.mock import AsyncMock, MagicMock
+from uuid import UUID
 
 import pytest
 from fastapi.testclient import TestClient
@@ -17,6 +18,8 @@ from app.main import app
 from app.schemas.impact import ImpactAnalyzeRequest
 from app.schemas.search import SemanticSearchResponse, SemanticSearchResult
 from app.services.impact_service import ImpactService
+
+TEST_UUID = UUID("11111111-1111-1111-1111-111111111111")
 
 
 class _ScalarResult:
@@ -51,7 +54,7 @@ class _FakeDb:
         self.committed = False
         self.rolled_back = False
 
-    async def get(self, model: type[Any], object_id: int) -> Any:
+    async def get(self, model: type[Any], object_id: Any) -> Any:
         if model is Repository and object_id == self.repo.id:
             return self.repo
         return None
@@ -112,10 +115,10 @@ def _indexed_fixture() -> tuple[
     list[DependencyEdge],
     list[Commit],
 ]:
-    repo = Repository(id=1, name="repo", clone_url="", status="indexed")
+    repo = Repository(id=TEST_UUID, name="repo", clone_url="", status="indexed")
     token = CodeFile(
         id=1,
-        repository_id=1,
+        repository_id=TEST_UUID,
         path="src/auth/token.py",
         language="python",
         content_hash="a",
@@ -124,7 +127,7 @@ def _indexed_fixture() -> tuple[
     )
     routes = CodeFile(
         id=2,
-        repository_id=1,
+        repository_id=TEST_UUID,
         path="src/api/routes.py",
         language="python",
         content_hash="b",
@@ -133,7 +136,7 @@ def _indexed_fixture() -> tuple[
     )
     tests = CodeFile(
         id=3,
-        repository_id=1,
+        repository_id=TEST_UUID,
         path="tests/test_routes.py",
         language="python",
         content_hash="c",
@@ -142,7 +145,7 @@ def _indexed_fixture() -> tuple[
     )
     unrelated = CodeFile(
         id=4,
-        repository_id=1,
+        repository_id=TEST_UUID,
         path="src/unrelated.py",
         language="python",
         content_hash="d",
@@ -152,7 +155,7 @@ def _indexed_fixture() -> tuple[
     symbols = [
         Symbol(
             id=1,
-            repository_id=1,
+            repository_id=TEST_UUID,
             file_id=1,
             qualified_name="validate_token",
             simple_name="validate_token",
@@ -164,13 +167,13 @@ def _indexed_fixture() -> tuple[
     ]
     edges = [
         DependencyEdge(
-            repository_id=1,
+            repository_id=TEST_UUID,
             source_file_id=2,
             target_file_id=1,
             edge_type="import",
         ),
         DependencyEdge(
-            repository_id=1,
+            repository_id=TEST_UUID,
             source_file_id=3,
             target_file_id=2,
             edge_type="test_import",
@@ -178,7 +181,7 @@ def _indexed_fixture() -> tuple[
     ]
     commits = [
         Commit(
-            repository_id=1,
+            repository_id=TEST_UUID,
             sha="abc",
             changed_files=[
                 {"path": "src/auth/token.py"},
@@ -203,7 +206,7 @@ async def test_impact_service_ranks_dependency_and_test_candidates() -> None:
     response = await service.analyze(
         db,
         ImpactAnalyzeRequest(
-            repository_id=1,
+            repository_id=TEST_UUID,
             changed_files=[
                 {
                     "path": "src/auth/token.py",
@@ -235,7 +238,7 @@ def test_impact_endpoint_success() -> None:
     mock_svc.analyze = AsyncMock(
         return_value={
             "analysis_run_id": 1,
-            "repository_id": 1,
+            "repository_id": str(TEST_UUID),
             "base_ref": None,
             "head_ref": None,
             "changed_files": [
@@ -256,7 +259,7 @@ def test_impact_endpoint_success() -> None:
         response = client.post(
             "/api/v1/impact/analyze",
             json={
-                "repository_id": 1,
+                "repository_id": str(TEST_UUID),
                 "changed_files": [{"path": "src/auth/token.py"}],
             },
         )
@@ -272,7 +275,7 @@ def test_get_impact_run_endpoint_success() -> None:
     mock_svc.get_run = AsyncMock(
         return_value={
             "analysis_run_id": 1,
-            "repository_id": 1,
+            "repository_id": str(TEST_UUID),
             "status": "completed",
             "input_mode": "changed_files",
             "changed_files": [{"path": "src/auth/token.py"}],

@@ -12,7 +12,7 @@ const repository: Repository = {
   created_at: "2026-06-21T10:00:00Z",
   current_ref: "main",
   default_branch: "main",
-  id: 7,
+  id: "77777777-7777-7777-7777-777777777777",
   indexed_at: "2026-06-21T10:30:00Z",
   last_indexed_commit: "abc123",
   local_path: null,
@@ -35,12 +35,12 @@ const recommendationResponse: TestRecommendationResponse = {
       score: 0.83,
     },
   ],
-  repository_id: 7,
+  repository_id: "77777777-7777-7777-7777-777777777777",
 };
 
 function useRepositoryHandler() {
   server.use(
-    http.get(`${apiBaseUrl}/repositories/7`, () => HttpResponse.json(repository)),
+    http.get(`${apiBaseUrl}/repositories/77777777-7777-7777-7777-777777777777`, () => HttpResponse.json(repository)),
   );
 }
 
@@ -55,7 +55,7 @@ describe("TestRecommendationsPage", () => {
       }),
     );
 
-    renderWithProviders(<TestRecommendationsPage repositoryId={7} />);
+    renderWithProviders(<TestRecommendationsPage repositoryId="77777777-7777-7777-7777-777777777777" />);
 
     fireEvent.change(screen.getByLabelText("Changed files"), {
       target: { value: "backend/app/services/indexing_service.py" },
@@ -68,7 +68,7 @@ describe("TestRecommendationsPage", () => {
     await waitFor(() => expect(bodies).toHaveLength(1));
     expect(bodies[0]).toMatchObject({
       changed_files: [{ path: "backend/app/services/indexing_service.py" }],
-      repository_id: 7,
+      repository_id: "77777777-7777-7777-7777-777777777777",
       top_k: 12,
     });
     expect(await screen.findByText("Recommended tests")).toBeInTheDocument();
@@ -88,7 +88,7 @@ describe("TestRecommendationsPage", () => {
       }),
     );
 
-    renderWithProviders(<TestRecommendationsPage repositoryId={7} />);
+    renderWithProviders(<TestRecommendationsPage repositoryId="77777777-7777-7777-7777-777777777777" />);
 
     fireEvent.change(screen.getByLabelText("Impacted files"), {
       target: { value: "backend/app/api/v1/endpoints/indexing.py" },
@@ -112,7 +112,7 @@ describe("TestRecommendationsPage", () => {
       ),
     );
 
-    renderWithProviders(<TestRecommendationsPage repositoryId={7} />);
+    renderWithProviders(<TestRecommendationsPage repositoryId="77777777-7777-7777-7777-777777777777" />);
 
     fireEvent.click(screen.getByRole("button", { name: "Recommend tests" }));
 
@@ -121,7 +121,7 @@ describe("TestRecommendationsPage", () => {
 
   it("requires at least one changed file", () => {
     useRepositoryHandler();
-    renderWithProviders(<TestRecommendationsPage repositoryId={7} />);
+    renderWithProviders(<TestRecommendationsPage repositoryId="77777777-7777-7777-7777-777777777777" />);
 
     fireEvent.change(screen.getByLabelText("Changed files"), {
       target: { value: "" },

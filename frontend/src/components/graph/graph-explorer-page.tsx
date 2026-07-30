@@ -45,8 +45,8 @@ const defaultFilters: GraphFilters = {
   search: "",
 };
 
-export function GraphExplorerPage({ repositoryId }: { repositoryId: number }) {
-  const validRepositoryId = Number.isFinite(repositoryId) ? repositoryId : null;
+export function GraphExplorerPage({ repositoryId }: { repositoryId: string }) {
+  const validRepositoryId = typeof repositoryId === "string" && repositoryId.trim() !== "" ? repositoryId : null;
   const [draftFilters, setDraftFilters] = useState(defaultFilters);
   const [appliedFilters, setAppliedFilters] = useState(defaultFilters);
   const [selectedNodeId, setSelectedNodeId] = useState<number | null>(null);

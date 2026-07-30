@@ -1,8 +1,10 @@
 from datetime import datetime
 from typing import Any, Optional
+import uuid
 
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
+    UUID,
     DateTime,
     ForeignKey,
     Index,
@@ -67,7 +69,9 @@ class UserRefreshToken(Base):
 class Repository(Base):
     __tablename__ = "repositories"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
     name: Mapped[str] = mapped_column(String, nullable=False)
     clone_url: Mapped[str] = mapped_column(String, nullable=False)
     local_path: Mapped[Optional[str]] = mapped_column(String, nullable=True)
@@ -121,8 +125,8 @@ class Commit(Base):
     __tablename__ = "commits"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    repository_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("repositories.id", ondelete="CASCADE"), nullable=False
+    repository_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("repositories.id", ondelete="CASCADE"), nullable=False
     )
     sha: Mapped[str] = mapped_column(String, nullable=False)
     parent_sha: Mapped[Optional[str]] = mapped_column(String, nullable=True)
@@ -152,8 +156,8 @@ class CodeFile(Base):
     __tablename__ = "code_files"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    repository_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("repositories.id", ondelete="CASCADE"), nullable=False
+    repository_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("repositories.id", ondelete="CASCADE"), nullable=False
     )
     path: Mapped[str] = mapped_column(String, nullable=False)
     language: Mapped[str] = mapped_column(String, nullable=False)
@@ -191,8 +195,8 @@ class Symbol(Base):
     __tablename__ = "symbols"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    repository_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("repositories.id", ondelete="CASCADE"), nullable=False
+    repository_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("repositories.id", ondelete="CASCADE"), nullable=False
     )
     file_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("code_files.id", ondelete="CASCADE"), nullable=False
@@ -234,8 +238,8 @@ class DependencyEdge(Base):
     __tablename__ = "dependency_edges"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    repository_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("repositories.id", ondelete="CASCADE"), nullable=False
+    repository_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("repositories.id", ondelete="CASCADE"), nullable=False
     )
     source_file_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("code_files.id", ondelete="CASCADE"), nullable=False
@@ -276,8 +280,8 @@ class CodeChunk(Base):
     __tablename__ = "code_chunks"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    repository_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("repositories.id", ondelete="CASCADE"), nullable=False
+    repository_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("repositories.id", ondelete="CASCADE"), nullable=False
     )
     file_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("code_files.id", ondelete="CASCADE"), nullable=False
@@ -337,8 +341,8 @@ class AnalysisRun(Base):
     __tablename__ = "analysis_runs"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    repository_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("repositories.id", ondelete="CASCADE"), nullable=False
+    repository_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("repositories.id", ondelete="CASCADE"), nullable=False
     )
     base_ref: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     head_ref: Mapped[Optional[str]] = mapped_column(String, nullable=True)
@@ -404,8 +408,8 @@ class EvaluationRun(Base):
     __tablename__ = "evaluation_runs"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    repository_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("repositories.id", ondelete="CASCADE"), nullable=False
+    repository_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("repositories.id", ondelete="CASCADE"), nullable=False
     )
     name: Mapped[str] = mapped_column(String, nullable=False)
     status: Mapped[str] = mapped_column(String, default="pending", nullable=False)

@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from typing import Any
+from uuid import UUID
 
 import pytest
 
@@ -14,6 +15,8 @@ from app.db.models import (
 from app.schemas.evaluation import EvaluationRunRequest
 from app.schemas.search import SemanticSearchResponse, SemanticSearchResult
 from app.services.evaluation_service import EvaluationService
+
+TEST_UUID = UUID("11111111-1111-1111-1111-111111111111")
 
 
 class _ScalarResult:
@@ -46,7 +49,7 @@ class _FakeDb:
         self.next_id = 1
         self.committed = False
 
-    async def get(self, model: type[Any], object_id: int) -> Any:
+    async def get(self, model: type[Any], object_id: Any) -> Any:
         if model is Repository and object_id == self.repo.id:
             return self.repo
         if model is EvaluationRun:
@@ -59,15 +62,14 @@ class _FakeDb:
     async def execute(self, statement: object) -> _ExecuteResult:
         if self.results:
             return _ExecuteResult(self.results.pop(0))
-        return _ExecuteResult(
-            [item for item in self.added if isinstance(item, EvaluationResult)]
-        )
+        eval_results = [item for item in self.added if isinstance(item, EvaluationResult)]
+        return _ExecuteResult(eval_results)
 
-    def add(self, obj: Any) -> None:
-        if getattr(obj, "id", None) is None:
-            obj.id = self.next_id
+    def add(self, instance: Any) -> None:
+        if hasattr(instance, "id") and getattr(instance, "id", None) is None:
+            setattr(instance, "id", self.next_id)
             self.next_id += 1
-        self.added.append(obj)
+        self.added.append(instance)
 
     async def flush(self) -> None:
         pass
@@ -78,7 +80,7 @@ class _FakeDb:
     async def rollback(self) -> None:
         pass
 
-    async def refresh(self, obj: Any) -> None:
+    async def refresh(self, instance: Any) -> None:
         pass
 
 
@@ -86,17 +88,19 @@ class _FakeSemanticSearchService:
     async def semantic_search(
         self,
         db: _FakeDb,
-        repository_id: int,
+        repository_id: UUID | Any,
         query: str,
-        top_k: int,
+        top_k: int = 20,
     ) -> SemanticSearchResponse:
         return SemanticSearchResponse(
+            repository_id=repository_id,
+            query=query,
             results=[
                 SemanticSearchResult(
                     path="src/api/routes.py",
-                    symbol=None,
+                    symbol="routes",
                     start_line=1,
-                    end_line=2,
+                    end_line=10,
                     score=0.8,
                     snippet="routes",
                 )
@@ -105,29 +109,29 @@ class _FakeSemanticSearchService:
 
 
 def _fixture() -> tuple[Repository, list[CodeFile], list[DependencyEdge], list[Commit]]:
-    repo = Repository(id=1, name="repo", clone_url="", status="indexed")
+    repo = Repository(id=TEST_UUID, name="repo", clone_url="", status="indexed")
     token = CodeFile(
         id=1,
-        repository_id=1,
+        repository_id=TEST_UUID,
         path="src/auth/token.py",
         language="python",
         content_hash="a",
     )
     routes = CodeFile(
         id=2,
-        repository_id=1,
+        repository_id=TEST_UUID,
         path="src/api/routes.py",
         language="python",
         content_hash="b",
     )
     edge = DependencyEdge(
-        repository_id=1,
+        repository_id=TEST_UUID,
         source_file_id=2,
         target_file_id=1,
         edge_type="import",
     )
     commit = Commit(
-        repository_id=1,
+        repository_id=TEST_UUID,
         sha="abc",
         author_date=datetime(2024, 1, 1, tzinfo=timezone.utc),
         changed_files=[
@@ -148,7 +152,7 @@ async def test_run_evaluation_computes_method_summaries() -> None:
     response = await service.run_evaluation(
         db,
         EvaluationRunRequest(
-            repository_id=1,
+            repository_id=TEST_UUID,
             methods=["dependency_only", "semantic_only", "cochange_only", "hybrid"],
             k_values=[1],
         ),
@@ -169,7 +173,7 @@ async def test_evaluation_report_mentions_current_index_limitation() -> None:
     service = EvaluationService(semantic_search_service=_FakeSemanticSearchService())
     run_response = await service.run_evaluation(
         db,
-        EvaluationRunRequest(repository_id=1, methods=["dependency_only"], k_values=[1]),
+        EvaluationRunRequest(repository_id=TEST_UUID, methods=["dependency_only"], k_values=[1]),
     )
 
     report = await service.get_report(db, run_response.evaluation_run_id)

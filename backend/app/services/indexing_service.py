@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+from uuid import UUID
 
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -50,7 +51,7 @@ class IndexingService:
     async def index_repository(
         self,
         db: AsyncSession,
-        repository_id: int,
+        repository_id: UUID | Any,
         ref: str | None = None,
         max_commits: int | None = None,
     ) -> IndexRepositoryResponse:
@@ -257,7 +258,7 @@ class IndexingService:
             raise GitOperationError(f"Failed to index repository: {exc}") from exc
 
     async def get_index_status(
-        self, db: AsyncSession, repository_id: int
+        self, db: AsyncSession, repository_id: UUID | Any
     ) -> IndexStatusResponse:
         repo_obj = await self._get_repository_or_raise(db, repository_id)
         progress = self.tracker.get_progress(repository_id)
@@ -281,7 +282,7 @@ class IndexingService:
         )
 
     async def _get_repository_or_raise(
-        self, db: AsyncSession, repository_id: int
+        self, db: AsyncSession, repository_id: UUID | Any
     ) -> Repository:
         repo_obj = await db.get(Repository, repository_id)
         if repo_obj is None:
@@ -316,7 +317,7 @@ class IndexingService:
             return self.ts_js_parser.parse(path, content)
         return ParsedFile(path=path, language=Language.UNKNOWN)
 
-    async def _clear_index_rows(self, db: AsyncSession, repository_id: int) -> None:
+    async def _clear_index_rows(self, db: AsyncSession, repository_id: UUID | Any) -> None:
         file_ids = (
             await db.execute(
                 select(CodeFile.id).where(CodeFile.repository_id == repository_id)
@@ -337,7 +338,7 @@ class IndexingService:
     async def _upsert_code_file(
         self,
         db: AsyncSession,
-        repository_id: int,
+        repository_id: UUID | Any,
         path: str,
         language: object,
         content: str,
@@ -365,7 +366,7 @@ class IndexingService:
     async def _save_symbols(
         self,
         db: AsyncSession,
-        repository_id: int,
+        repository_id: UUID | Any,
         parsed_files: list[ParsedFile],
         code_files_by_path: dict[str, CodeFile],
         symbol_records_by_key: dict[tuple[str, str, int], Symbol],
@@ -407,7 +408,7 @@ class IndexingService:
     async def _save_chunks(
         self,
         db: AsyncSession,
-        repository_id: int,
+        repository_id: UUID | Any,
         parsed_files: list[ParsedFile],
         code_files_by_path: dict[str, CodeFile],
         symbol_records_by_key: dict[tuple[str, str, int], Symbol],
@@ -454,7 +455,7 @@ class IndexingService:
     async def _save_dependency_edges(
         self,
         db: AsyncSession,
-        repository_id: int,
+        repository_id: UUID | Any,
         edges: list[DependencyEdgeData],
         code_files_by_path: dict[str, CodeFile],
     ) -> int:
@@ -481,7 +482,7 @@ class IndexingService:
     async def _save_commit_metadata(
         self,
         db: AsyncSession,
-        repository_id: int,
+        repository_id: UUID | Any,
         git_repo: Any,
         max_commits: int,
     ) -> int:
@@ -507,7 +508,7 @@ class IndexingService:
         return count
 
     async def _count(
-        self, db: AsyncSession, model: type[Any], repository_id: int
+        self, db: AsyncSession, model: type[Any], repository_id: UUID | Any
     ) -> int:
         result = await db.execute(
             select(func.count()).select_from(model).where(

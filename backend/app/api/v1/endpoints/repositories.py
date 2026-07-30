@@ -1,4 +1,5 @@
 from typing import Annotated
+from uuid import UUID
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -94,7 +95,7 @@ async def list_repositories(
 
 @router.get("/{repository_id}", response_model=RepositoryOut)
 async def get_repository(
-    repository_id: int,
+    repository_id: UUID,
     db: Annotated[AsyncSession, Depends(get_db)],
     svc: Annotated[RepositoryService, Depends(get_repository_service)],
     current_user: Annotated[User, Depends(get_current_user)],
@@ -111,7 +112,7 @@ async def get_repository(
 
 @router.delete("/{repository_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_repository(
-    repository_id: int,
+    repository_id: UUID,
     db: Annotated[AsyncSession, Depends(get_db)],
     svc: Annotated[RepositoryService, Depends(get_repository_service)],
     current_user: Annotated[User, Depends(get_current_user)],

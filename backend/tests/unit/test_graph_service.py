@@ -1,5 +1,6 @@
 from typing import Any, AsyncGenerator
 from unittest.mock import AsyncMock, MagicMock
+from uuid import UUID
 
 import pytest
 from fastapi.testclient import TestClient
@@ -10,6 +11,8 @@ from app.db.models import CodeFile, DependencyEdge, Repository
 from app.main import app
 from app.schemas.graph import GraphResponse
 from app.services.graph_service import GraphService
+
+TEST_UUID = UUID("11111111-1111-1111-1111-111111111111")
 
 
 class _ScalarResult:
@@ -40,7 +43,7 @@ class _FakeDb:
         self.repo_exists = repo_exists
         self.execute_calls = 0
 
-    async def get(self, model: type[Any], object_id: int) -> Any:
+    async def get(self, model: type[Any], object_id: Any) -> Any:
         if model is Repository and self.repo_exists:
             return Repository(id=object_id, name="repo", clone_url="", status="indexed")
         if model is CodeFile:
@@ -62,7 +65,7 @@ def _files() -> list[CodeFile]:
     return [
         CodeFile(
             id=1,
-            repository_id=1,
+            repository_id=TEST_UUID,
             path="src/auth/token.py",
             language="python",
             content_hash="a",
@@ -71,7 +74,7 @@ def _files() -> list[CodeFile]:
         ),
         CodeFile(
             id=2,
-            repository_id=1,
+            repository_id=TEST_UUID,
             path="src/api/routes.py",
             language="python",
             content_hash="b",
@@ -80,7 +83,7 @@ def _files() -> list[CodeFile]:
         ),
         CodeFile(
             id=3,
-            repository_id=1,
+            repository_id=TEST_UUID,
             path="tests/test_routes.py",
             language="python",
             content_hash="c",
@@ -94,7 +97,7 @@ def _edges() -> list[DependencyEdge]:
     return [
         DependencyEdge(
             id=1,
-            repository_id=1,
+            repository_id=TEST_UUID,
             source_file_id=2,
             target_file_id=1,
             edge_type="import",
@@ -103,7 +106,7 @@ def _edges() -> list[DependencyEdge]:
         ),
         DependencyEdge(
             id=2,
-            repository_id=1,
+            repository_id=TEST_UUID,
             source_file_id=3,
             target_file_id=2,
             edge_type="test_import",
@@ -117,7 +120,7 @@ def _edges() -> list[DependencyEdge]:
 async def test_get_file_neighbors_returns_nodes_and_edges() -> None:
     db = _FakeDb(files=_files()[:2], edges=_edges()[:1])
 
-    response = await GraphService().get_file_neighbors(db, repository_id=1, file_id=1)
+    response = await GraphService().get_file_neighbors(db, repository_id=TEST_UUID, file_id=1)
 
     assert {node.path for node in response.nodes} == {
         "src/auth/token.py",
@@ -131,7 +134,7 @@ async def test_get_file_neighbors_returns_nodes_and_edges() -> None:
 async def test_get_repository_subgraph_returns_frontend_shape() -> None:
     db = _FakeDb(files=_files(), edges=_edges())
 
-    response = await GraphService().get_repository_subgraph(db, repository_id=1)
+    response = await GraphService().get_repository_subgraph(db, repository_id=TEST_UUID)
 
     assert len(response.nodes) == 3
     assert len(response.edges) == 2
@@ -145,14 +148,14 @@ async def _noop_db() -> AsyncGenerator[Any, None]:
 def test_graph_neighbors_endpoint_success() -> None:
     mock_svc = MagicMock()
     mock_svc.get_file_neighbors = AsyncMock(
-        return_value=GraphResponse(repository_id=1, nodes=[], edges=[])
+        return_value=GraphResponse(repository_id=TEST_UUID, nodes=[], edges=[])
     )
 
     app.dependency_overrides[get_db] = _noop_db
     app.dependency_overrides[get_graph_service] = lambda: mock_svc
     try:
         client = TestClient(app)
-        response = client.get("/api/v1/graph/repositories/1/file/2/neighbors")
+        response = client.get(f"/api/v1/graph/repositories/{TEST_UUID}/file/2/neighbors")
     finally:
         app.dependency_overrides.clear()
 
@@ -164,14 +167,14 @@ def test_graph_neighbors_endpoint_success() -> None:
 def test_graph_subgraph_endpoint_not_found() -> None:
     mock_svc = MagicMock()
     mock_svc.get_repository_subgraph = AsyncMock(
-        side_effect=RepositoryNotFoundError("Repository with id=99 does not exist")
+        side_effect=RepositoryNotFoundError(f"Repository with id={TEST_UUID} does not exist")
     )
 
     app.dependency_overrides[get_db] = _noop_db
     app.dependency_overrides[get_graph_service] = lambda: mock_svc
     try:
         client = TestClient(app)
-        response = client.get("/api/v1/graph/repositories/99/subgraph")
+        response = client.get(f"/api/v1/graph/repositories/{TEST_UUID}/subgraph")
     finally:
         app.dependency_overrides.clear()
 

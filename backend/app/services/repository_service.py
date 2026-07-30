@@ -1,6 +1,7 @@
 import shutil
 from pathlib import Path
 from typing import List, Optional
+from uuid import UUID
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -101,7 +102,7 @@ class RepositoryService:
             raise e
 
     async def get_repository(
-        self, db: AsyncSession, repository_id: int, owner_id: int
+        self, db: AsyncSession, repository_id: UUID | str, owner_id: int
     ) -> Optional[Repository]:
         """Retrieves a single repository by ID and owner_id, or None if not found."""
         stmt = select(Repository).where(
@@ -111,7 +112,7 @@ class RepositoryService:
         return result.scalars().first()
 
     async def get_repository_or_raise(
-        self, db: AsyncSession, repository_id: int, owner_id: int
+        self, db: AsyncSession, repository_id: UUID | str, owner_id: int
     ) -> Repository:
         """Retrieve a repository by ID, raising RepositoryNotFoundError if absent or not owned."""
         repo = await self.get_repository(db, repository_id, owner_id=owner_id)
@@ -130,7 +131,7 @@ class RepositoryService:
             .where(Repository.owner_id == owner_id)
             .offset(skip)
             .limit(limit)
-            .order_by(Repository.id)
+            .order_by(Repository.created_at.desc())
         )
         result = await db.execute(stmt)
         return list(result.scalars().all())
@@ -146,7 +147,7 @@ class RepositoryService:
         return int(result.scalar_one())
 
     async def delete_repository(
-        self, db: AsyncSession, repository_id: int, owner_id: int
+        self, db: AsyncSession, repository_id: UUID | str, owner_id: int
     ) -> Optional[Repository]:
         """Deletes a repository record and its local clone folder.
 
@@ -172,7 +173,7 @@ class RepositoryService:
         return repo_obj
 
     async def delete_repository_or_raise(
-        self, db: AsyncSession, repository_id: int, owner_id: int
+        self, db: AsyncSession, repository_id: UUID | str, owner_id: int
     ) -> Repository:
         """Deletes a repository, raising RepositoryNotFoundError if not found."""
         repo_obj = await self.get_repository_or_raise(db, repository_id, owner_id=owner_id)

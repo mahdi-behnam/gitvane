@@ -19,11 +19,28 @@ from app.main import app
 # Helpers
 # ---------------------------------------------------------------------------
 
+from datetime import datetime, timezone
+from typing import Any, AsyncGenerator
+from unittest.mock import AsyncMock, MagicMock, patch
+from uuid import UUID, uuid4
+
+from fastapi.testclient import TestClient
+
+from app.api.deps import get_db, get_repository_service
+from app.core.errors import GitOperationError, RepositoryNotFoundError, PrivateRepositoryNotSupportedError
+from app.db.models import Repository
+from app.main import app
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
 UTC = timezone.utc
+TEST_UUID = UUID("11111111-1111-1111-1111-111111111111")
 
 
 def _make_repo(
-    repo_id: int = 1,
+    repo_id: UUID | Any = TEST_UUID,
     name: str = "test-repo",
     clone_url: str = "https://github.com/example/test-repo.git",
     status: str = "ready",
@@ -71,7 +88,7 @@ def test_create_repository_success() -> None:
         )
         assert response.status_code == 201
         data = response.json()
-        assert data["id"] == 1
+        assert data["id"] == str(TEST_UUID)
         assert data["name"] == "test-repo"
         assert data["status"] == "ready"
     finally:
@@ -212,7 +229,7 @@ def test_list_repositories_empty() -> None:
 
 def test_list_repositories_returns_items() -> None:
     """GET returns paginated items and the correct total count."""
-    repos = [_make_repo(repo_id=i, name=f"repo-{i}") for i in range(1, 4)]
+    repos = [_make_repo(repo_id=uuid4(), name=f"repo-{i}") for i in range(1, 4)]
     mock_svc = MagicMock()
     mock_svc.list_repositories = AsyncMock(return_value=repos)
     mock_svc.count_repositories = AsyncMock(return_value=3)
@@ -237,7 +254,7 @@ def test_list_repositories_returns_items() -> None:
 
 def test_get_repository_found() -> None:
     """GET /{id} returns 200 and the matching repository."""
-    repo = _make_repo(repo_id=42)
+    repo = _make_repo(repo_id=TEST_UUID)
     mock_svc = MagicMock()
     mock_svc.get_repository_or_raise = AsyncMock(return_value=repo)
 
@@ -245,9 +262,9 @@ def test_get_repository_found() -> None:
     app.dependency_overrides[get_repository_service] = lambda: mock_svc
     try:
         client = TestClient(app)
-        response = client.get("/api/v1/repositories/42")
+        response = client.get(f"/api/v1/repositories/{TEST_UUID}")
         assert response.status_code == 200
-        assert response.json()["id"] == 42
+        assert response.json()["id"] == str(TEST_UUID)
     finally:
         app.dependency_overrides.clear()
 
@@ -256,14 +273,14 @@ def test_get_repository_not_found() -> None:
     """GET /{id} returns 404 when the repository does not exist."""
     mock_svc = MagicMock()
     mock_svc.get_repository_or_raise = AsyncMock(
-        side_effect=RepositoryNotFoundError("Repository with id=99 does not exist")
+        side_effect=RepositoryNotFoundError(f"Repository with id={TEST_UUID} does not exist")
     )
 
     app.dependency_overrides[get_db] = _noop_db
     app.dependency_overrides[get_repository_service] = lambda: mock_svc
     try:
         client = TestClient(app)
-        response = client.get("/api/v1/repositories/99")
+        response = client.get(f"/api/v1/repositories/{TEST_UUID}")
         assert response.status_code == 404
     finally:
         app.dependency_overrides.clear()
@@ -276,7 +293,7 @@ def test_get_repository_not_found() -> None:
 
 def test_delete_repository_success() -> None:
     """DELETE /{id} returns 204 No Content on success."""
-    repo = _make_repo(repo_id=5)
+    repo = _make_repo(repo_id=TEST_UUID)
     mock_svc = MagicMock()
     mock_svc.delete_repository_or_raise = AsyncMock(return_value=repo)
 
@@ -284,7 +301,7 @@ def test_delete_repository_success() -> None:
     app.dependency_overrides[get_repository_service] = lambda: mock_svc
     try:
         client = TestClient(app)
-        response = client.delete("/api/v1/repositories/5")
+        response = client.delete(f"/api/v1/repositories/{TEST_UUID}")
         assert response.status_code == 204
         assert response.content == b""
     finally:
@@ -295,14 +312,14 @@ def test_delete_repository_not_found() -> None:
     """DELETE /{id} returns 404 when the repository does not exist."""
     mock_svc = MagicMock()
     mock_svc.delete_repository_or_raise = AsyncMock(
-        side_effect=RepositoryNotFoundError("Repository with id=999 does not exist")
+        side_effect=RepositoryNotFoundError(f"Repository with id={TEST_UUID} does not exist")
     )
 
     app.dependency_overrides[get_db] = _noop_db
     app.dependency_overrides[get_repository_service] = lambda: mock_svc
     try:
         client = TestClient(app)
-        response = client.delete("/api/v1/repositories/999")
+        response = client.delete(f"/api/v1/repositories/{TEST_UUID}")
         assert response.status_code == 404
     finally:
         app.dependency_overrides.clear()

@@ -31,24 +31,24 @@ describe("repolensApi MSW integration", () => {
     const store = makeStore();
 
     const repository = await store.dispatch(
-      repolensApi.endpoints.getRepository.initiate(7),
+      repolensApi.endpoints.getRepository.initiate("77777777-7777-7777-7777-777777777777"),
     );
     const risk = await store.dispatch(
       repolensApi.endpoints.getRepositoryRisk.initiate({
-        repositoryId: 7,
+        repositoryId: "77777777-7777-7777-7777-777777777777",
         top_k: 3,
       }),
     );
     const graph = await store.dispatch(
       repolensApi.endpoints.getRepositorySubgraph.initiate({
-        repositoryId: 7,
+        repositoryId: "77777777-7777-7777-7777-777777777777",
       }),
     );
     const evaluation = await store.dispatch(
       repolensApi.endpoints.getEvaluationStatus.initiate(42),
     );
 
-    expect(repository.data).toMatchObject({ id: 7, name: "repolens" });
+    expect(repository.data).toMatchObject({ id: "77777777-7777-7777-7777-777777777777", name: "repolens" });
     expect(risk.data?.files[0]).toMatchObject({
       path: "backend/app/services/indexing_service.py",
     });

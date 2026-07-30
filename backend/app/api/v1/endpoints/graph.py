@@ -1,4 +1,5 @@
 from typing import Annotated
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,7 +19,7 @@ router = APIRouter()
     response_model=GraphResponse,
 )
 async def get_file_neighbors(
-    repository_id: int,
+    repository_id: UUID,
     file_id: int,
     db: Annotated[AsyncSession, Depends(get_db)],
     svc: Annotated[GraphService, Depends(get_graph_service)],
@@ -41,7 +42,7 @@ async def get_file_neighbors(
     response_model=GraphResponse,
 )
 async def get_repository_subgraph(
-    repository_id: int,
+    repository_id: UUID,
     db: Annotated[AsyncSession, Depends(get_db)],
     svc: Annotated[GraphService, Depends(get_graph_service)],
     repo_svc: Annotated[RepositoryService, Depends(get_repository_service)],

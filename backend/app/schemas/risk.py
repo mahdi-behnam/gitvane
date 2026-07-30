@@ -1,10 +1,11 @@
 from typing import Any
+from uuid import UUID
 
 from pydantic import BaseModel, Field
 
 
 class RiskBase(BaseModel):
-    repository_id: int
+    repository_id: UUID
 
 
 class RiskFileOut(BaseModel):

@@ -33,7 +33,7 @@ const repository: Repository = {
   created_at: "2026-06-21T10:00:00Z",
   current_ref: "main",
   default_branch: "main",
-  id: 7,
+  id: "77777777-7777-7777-7777-777777777777",
   indexed_at: "2026-06-21T10:30:00Z",
   last_indexed_commit: "abc123",
   local_path: null,
@@ -51,7 +51,7 @@ const indexStatus: IndexStatusResponse = {
   file_count: 10,
   indexed_at: "2026-06-21T10:30:00Z",
   last_indexed_commit: "abc123",
-  repository_id: 7,
+  repository_id: "77777777-7777-7777-7777-777777777777",
   status: "indexed",
   symbol_count: 20,
 };
@@ -66,7 +66,7 @@ const indexResponse: IndexRepositoryResponse = {
   files_skipped: 1,
   indexed_at: "2026-06-21T10:40:00Z",
   parser_errors: [],
-  repository_id: 7,
+  repository_id: "77777777-7777-7777-7777-777777777777",
   status: "indexed",
   symbols_indexed: 20,
   warnings: [],
@@ -74,8 +74,8 @@ const indexResponse: IndexRepositoryResponse = {
 
 function useRepositoryHandlers() {
   server.use(
-    http.get(`${apiBaseUrl}/repositories/7`, () => HttpResponse.json(repository)),
-    http.get(`${apiBaseUrl}/repositories/7/index/status`, () =>
+    http.get(`${apiBaseUrl}/repositories/77777777-7777-7777-7777-777777777777`, () => HttpResponse.json(repository)),
+    http.get(`${apiBaseUrl}/repositories/77777777-7777-7777-7777-777777777777/index/status`, () =>
       HttpResponse.json(indexStatus),
     ),
   );
@@ -86,7 +86,7 @@ describe("RepositoryDetailPage", () => {
     mockRouter();
     useRepositoryHandlers();
 
-    renderWithProviders(<RepositoryDetailPage repositoryId={7} />);
+    renderWithProviders(<RepositoryDetailPage repositoryId="77777777-7777-7777-7777-777777777777" />);
 
     expect(
       await screen.findByRole("heading", { name: "repolens" }),
@@ -101,13 +101,13 @@ describe("RepositoryDetailPage", () => {
     mockRouter();
     useRepositoryHandlers();
     server.use(
-      http.post(`${apiBaseUrl}/repositories/7/index`, async ({ request }) => {
+      http.post(`${apiBaseUrl}/repositories/77777777-7777-7777-7777-777777777777/index`, async ({ request }) => {
         bodies.push(await request.json());
         return HttpResponse.json(indexResponse);
       }),
     );
 
-    renderWithProviders(<RepositoryDetailPage repositoryId={7} />);
+    renderWithProviders(<RepositoryDetailPage repositoryId="77777777-7777-7777-7777-777777777777" />);
 
     await screen.findByRole("heading", { name: "repolens" });
     fireEvent.change(screen.getByLabelText("Ref"), {
@@ -125,12 +125,12 @@ describe("RepositoryDetailPage", () => {
     useRepositoryHandlers();
     server.use(
       http.delete(
-        `${apiBaseUrl}/repositories/7`,
+        `${apiBaseUrl}/repositories/77777777-7777-7777-7777-777777777777`,
         () => new HttpResponse(null, { status: 204 }),
       ),
     );
 
-    renderWithProviders(<RepositoryDetailPage repositoryId={7} />);
+    renderWithProviders(<RepositoryDetailPage repositoryId="77777777-7777-7777-7777-777777777777" />);
 
     await screen.findByRole("heading", { name: "repolens" });
     fireEvent.click(screen.getByRole("button", { name: "Delete" }));

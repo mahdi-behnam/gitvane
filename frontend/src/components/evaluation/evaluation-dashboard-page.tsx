@@ -45,8 +45,8 @@ function parseKValues(value: string) {
     .filter((value) => Number.isFinite(value) && value > 0);
 }
 
-export function EvaluationDashboardPage({ repositoryId }: { repositoryId: number }) {
-  const validRepositoryId = Number.isFinite(repositoryId) ? repositoryId : null;
+export function EvaluationDashboardPage({ repositoryId }: { repositoryId: string }) {
+  const validRepositoryId = typeof repositoryId === "string" && repositoryId.trim() !== "" ? repositoryId : null;
   const [name, setName] = useState("Repository evaluation");
   const [commitLimit, setCommitLimit] = useState(50);
   const [kValues, setKValues] = useState("5,10,20");

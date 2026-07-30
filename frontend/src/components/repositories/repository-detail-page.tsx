@@ -45,8 +45,8 @@ const toolLinks = [
   { icon: BarChart3, label: "Evaluation", suffix: "evaluation" },
 ];
 
-export function RepositoryDetailPage({ repositoryId }: { repositoryId: number }) {
-  const validRepositoryId = Number.isFinite(repositoryId) ? repositoryId : null;
+export function RepositoryDetailPage({ repositoryId }: { repositoryId: string }) {
+  const validRepositoryId = typeof repositoryId === "string" && repositoryId.trim() !== "" ? repositoryId : null;
   const repository = useGetRepositoryQuery(validRepositoryId ?? skipToken);
   const indexStatus = useGetIndexStatusQuery(validRepositoryId ?? skipToken);
   const [indexRepository, indexState] = useIndexRepositoryMutation();

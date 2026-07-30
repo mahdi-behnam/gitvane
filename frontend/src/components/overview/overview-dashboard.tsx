@@ -244,7 +244,7 @@ function RiskInsightCard({
   error: string | null;
   files: RiskFile[];
   isLoading: boolean;
-  repositoryId: number;
+  repositoryId: string;
 }) {
   const highestRisk = files[0];
 
@@ -253,46 +253,31 @@ function RiskInsightCard({
       <CardHeader>
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-sm font-semibold">Risk summary</h2>
-          <Badge tone={highestRisk ? "warning" : "neutral"}>
-            {isLoading ? "Loading" : highestRisk ? "Available" : "No data"}
-          </Badge>
+          <Link
+            className="text-xs text-primary hover:underline"
+            href={`/repositories/${repositoryId}/risk`}
+          >
+            View details
+          </Link>
         </div>
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <div className="space-y-3">
-            <Skeleton className="h-4 w-2/3" />
-            <Skeleton className="h-16 w-full" />
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-4 w-1/2" />
           </div>
         ) : error ? (
           <Notice tone="danger">{error}</Notice>
         ) : highestRisk ? (
-          <div className="space-y-4">
-            <div className="rounded-md border border-border bg-panel-muted px-3 py-2">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">
-                Highest risk
-              </p>
-              <p className="mt-2 break-all font-mono text-sm font-semibold">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <span className="font-mono text-xs text-muted truncate">
                 {highestRisk.path}
-              </p>
-              <p className="mt-2 font-mono text-xs text-muted">
-                {highestRisk.risk_score.toFixed(3)}
-              </p>
-            </div>
-            <div className="space-y-2">
-              {files.slice(0, 3).map((file) => (
-                <div
-                  className="flex items-center justify-between gap-3"
-                  key={file.path}
-                >
-                  <span className="truncate font-mono text-xs text-muted">
-                    {file.path}
-                  </span>
-                  <span className="font-mono text-xs font-semibold">
-                    {file.risk_score.toFixed(2)}
-                  </span>
-                </div>
-              ))}
+              </span>
+              <span className="font-mono text-xs font-semibold">
+                {highestRisk.risk_score.toFixed(2)}
+              </span>
             </div>
             <Button asChild size="sm">
               <Link href={`/repositories/${repositoryId}/risk`}>
@@ -319,7 +304,7 @@ function RiskInsightCard({
   );
 }
 
-function EvaluationInsightCard({ repositoryId }: { repositoryId: number }) {
+function EvaluationInsightCard({ repositoryId }: { repositoryId: string }) {
   return (
     <Card>
       <CardHeader>

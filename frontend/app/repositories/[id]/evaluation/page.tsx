@@ -7,5 +7,5 @@ export default async function RepositoryEvaluationPage({
 }) {
   const { id } = await params;
 
-  return <EvaluationDashboardPage repositoryId={Number(id)} />;
+  return <EvaluationDashboardPage repositoryId={id} />;
 }

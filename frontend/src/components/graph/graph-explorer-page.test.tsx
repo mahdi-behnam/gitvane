@@ -61,18 +61,18 @@ const graphResponse: GraphResponse = {
       path: "backend/tests/test_indexing.py",
     },
   ],
-  repository_id: 7,
+  repository_id: "77777777-7777-7777-7777-777777777777",
 };
 
 const neighborResponse: GraphResponse = {
   edges: graphResponse.edges,
   nodes: graphResponse.nodes.slice(0, 2),
-  repository_id: 7,
+  repository_id: "77777777-7777-7777-7777-777777777777",
 };
 
 function useRepositoryHandler() {
   server.use(
-    http.get(`${apiBaseUrl}/repositories/7`, () => HttpResponse.json(repository)),
+    http.get(`${apiBaseUrl}/repositories/77777777-7777-7777-7777-777777777777`, () => HttpResponse.json(repository)),
   );
 }
 
@@ -80,12 +80,12 @@ describe("GraphExplorerPage", () => {
   it("renders repository subgraph nodes, edges, and controls", async () => {
     useRepositoryHandler();
     server.use(
-      http.get(`${apiBaseUrl}/graph/repositories/7/subgraph`, () =>
+      http.get(`${apiBaseUrl}/graph/repositories/77777777-7777-7777-7777-777777777777/subgraph`, () =>
         HttpResponse.json(graphResponse),
       ),
     );
 
-    renderWithProviders(<GraphExplorerPage repositoryId={7} />);
+    renderWithProviders(<GraphExplorerPage repositoryId="77777777-7777-7777-7777-777777777777" />);
 
     expect(await screen.findByText("Repository subgraph")).toBeInTheDocument();
     expect(
@@ -99,13 +99,13 @@ describe("GraphExplorerPage", () => {
     const requests: string[] = [];
     useRepositoryHandler();
     server.use(
-      http.get(`${apiBaseUrl}/graph/repositories/7/subgraph`, ({ request }) => {
+      http.get(`${apiBaseUrl}/graph/repositories/77777777-7777-7777-7777-777777777777/subgraph`, ({ request }) => {
         requests.push(request.url);
         return HttpResponse.json(graphResponse);
       }),
     );
 
-    renderWithProviders(<GraphExplorerPage repositoryId={7} />);
+    renderWithProviders(<GraphExplorerPage repositoryId="77777777-7777-7777-7777-777777777777" />);
 
     await waitFor(() => expect(requests.length).toBeGreaterThan(0));
     fireEvent.change(screen.getByLabelText("Max nodes"), {
@@ -127,15 +127,15 @@ describe("GraphExplorerPage", () => {
   it("selects a node and renders file neighbors", async () => {
     useRepositoryHandler();
     server.use(
-      http.get(`${apiBaseUrl}/graph/repositories/7/subgraph`, () =>
+      http.get(`${apiBaseUrl}/graph/repositories/77777777-7777-7777-7777-777777777777/subgraph`, () =>
         HttpResponse.json(graphResponse),
       ),
-      http.get(`${apiBaseUrl}/graph/repositories/7/file/2/neighbors`, () =>
+      http.get(`${apiBaseUrl}/graph/repositories/77777777-7777-7777-7777-777777777777/file/2/neighbors`, () =>
         HttpResponse.json(neighborResponse),
       ),
     );
 
-    renderWithProviders(<GraphExplorerPage repositoryId={7} />);
+    renderWithProviders(<GraphExplorerPage repositoryId="77777777-7777-7777-7777-777777777777" />);
 
     const serviceNode = await screen.findByText(
       "backend/app/services/indexing_service.py",
@@ -153,7 +153,7 @@ describe("GraphExplorerPage", () => {
   it("renders large graph and search empty states", async () => {
     useRepositoryHandler();
     server.use(
-      http.get(`${apiBaseUrl}/graph/repositories/7/subgraph`, () =>
+      http.get(`${apiBaseUrl}/graph/repositories/77777777-7777-7777-7777-777777777777/subgraph`, () =>
         HttpResponse.json({
           ...graphResponse,
           nodes: graphResponse.nodes.slice(0, 1),
@@ -161,7 +161,7 @@ describe("GraphExplorerPage", () => {
       ),
     );
 
-    renderWithProviders(<GraphExplorerPage repositoryId={7} />);
+    renderWithProviders(<GraphExplorerPage repositoryId="77777777-7777-7777-7777-777777777777" />);
 
     await screen.findByText("backend/app/api/v1/endpoints/indexing.py");
     fireEvent.change(screen.getByLabelText("Max nodes"), {
@@ -184,12 +184,12 @@ describe("GraphExplorerPage", () => {
   it("renders an empty graph response", async () => {
     useRepositoryHandler();
     server.use(
-      http.get(`${apiBaseUrl}/graph/repositories/7/subgraph`, () =>
+      http.get(`${apiBaseUrl}/graph/repositories/77777777-7777-7777-7777-777777777777/subgraph`, () =>
         HttpResponse.json({ ...graphResponse, edges: [], nodes: [] }),
       ),
     );
 
-    renderWithProviders(<GraphExplorerPage repositoryId={7} />);
+    renderWithProviders(<GraphExplorerPage repositoryId="77777777-7777-7777-7777-777777777777" />);
 
     expect(await screen.findByText("No graph nodes")).toBeInTheDocument();
   });

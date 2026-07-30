@@ -12,7 +12,7 @@ const repository: Repository = {
   created_at: "2026-06-21T10:00:00Z",
   current_ref: "main",
   default_branch: "main",
-  id: 7,
+  id: "77777777-7777-7777-7777-777777777777",
   indexed_at: "2026-06-21T10:30:00Z",
   last_indexed_commit: "abc123",
   local_path: null,
@@ -24,7 +24,7 @@ const repository: Repository = {
 
 function useRepositoryHandler() {
   server.use(
-    http.get(`${apiBaseUrl}/repositories/7`, () => HttpResponse.json(repository)),
+    http.get(`${apiBaseUrl}/repositories/77777777-7777-7777-7777-777777777777`, () => HttpResponse.json(repository)),
   );
 }
 
@@ -52,7 +52,7 @@ describe("SemanticSearchPage", () => {
       }),
     );
 
-    renderWithProviders(<SemanticSearchPage repositoryId={7} />);
+    renderWithProviders(<SemanticSearchPage repositoryId="77777777-7777-7777-7777-777777777777" />);
 
     fireEvent.change(screen.getByLabelText("Search query"), {
       target: { value: "where is repository indexing triggered" },
@@ -65,7 +65,7 @@ describe("SemanticSearchPage", () => {
     await waitFor(() => expect(bodies).toHaveLength(1));
     expect(bodies[0]).toEqual({
       query: "where is repository indexing triggered",
-      repository_id: 7,
+      repository_id: "77777777-7777-7777-7777-777777777777",
       top_k: 5,
     });
     expect(
@@ -74,7 +74,7 @@ describe("SemanticSearchPage", () => {
     expect(screen.getByText("0.873")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /open graph/i })).toHaveAttribute(
       "href",
-      "/repositories/7/graph",
+      "/repositories/77777777-7777-7777-7777-777777777777/graph",
     );
   });
 
@@ -86,7 +86,7 @@ describe("SemanticSearchPage", () => {
       ),
     );
 
-    renderWithProviders(<SemanticSearchPage repositoryId={7} />);
+    renderWithProviders(<SemanticSearchPage repositoryId="77777777-7777-7777-7777-777777777777" />);
 
     fireEvent.change(screen.getByLabelText("Search query"), {
       target: { value: "nonexistent parser" },
@@ -98,7 +98,7 @@ describe("SemanticSearchPage", () => {
 
   it("renders validation and API errors", async () => {
     useRepositoryHandler();
-    renderWithProviders(<SemanticSearchPage repositoryId={7} />);
+    renderWithProviders(<SemanticSearchPage repositoryId="77777777-7777-7777-7777-777777777777" />);
 
     fireEvent.click(screen.getByRole("button", { name: "Search" }));
     expect(

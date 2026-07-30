@@ -1,4 +1,5 @@
 from typing import Any
+from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,7 +19,7 @@ class SemanticSearchService:
     async def semantic_search(
         self,
         db: AsyncSession,
-        repository_id: int,
+        repository_id: UUID | Any,
         query: str,
         top_k: int = 10,
     ) -> SemanticSearchResponse:

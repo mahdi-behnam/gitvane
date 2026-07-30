@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from pydantic import BaseModel, Field
 
 
@@ -6,7 +8,7 @@ class SearchBase(BaseModel):
 
 
 class SemanticSearchRequest(SearchBase):
-    repository_id: int
+    repository_id: UUID
     top_k: int = Field(10, ge=1, le=100)
 
 

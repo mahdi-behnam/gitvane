@@ -36,8 +36,8 @@ function parseImpactedFiles(value: string): string[] {
     .filter(Boolean);
 }
 
-export function TestRecommendationsPage({ repositoryId }: { repositoryId: number }) {
-  const validRepositoryId = Number.isFinite(repositoryId) ? repositoryId : null;
+export function TestRecommendationsPage({ repositoryId }: { repositoryId: string }) {
+  const validRepositoryId = typeof repositoryId === "string" && repositoryId.trim() !== "" ? repositoryId : null;
   const formId = useId();
   const [changedFiles, setChangedFiles] = useState(
     "backend/app/services/indexing_service.py",

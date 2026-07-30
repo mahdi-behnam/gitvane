@@ -83,7 +83,7 @@ const impactResponse: ImpactAnalyzeResponse = {
       score: 0.71,
     },
   ],
-  repository_id: 7,
+  repository_id: "77777777-7777-7777-7777-777777777777",
   risk_summary: {
     highest_risk_files: [{ path: "backend/app/services/indexing_service.py" }],
   },
@@ -91,7 +91,7 @@ const impactResponse: ImpactAnalyzeResponse = {
 
 function useRepositoryHandler() {
   server.use(
-    http.get(`${apiBaseUrl}/repositories/7`, () => HttpResponse.json(repository)),
+    http.get(`${apiBaseUrl}/repositories/77777777-7777-7777-7777-777777777777`, () => HttpResponse.json(repository)),
   );
 }
 
@@ -106,7 +106,7 @@ describe("ImpactAnalysisPage", () => {
       }),
     );
 
-    renderWithProviders(<ImpactAnalysisPage repositoryId={7} />);
+    renderWithProviders(<ImpactAnalysisPage repositoryId="77777777-7777-7777-7777-777777777777" />);
 
     fireEvent.change(screen.getByLabelText("Changed files", { selector: "textarea" }), {
       target: { value: "backend/app/services/indexing_service.py" },
@@ -118,8 +118,7 @@ describe("ImpactAnalysisPage", () => {
       changed_files: [{ path: "backend/app/services/indexing_service.py" }],
       include_changed_files_in_predictions: false,
       include_explanation: true,
-      max_dependency_depth: 3,
-      repository_id: 7,
+      repository_id: "77777777-7777-7777-7777-777777777777",
       top_k: 20,
     });
     expect(await screen.findByText("Likely impacted files")).toBeInTheDocument();
@@ -143,7 +142,7 @@ describe("ImpactAnalysisPage", () => {
       }),
     );
 
-    renderWithProviders(<ImpactAnalysisPage repositoryId={7} />);
+    renderWithProviders(<ImpactAnalysisPage repositoryId="77777777-7777-7777-7777-777777777777" />);
 
     fireEvent.click(screen.getByRole("button", { name: "Raw diff" }));
     fireEvent.change(screen.getByLabelText("Raw diff", { selector: "textarea" }), {
@@ -166,7 +165,7 @@ describe("ImpactAnalysisPage", () => {
       changed_symbols: [],
       input_mode: "git_diff",
       predictions: impactResponse.impacted_files,
-      repository_id: 7,
+      repository_id: "77777777-7777-7777-7777-777777777777",
       status: "completed",
     };
 
@@ -179,7 +178,7 @@ describe("ImpactAnalysisPage", () => {
       http.get(`${apiBaseUrl}/impact/runs/91`, () => HttpResponse.json(runResponse)),
     );
 
-    renderWithProviders(<ImpactAnalysisPage repositoryId={7} />);
+    renderWithProviders(<ImpactAnalysisPage repositoryId="77777777-7777-7777-7777-777777777777" />);
 
     fireEvent.click(screen.getByRole("button", { name: "Refs" }));
     fireEvent.change(screen.getByLabelText("Base ref"), {

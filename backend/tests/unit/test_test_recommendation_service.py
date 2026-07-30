@@ -1,5 +1,6 @@
 from typing import Any, AsyncGenerator
 from unittest.mock import AsyncMock, MagicMock
+from uuid import UUID
 
 import pytest
 from fastapi.testclient import TestClient
@@ -16,6 +17,8 @@ from app.schemas.impact import ChangedFileInput
 from app.schemas.search import SemanticSearchResponse, SemanticSearchResult
 from app.schemas.tests import TestRecommendationResponse as RecommendationResponse
 from app.services.test_recommendation_service import TestRecommendationService
+
+TEST_UUID = UUID("11111111-1111-1111-1111-111111111111")
 
 
 class _ScalarResult:
@@ -45,7 +48,7 @@ class _FakeDb:
         self.results = [code_files, edges, commits]
         self.repo_exists = repo_exists
 
-    async def get(self, model: type[Any], object_id: int) -> Any:
+    async def get(self, model: type[Any], object_id: Any) -> Any:
         if model is Repository and self.repo_exists:
             return Repository(id=object_id, name="repo", clone_url="", status="indexed")
         return None
@@ -58,11 +61,13 @@ class _FakeSemanticSearchService:
     async def semantic_search(
         self,
         db: _FakeDb,
-        repository_id: int,
+        repository_id: UUID | Any,
         query: str,
-        top_k: int,
+        top_k: int = 50,
     ) -> SemanticSearchResponse:
         return SemanticSearchResponse(
+            repository_id=repository_id,
+            query=query,
             results=[
                 SemanticSearchResult(
                     path="tests/test_auth_flow.py",
@@ -234,7 +239,7 @@ def test_recommends_tests_by_semantic_score() -> None:
 async def test_recommend_for_repository_loads_indexed_data() -> None:
     source = CodeFile(
         id=1,
-        repository_id=1,
+        repository_id=TEST_UUID,
         path="src/auth/token.py",
         language="python",
         content_hash="a",
@@ -242,7 +247,7 @@ async def test_recommend_for_repository_loads_indexed_data() -> None:
     )
     test = CodeFile(
         id=2,
-        repository_id=1,
+        repository_id=TEST_UUID,
         path="tests/test_auth_flow.py",
         language="python",
         content_hash="b",
@@ -252,12 +257,12 @@ async def test_recommend_for_repository_loads_indexed_data() -> None:
 
     response = await TestRecommendationService().recommend_for_repository(
         db=db,
-        repository_id=1,
+        repository_id=TEST_UUID,
         changed_files=[ChangedFileInput(path="src/auth/token.py")],
         semantic_search_service=_FakeSemanticSearchService(),
     )
 
-    assert response.repository_id == 1
+    assert response.repository_id == TEST_UUID
     assert response.recommended_tests[0].path == "tests/test_auth_flow.py"
     assert response.recommended_tests[0].score == 0.74
 
@@ -269,7 +274,7 @@ async def test_recommend_for_repository_raises_for_missing_repo() -> None:
     with pytest.raises(RepositoryNotFoundError):
         await TestRecommendationService().recommend_for_repository(
             db=db,
-            repository_id=99,
+            repository_id=TEST_UUID,
             changed_files=[ChangedFileInput(path="src/auth/token.py")],
         )
 
@@ -282,7 +287,7 @@ def test_test_recommendation_endpoint_success() -> None:
     mock_svc = MagicMock()
     mock_svc.recommend_for_repository = AsyncMock(
         return_value=RecommendationResponse(
-            repository_id=1,
+            repository_id=TEST_UUID,
             changed_files=[ChangedFileInput(path="src/auth/token.py")],
             recommended_tests=[],
         )
@@ -296,7 +301,7 @@ def test_test_recommendation_endpoint_success() -> None:
         response = client.post(
             "/api/v1/tests/recommend",
             json={
-                "repository_id": 1,
+                "repository_id": str(TEST_UUID),
                 "changed_files": [{"path": "src/auth/token.py"}],
             },
         )
@@ -304,14 +309,14 @@ def test_test_recommendation_endpoint_success() -> None:
         app.dependency_overrides.clear()
 
     assert response.status_code == 200
-    assert response.json()["repository_id"] == 1
+    assert response.json()["repository_id"] == str(TEST_UUID)
     mock_svc.recommend_for_repository.assert_awaited_once()
 
 
 def test_test_recommendation_endpoint_not_found() -> None:
     mock_svc = MagicMock()
     mock_svc.recommend_for_repository = AsyncMock(
-        side_effect=RepositoryNotFoundError("Repository with id=99 does not exist")
+        side_effect=RepositoryNotFoundError(f"Repository with id={TEST_UUID} does not exist")
     )
 
     app.dependency_overrides[get_db] = _noop_db
@@ -322,7 +327,7 @@ def test_test_recommendation_endpoint_not_found() -> None:
         response = client.post(
             "/api/v1/tests/recommend",
             json={
-                "repository_id": 99,
+                "repository_id": str(TEST_UUID),
                 "changed_files": [{"path": "src/auth/token.py"}],
             },
         )

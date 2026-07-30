@@ -1,4 +1,6 @@
 from datetime import datetime, timezone
+from typing import Any
+from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -263,7 +265,7 @@ class ImpactService:
         return "git_diff"
 
     async def _load_indexed_data(
-        self, db: AsyncSession, repository_id: int
+        self, db: AsyncSession, repository_id: UUID | Any
     ) -> tuple[list[CodeFile], list[Symbol], list[DependencyEdge], list[Commit]]:
         code_files = (
             await db.execute(
@@ -288,7 +290,7 @@ class ImpactService:
     async def _score_candidates(
         self,
         db: AsyncSession,
-        repository_id: int,
+        repository_id: UUID | Any,
         changed_files: list[ChangedFileInput],
         changed_symbols: list[ChangedSymbolOut],
         code_files: list[CodeFile],
@@ -336,7 +338,7 @@ class ImpactService:
     async def _apply_semantic_scores(
         self,
         db: AsyncSession,
-        repository_id: int,
+        repository_id: UUID | Any,
         changed_files: list[ChangedFileInput],
         changed_symbols: list[ChangedSymbolOut],
         candidates: dict[str, CandidateScore],
@@ -622,7 +624,7 @@ class ImpactService:
         )
 
     async def _get_repository_or_raise(
-        self, db: AsyncSession, repository_id: int
+        self, db: AsyncSession, repository_id: UUID | Any
     ) -> Repository:
         repo_obj = await db.get(Repository, repository_id)
         if repo_obj is None:

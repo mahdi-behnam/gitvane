@@ -1,3 +1,6 @@
+from typing import Any
+from uuid import UUID
+
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,7 +15,7 @@ class GraphService:
     async def get_file_neighbors(
         self,
         db: AsyncSession,
-        repository_id: int,
+        repository_id: UUID | Any,
         file_id: int,
     ) -> GraphResponse:
         await self._ensure_repository(db, repository_id)
@@ -43,7 +46,7 @@ class GraphService:
     async def get_repository_subgraph(
         self,
         db: AsyncSession,
-        repository_id: int,
+        repository_id: UUID | Any,
         max_nodes: int = 500,
         language: str | None = None,
         include_tests: bool = True,
@@ -76,7 +79,7 @@ class GraphService:
         edges = list(edge_result.scalars().all())
         return self._response(repository_id, nodes, edges)
 
-    async def _ensure_repository(self, db: AsyncSession, repository_id: int) -> None:
+    async def _ensure_repository(self, db: AsyncSession, repository_id: UUID | Any) -> None:
         repo = await db.get(Repository, repository_id)
         if repo is None:
             raise RepositoryNotFoundError(
@@ -84,7 +87,7 @@ class GraphService:
             )
 
     async def _load_files(
-        self, db: AsyncSession, repository_id: int, file_ids: set[int]
+        self, db: AsyncSession, repository_id: UUID | Any, file_ids: set[int]
     ) -> list[CodeFile]:
         if not file_ids:
             return []
@@ -100,7 +103,7 @@ class GraphService:
 
     def _response(
         self,
-        repository_id: int,
+        repository_id: UUID | Any,
         files: list[CodeFile],
         edges: list[DependencyEdge],
     ) -> GraphResponse:

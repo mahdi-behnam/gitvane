@@ -7,5 +7,5 @@ export default async function RepositoryGraphPage({
 }) {
   const { id } = await params;
 
-  return <GraphExplorerPage repositoryId={Number(id)} />;
+  return <GraphExplorerPage repositoryId={id} />;
 }

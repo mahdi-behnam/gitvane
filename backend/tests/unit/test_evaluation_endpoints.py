@@ -1,5 +1,6 @@
 from typing import Any, AsyncGenerator
 from unittest.mock import AsyncMock, MagicMock, patch
+from uuid import UUID
 
 from fastapi.testclient import TestClient
 
@@ -11,6 +12,8 @@ from app.schemas.evaluation import (
     EvaluationRunResponse,
     EvaluationStatusResponse,
 )
+
+TEST_UUID = UUID("11111111-1111-1111-1111-111111111111")
 
 
 async def _noop_db() -> AsyncGenerator[Any, None]:
@@ -24,7 +27,7 @@ def test_run_evaluation_endpoint_success(
 ) -> None:
     mock_db = MagicMock()
     mock_repo = MagicMock()
-    mock_repo.id = 1
+    mock_repo.id = TEST_UUID
     mock_db.get = AsyncMock(return_value=mock_repo)
     mock_db.commit = AsyncMock()
 
@@ -48,7 +51,7 @@ def test_run_evaluation_endpoint_success(
         client = TestClient(app)
         response = client.post(
             "/api/v1/evaluation/run",
-            json={"repository_id": 1, "methods": ["hybrid"], "k_values": [5]},
+            json={"repository_id": str(TEST_UUID), "methods": ["hybrid"], "k_values": [5]},
         )
     finally:
         app.dependency_overrides.clear()
@@ -73,7 +76,7 @@ def test_get_evaluation_endpoint_success() -> None:
     mock_svc.get_evaluation = AsyncMock(
         return_value=EvaluationStatusResponse(
             evaluation_run_id=1,
-            repository_id=1,
+            repository_id=TEST_UUID,
             name="Eval",
             status="completed",
             methods=["hybrid"],

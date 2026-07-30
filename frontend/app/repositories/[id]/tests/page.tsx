@@ -7,5 +7,5 @@ export default async function RepositoryTestsPage({
 }) {
   const { id } = await params;
 
-  return <TestRecommendationsPage repositoryId={Number(id)} />;
+  return <TestRecommendationsPage repositoryId={id} />;
 }

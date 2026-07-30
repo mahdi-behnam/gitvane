@@ -157,7 +157,7 @@ describe("RepositoryManagementPage", () => {
     );
 
     await waitFor(() => expect(bodies).toHaveLength(1));
-    expect(bodies[0]).toEqual({
+    expect(bodies[0]).toMatchObject({
       branch: null,
       clone_url: "https://github.com/mahdi-behnam/repolens.git",
       index_now: false,

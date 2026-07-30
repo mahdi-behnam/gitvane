@@ -1,5 +1,6 @@
 from typing import Any, AsyncGenerator
 from unittest.mock import AsyncMock, MagicMock
+from uuid import UUID
 
 import pytest
 from fastapi.testclient import TestClient
@@ -10,6 +11,8 @@ from app.db.models import CodeChunk, CodeFile, Repository, Symbol
 from app.main import app
 from app.schemas.search import SemanticSearchResponse, SemanticSearchResult
 from app.services.semantic_search_service import SemanticSearchService
+
+TEST_UUID = UUID("11111111-1111-1111-1111-111111111111")
 
 
 class _FakeEmbeddingService:
@@ -30,7 +33,7 @@ class _FakeDb:
         self.rows = rows
         self.repo_exists = repo_exists
 
-    async def get(self, model: type[Any], object_id: int) -> Any:
+    async def get(self, model: type[Any], object_id: Any) -> Any:
         if model is Repository and self.repo_exists:
             return Repository(id=object_id, name="repo", clone_url="", status="indexed")
         return None
@@ -47,7 +50,7 @@ async def _noop_db() -> AsyncGenerator[Any, None]:
 async def test_semantic_search_returns_ranked_results() -> None:
     chunk = CodeChunk(
         id=1,
-        repository_id=1,
+        repository_id=TEST_UUID,
         file_id=1,
         text="path: src/auth/token.py\nsymbol: validate\n\nvalidate token expiry",
         start_line=10,
@@ -57,14 +60,14 @@ async def test_semantic_search_returns_ranked_results() -> None:
     )
     code_file = CodeFile(
         id=1,
-        repository_id=1,
+        repository_id=TEST_UUID,
         path="src/auth/token.py",
         language="python",
         content_hash="abc",
     )
     symbol = Symbol(
         id=1,
-        repository_id=1,
+        repository_id=TEST_UUID,
         file_id=1,
         qualified_name="validate",
         simple_name="validate",
@@ -76,7 +79,7 @@ async def test_semantic_search_returns_ranked_results() -> None:
     db = _FakeDb(rows=[(chunk, code_file, symbol, 0.17)])
     service = SemanticSearchService(_FakeEmbeddingService())
 
-    response = await service.semantic_search(db, 1, "jwt expiration", top_k=5)
+    response = await service.semantic_search(db, TEST_UUID, "jwt expiration", top_k=5)
 
     assert response.results[0].path == "src/auth/token.py"
     assert response.results[0].symbol == "validate"
@@ -89,7 +92,7 @@ async def test_semantic_search_raises_for_missing_repository() -> None:
     service = SemanticSearchService(_FakeEmbeddingService())
 
     with pytest.raises(RepositoryNotFoundError):
-        await service.semantic_search(_FakeDb(rows=[], repo_exists=False), 99, "auth")
+        await service.semantic_search(_FakeDb(rows=[], repo_exists=False), TEST_UUID, "auth")
 
 
 def test_semantic_search_endpoint_success() -> None:
@@ -115,7 +118,7 @@ def test_semantic_search_endpoint_success() -> None:
         client = TestClient(app)
         response = client.post(
             "/api/v1/search/semantic",
-            json={"repository_id": 1, "query": "jwt expiration", "top_k": 5},
+            json={"repository_id": str(TEST_UUID), "query": "jwt expiration", "top_k": 5},
         )
     finally:
         app.dependency_overrides.clear()
@@ -128,7 +131,7 @@ def test_semantic_search_endpoint_success() -> None:
 def test_semantic_search_endpoint_not_found() -> None:
     mock_svc = MagicMock()
     mock_svc.semantic_search = AsyncMock(
-        side_effect=RepositoryNotFoundError("Repository with id=99 does not exist")
+        side_effect=RepositoryNotFoundError(f"Repository with id={TEST_UUID} does not exist")
     )
 
     app.dependency_overrides[get_db] = _noop_db
@@ -137,7 +140,7 @@ def test_semantic_search_endpoint_not_found() -> None:
         client = TestClient(app)
         response = client.post(
             "/api/v1/search/semantic",
-            json={"repository_id": 99, "query": "auth", "top_k": 5},
+            json={"repository_id": str(TEST_UUID), "query": "auth", "top_k": 5},
         )
     finally:
         app.dependency_overrides.clear()

@@ -19,7 +19,7 @@ export type Repository = {
   created_at: ISODateTime;
   current_ref: string | null;
   default_branch: string | null;
-  id: number;
+  id: string;
   indexed_at: ISODateTime | null;
   last_indexed_commit: string | null;
   local_path: string | null;
@@ -50,7 +50,7 @@ export type IndexRepositoryResponse = {
   files_skipped: number;
   indexed_at: ISODateTime | null;
   parser_errors: Record<string, unknown>[];
-  repository_id: number;
+  repository_id: string;
   status: string;
   symbols_indexed: number;
   warnings: string[];
@@ -66,7 +66,7 @@ export type IndexingProgressEvent = {
   phase: string;
   phase_name: string;
   progress_percentage: number;
-  repository_id: number;
+  repository_id: string;
   status: string;
 };
 
@@ -79,7 +79,7 @@ export type IndexStatusResponse = {
   indexed_at: ISODateTime | null;
   last_indexed_commit: string | null;
   progress?: IndexingProgressEvent | null;
-  repository_id: number;
+  repository_id: string;
   status: string;
   symbol_count: number;
 };
@@ -93,7 +93,7 @@ export type ChangedFileInput = {
 
 export type SemanticSearchRequest = {
   query: string;
-  repository_id: number;
+  repository_id: string;
   top_k?: number;
 };
 
@@ -149,7 +149,7 @@ export type ImpactAnalyzeRequest = {
   include_explanation?: boolean;
   max_dependency_depth?: number;
   raw_diff?: string | null;
-  repository_id: number;
+  repository_id: string;
   top_k?: number;
 };
 
@@ -162,7 +162,7 @@ export type ImpactAnalyzeResponse = {
   impacted_files: ImpactedFile[];
   llm_explanation: string | null;
   recommended_tests: TestRecommendation[];
-  repository_id: number;
+  repository_id: string;
   risk_summary: {
     highest_risk_files: Record<string, unknown>[];
   };
@@ -174,27 +174,27 @@ export type ImpactRunResponse = {
   changed_symbols: Record<string, unknown>[];
   input_mode: "git_diff" | "raw_diff" | "changed_files";
   predictions: ImpactedFile[];
-  repository_id: number;
+  repository_id: string;
   status: string;
 };
 
 export type TestRecommendationRequest = {
   changed_files: ChangedFileInput[];
   impacted_files?: string[];
-  repository_id: number;
+  repository_id: string;
   top_k?: number;
 };
 
 export type TestRecommendationResponse = {
   changed_files: ChangedFileInput[];
   recommended_tests: TestRecommendation[];
-  repository_id: number;
+  repository_id: string;
 };
 
 export type RepositoryRiskArgs = {
   include_tests?: boolean;
   language?: string | null;
-  repositoryId: number;
+  repositoryId: string;
   top_k?: number;
 };
 
@@ -208,7 +208,7 @@ export type RiskFile = {
 export type RepositoryRiskResponse = {
   files: RiskFile[];
   metadata: Record<string, unknown>;
-  repository_id: number;
+  repository_id: string;
 };
 
 export type EvaluationMethod =
@@ -222,7 +222,7 @@ export type EvaluationRunRequest = {
   k_values?: number[];
   methods?: EvaluationMethod[];
   name?: string;
-  repository_id: number;
+  repository_id: string;
 };
 
 export type EvaluationRunResponse = {
@@ -237,7 +237,7 @@ export type EvaluationStatusResponse = {
   evaluation_run_id: number;
   methods: string[];
   name: string;
-  repository_id: number;
+  repository_id: string;
   status: string;
   summary: Record<string, unknown>;
 };
@@ -270,7 +270,7 @@ export type GraphEdge = {
 export type GraphResponse = {
   edges: GraphEdge[];
   nodes: GraphNode[];
-  repository_id: number;
+  repository_id: string;
 };
 
 export type UserCreate = {

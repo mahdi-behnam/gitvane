@@ -1,12 +1,15 @@
 from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock
+from uuid import UUID
 
 import pytest
 
 from app.core.config import settings
 from app.db.models import CodeChunk, CodeFile, DependencyEdge, Repository, Symbol
 from app.services.indexing_service import IndexingService
+
+TEST_UUID = UUID("11111111-1111-1111-1111-111111111111")
 
 
 class _ScalarResult:
@@ -36,7 +39,7 @@ class _FakeDb:
         self.committed = False
         self.rolled_back = False
 
-    async def get(self, model: type[Any], object_id: int) -> Any:
+    async def get(self, model: type[Any], object_id: Any) -> Any:
         if model is Repository and object_id == self.repo.id:
             return self.repo
         return None
@@ -67,10 +70,14 @@ class _FakeEmbeddingService:
     def __init__(self) -> None:
         self.chunks: list[CodeChunk] = []
 
+    async def embed_documents(self, texts: list[str]) -> list[list[float]]:
+        return [[0.1, 0.2] for _ in texts]
+
     async def save_embeddings_for_chunks(
         self,
         db: _FakeDb,
         chunks: list[CodeChunk],
+        progress_callback: Any = None,
     ) -> int:
         self.chunks = chunks
         return len(chunks)
@@ -79,7 +86,7 @@ class _FakeEmbeddingService:
 @pytest.fixture()
 def repo_workspace(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     workspace = tmp_path / "workspace"
-    repo_path = workspace / "repo_1"
+    repo_path = workspace / f"repo_{TEST_UUID}"
     repo_path.mkdir(parents=True)
     monkeypatch.setattr(settings, "REPOLENS_WORKSPACE", str(workspace))
     return repo_path
@@ -111,7 +118,7 @@ async def test_index_repository_persists_core_index_rows(repo_workspace: Path) -
     _write(repo_workspace / "README.md", "# docs\n")
 
     repo = Repository(
-        id=1,
+        id=TEST_UUID,
         name="repo",
         clone_url="",
         local_path=repo_workspace.as_posix(),
@@ -137,7 +144,7 @@ async def test_index_repository_persists_core_index_rows(repo_workspace: Path) -
         embedding_service=embedding_service,
     ).index_repository(
         db=db,
-        repository_id=1,
+        repository_id=TEST_UUID,
         max_commits=0,
     )
 

@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import Any
+from uuid import UUID
 
 import git
 import pytest
@@ -19,6 +20,8 @@ from app.schemas.impact import ImpactAnalyzeRequest
 from app.services.git_service import GitService
 from app.services.impact_service import ImpactService
 from app.services.indexing_service import IndexingService
+
+TEST_UUID = UUID("11111111-1111-1111-1111-111111111111")
 
 
 class _ScalarResult:
@@ -49,7 +52,7 @@ class _IntegrationDb:
         self.commits = 0
         self.rollbacks = 0
 
-    async def get(self, model: type[Any], object_id: int) -> Any:
+    async def get(self, model: type[Any], object_id: Any) -> Any:
         if model is Repository and object_id == self.repo.id:
             return self.repo
         return None
@@ -97,6 +100,7 @@ class _FakeEmbeddingService:
         self,
         db: _IntegrationDb,
         chunks: list[CodeChunk],
+        progress_callback: Any = None,
     ) -> int:
         return len(chunks)
 
@@ -142,7 +146,7 @@ async def _index_and_analyze(
 ) -> tuple[_IntegrationDb, Any]:
     monkeypatch.setattr(settings, "REPOLENS_WORKSPACE", str(repo_path.parent))
     repo_model = Repository(
-        id=1,
+        id=TEST_UUID,
         name=repo_path.name,
         clone_url="",
         local_path=repo_path.as_posix(),
@@ -154,7 +158,7 @@ async def _index_and_analyze(
     await IndexingService(
         git_service=git_service,
         embedding_service=_FakeEmbeddingService(),
-    ).index_repository(db=db, repository_id=1, max_commits=10)
+    ).index_repository(db=db, repository_id=TEST_UUID, max_commits=10)
 
     db.queue_index_for_impact()
     response = await ImpactService(
@@ -164,7 +168,7 @@ async def _index_and_analyze(
     ).analyze(
         db,
         ImpactAnalyzeRequest(
-            repository_id=1,
+            repository_id=TEST_UUID,
             changed_files=[{"path": changed_path}],
             include_explanation=True,
         ),

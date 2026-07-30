@@ -1,4 +1,6 @@
 from dataclasses import dataclass, field
+from typing import Any
+from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -29,7 +31,7 @@ class RiskService:
     async def get_repository_file_risks(
         self,
         db: AsyncSession,
-        repository_id: int,
+        repository_id: UUID | Any,
         top_k: int = 20,
         language: str | None = None,
         include_tests: bool = False,
@@ -165,7 +167,7 @@ class RiskService:
         return round(max(0.0, min(float(value), 1.0)), 4)
 
     async def _load_indexed_data(
-        self, db: AsyncSession, repository_id: int
+        self, db: AsyncSession, repository_id: UUID | Any
     ) -> tuple[list[CodeFile], list[DependencyEdge], list[Commit], list[CodeChunk]]:
         code_files = (
             await db.execute(
