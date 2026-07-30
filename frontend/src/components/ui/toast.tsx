@@ -4,10 +4,13 @@ import * as ToastPrimitive from "@radix-ui/react-toast";
 import { createContext, useCallback, useContext, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 
-type ToastMessage = {
+export type ToastVariant = "default" | "success" | "destructive" | "warning" | "info";
+
+export type ToastMessage = {
   description?: string;
   id: string;
   title: string;
+  variant?: ToastVariant;
 };
 
 type ToastContextValue = {
@@ -35,8 +38,13 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         {messages.map((message) => (
           <ToastPrimitive.Root
             className={cn(
-              "rounded-lg border border-border bg-panel p-4 text-sm text-foreground",
+              "rounded-lg border p-4 text-sm text-foreground shadow-lg transition-all",
               "data-[state=open]:animate-in data-[state=closed]:animate-out",
+              message.variant === "destructive" && "border-danger/40 bg-panel border-l-4 border-l-danger",
+              message.variant === "success" && "border-success/40 bg-panel border-l-4 border-l-success",
+              message.variant === "warning" && "border-warning/40 bg-panel border-l-4 border-l-warning",
+              message.variant === "info" && "border-primary/40 bg-panel border-l-4 border-l-primary",
+              (!message.variant || message.variant === "default") && "border-border bg-panel"
             )}
             key={message.id}
             onOpenChange={(open) => {
@@ -67,7 +75,11 @@ export function useToast() {
   const context = useContext(ToastContext);
 
   if (!context) {
-    throw new Error("useToast must be used within ToastProvider");
+    return {
+      notify: (message: Omit<ToastMessage, "id">) => {
+        console.warn("useToast notify called outside of ToastProvider:", message);
+      },
+    };
   }
 
   return context;
