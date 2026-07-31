@@ -462,7 +462,7 @@ async def forgot_password(
     import logging
     logger = logging.getLogger("repolens")
 
-    if settings.ENVIRONMENT == "local" or not settings.SMTP_HOST:
+    if (settings.ENVIRONMENT in ("local", "development")) and settings.DEBUG:
         logger.info(f"[DEV MODE] Password reset URL for {user.email}: {reset_url}")
         return {
             "message": "Password reset email sent (dev mode)",

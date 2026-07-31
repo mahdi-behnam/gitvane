@@ -54,6 +54,11 @@ export default function SettingsPage() {
     setProfileError(null);
     setProfileSuccess(null);
 
+    if (!fullName.trim()) {
+      setProfileError("Full Name cannot be empty.");
+      return;
+    }
+
     if (newPassword && newPassword.length < 8) {
       setProfileError("New password must be at least 8 characters long.");
       return;
