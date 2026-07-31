@@ -374,12 +374,22 @@ function filterGraphNodes(nodes: GraphNode[], search: string) {
 }
 
 function buildFlowNodes(nodes: GraphNode[], selectedNodeId: number | null): Node[] {
-  const columns = Math.max(1, Math.ceil(Math.sqrt(nodes.length)));
+  // Sort nodes: source files first (alphabetical), then test files
+  const sortedNodes = [...nodes].sort((a, b) => {
+    if (a.is_test !== b.is_test) return a.is_test ? 1 : -1;
+    return a.path.localeCompare(b.path);
+  });
 
-  return nodes.map((node, index) => {
+  const columns = Math.max(1, Math.ceil(Math.sqrt(sortedNodes.length)));
+
+  return sortedNodes.map((node, index) => {
     const row = Math.floor(index / columns);
     const column = index % columns;
     const selected = selectedNodeId === node.id;
+
+    // Stagger test nodes further to the right for clear visual hierarchy
+    const xOffset = column * 280 + (node.is_test ? 40 : 0);
+    const yOffset = row * 160;
 
     return {
       data: {
@@ -388,24 +398,26 @@ function buildFlowNodes(nodes: GraphNode[], selectedNodeId: number | null): Node
       },
       id: String(node.id),
       position: {
-        x: column * 260,
-        y: row * 150,
+        x: xOffset,
+        y: yOffset,
       },
       sourcePosition: Position.Right,
       style: {
         background: node.is_test
           ? "rgb(var(--color-success) / 0.08)"
           : "rgb(var(--color-graph-node) / 0.32)",
-        border: "1px solid rgb(var(--color-border))",
+        border: selected
+          ? "2px solid rgb(var(--color-primary))"
+          : "1px solid rgb(var(--color-border))",
         borderRadius: 8,
-        boxShadow: selected ? "0 0 0 2px rgb(var(--color-primary) / 0.22)" : "none",
+        boxShadow: selected ? "0 0 0 3px rgb(var(--color-primary) / 0.22)" : "none",
         color: "rgb(var(--color-foreground))",
         fontFamily: "Geist Mono, SF Mono, monospace",
         fontSize: 11,
         lineHeight: 1.45,
         minHeight: 60,
         padding: 10,
-        width: 220,
+        width: 230,
       },
       targetPosition: Position.Left,
     };

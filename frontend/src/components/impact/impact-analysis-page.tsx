@@ -450,7 +450,7 @@ function ImpactResults({
       <ChangedSymbols symbols={response.changed_symbols} />
       <ImpactedFiles files={response.impacted_files} repositoryId={repositoryId} />
       <RecommendedTests tests={response.recommended_tests} />
-      <RiskSummary files={response.risk_summary.highest_risk_files} />
+      <RiskSummary files={response.risk_summary.highest_risk_files} repositoryId={repositoryId} />
       {response.llm_explanation ? (
         <Card>
           <CardHeader>
@@ -675,7 +675,13 @@ function RecommendedTests({
   );
 }
 
-function RiskSummary({ files }: { files: Record<string, unknown>[] }) {
+function RiskSummary({
+  files,
+  repositoryId,
+}: {
+  files: Record<string, unknown>[];
+  repositoryId: string;
+}) {
   if (files.length === 0) {
     return null;
   }
@@ -687,14 +693,34 @@ function RiskSummary({ files }: { files: Record<string, unknown>[] }) {
       </CardHeader>
       <CardContent>
         <div className="space-y-2">
-          {files.map((file, index) => (
-            <div
-              className="rounded-md border border-warning/20 bg-warning/10 px-3 py-2 text-sm leading-6 text-warning"
-              key={index}
-            >
-              {String(file.path ?? "Unknown file")}
-            </div>
-          ))}
+          {files.map((file, index) => {
+            const pathStr = String(file.path ?? file.file_path ?? "Unknown file");
+            const rawScore = typeof file.risk_score === "number" ? file.risk_score : typeof file.score === "number" ? file.score : null;
+
+            return (
+              <div
+                className="flex items-center justify-between rounded-md border border-warning/20 bg-warning/10 px-3 py-2 text-sm text-warning"
+                key={index}
+              >
+                <div className="flex items-center gap-2 font-mono text-xs truncate max-w-lg">
+                  <span className="truncate">{pathStr}</span>
+                  {rawScore !== null ? (
+                    <Badge tone="warning">
+                      Risk {(rawScore * (rawScore <= 1 ? 100 : 1)).toFixed(0)}
+                    </Badge>
+                  ) : null}
+                </div>
+                <Button asChild className="h-7 text-xs" size="sm" variant="ghost">
+                  <Link
+                    href={`/repositories/${repositoryId}/risk?path=${encodeURIComponent(pathStr)}`}
+                  >
+                    <ShieldAlert aria-hidden="true" className="mr-1 size-3.5" />
+                    View risk
+                  </Link>
+                </Button>
+              </div>
+            );
+          })}
         </div>
       </CardContent>
     </Card>

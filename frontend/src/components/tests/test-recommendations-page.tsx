@@ -1,7 +1,7 @@
 "use client";
 
 import { skipToken } from "@reduxjs/toolkit/query";
-import { AlertCircle, ClipboardList, FlaskConical, GitGraph, Link2, RefreshCw, Send, Zap } from "lucide-react";
+import { AlertCircle, ClipboardList, FlaskConical, GitGraph, Link2, RefreshCw, Send, ShieldAlert, Zap } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { FormEvent, useEffect, useId, useState } from "react";
@@ -361,6 +361,12 @@ function RecommendationCard({
             <Link href={`/repositories/${repositoryId}/graph?path=${encodeURIComponent(recommendation.path)}`}>
               <GitGraph aria-hidden="true" className="size-4" />
               Graph
+            </Link>
+          </Button>
+          <Button asChild size="sm" variant="ghost">
+            <Link href={`/repositories/${repositoryId}/risk?path=${encodeURIComponent(recommendation.path)}`}>
+              <ShieldAlert aria-hidden="true" className="size-4" />
+              Risk
             </Link>
           </Button>
         </div>
