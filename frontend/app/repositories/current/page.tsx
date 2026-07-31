@@ -20,8 +20,8 @@ export default function CurrentRepositoryIndexPage() {
       return;
     }
 
-    if (repositories && repositories.length > 0) {
-      router.replace(`/repositories/${repositories[0].id}`);
+    if (repositories?.items && repositories.items.length > 0) {
+      router.replace(`/repositories/${repositories.items[0].id}`);
       return;
     }
 
