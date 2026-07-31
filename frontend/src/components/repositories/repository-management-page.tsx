@@ -1,14 +1,15 @@
-"use client";
+﻿"use client";
 
-import { AlertCircle, Loader2, Play, RefreshCw, Trash2 } from "lucide-react";
+import { AlertCircle, Loader2, Play, RefreshCw, Search, Trash2, X } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { AddRepositoryDialog } from "@/components/repositories/add-repository-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Input } from "@/components/ui/input";
 import { Notice } from "@/components/ui/notice";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -81,7 +82,7 @@ function RepositoryStatusCell({
     enabled: isIndexing,
     initialProgress,
     onComplete,
-    repositoryId: repository.id,
+    repositoryId: repository.id as any,
     token,
   });
 
@@ -124,7 +125,9 @@ function RepositoryStatusCell({
 
 export function RepositoryManagementPage() {
   const repositories = useListRepositoriesQuery();
-  const [activeIndexingIds, setActiveIndexingIds] = useState<Record<number, boolean>>({});
+  const [activeIndexingIds, setActiveIndexingIds] = useState<Record<string, boolean>>({});
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "ready" | "indexing" | "failed">("all");
 
   const apiError = repositories.error
     ? normalizeApiError(repositories.error).message
@@ -138,6 +141,46 @@ export function RepositoryManagementPage() {
     setActiveIndexingIds((prev) => ({ ...prev, [repositoryId]: false }));
     void repositories.refetch();
   };
+
+  const allItems = repositories.data?.items ?? [];
+
+  const filteredRepositories = useMemo(() => {
+    return allItems.filter((repository) => {
+      // 1. Search Query Filter
+      if (searchQuery.trim()) {
+        const query = searchQuery.trim().toLowerCase();
+        const nameMatch = repository.name.toLowerCase().includes(query);
+        const urlMatch = repository.clone_url
+          ? repository.clone_url.toLowerCase().includes(query)
+          : false;
+        const branchMatch =
+          (repository.default_branch && repository.default_branch.toLowerCase().includes(query)) ||
+          (repository.current_ref && repository.current_ref.toLowerCase().includes(query));
+
+        if (!nameMatch && !urlMatch && !branchMatch) {
+          return false;
+        }
+      }
+
+      // 2. Status Filter
+      if (statusFilter !== "all") {
+        const isIndexing =
+          repository.status === "indexing" || Boolean(activeIndexingIds[repository.id]);
+
+        if (statusFilter === "ready") {
+          if (repository.status !== "ready" && repository.status !== "indexed") return false;
+        } else if (statusFilter === "indexing") {
+          if (!isIndexing) return false;
+        } else if (statusFilter === "failed") {
+          if (repository.status !== "failed" && repository.status !== "error") return false;
+        }
+      }
+
+      return true;
+    });
+  }, [allItems, searchQuery, statusFilter, activeIndexingIds]);
+
+  const hasActiveFilters = searchQuery.trim() !== "" || statusFilter !== "all";
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
@@ -177,10 +220,84 @@ export function RepositoryManagementPage() {
         />
       ) : (
         <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between gap-3">
-              <h2 className="text-sm font-semibold">Repository inventory</h2>
-              <Badge>{repositories.data?.total ?? 0} total</Badge>
+          <CardHeader className="space-y-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="text-sm font-semibold">Repository inventory</h2>
+                <p className="mt-0.5 text-xs text-muted">
+                  {hasActiveFilters
+                    ? `Showing ${filteredRepositories.length} of ${allItems.length} repositories`
+                    : `${allItems.length} total repositories`}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                {hasActiveFilters ? (
+                  <Badge tone="info">{filteredRepositories.length} matching</Badge>
+                ) : null}
+                <Badge tone="neutral">{allItems.length} total</Badge>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-1 flex-col gap-2 sm:flex-row sm:items-center">
+                <div className="relative flex-1 max-w-sm">
+                  <Search
+                    aria-hidden="true"
+                    className="pointer-events-none absolute left-2.5 top-2.5 size-4 text-muted"
+                  />
+                  <Input
+                    aria-label="Search repositories"
+                    className="h-9 pl-9 pr-8 text-xs"
+                    id="repository-search-input"
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search by name, clone URL, or branch..."
+                    type="text"
+                    value={searchQuery}
+                  />
+                  {searchQuery ? (
+                    <button
+                      aria-label="Clear search"
+                      className="absolute right-2.5 top-2.5 text-muted hover:text-foreground"
+                      onClick={() => setSearchQuery("")}
+                      type="button"
+                    >
+                      <X aria-hidden="true" className="size-4" />
+                    </button>
+                  ) : null}
+                </div>
+                <div className="w-full sm:w-44">
+                  <select
+                    aria-label="Filter by status"
+                    className="h-9 w-full rounded-md border border-border bg-panel px-3 text-xs font-medium text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    id="repository-status-filter"
+                    onChange={(e) =>
+                      setStatusFilter(e.target.value as "all" | "ready" | "indexing" | "failed")
+                    }
+                    value={statusFilter}
+                  >
+                    <option value="all">All statuses</option>
+                    <option value="ready">Ready</option>
+                    <option value="indexing">Indexing</option>
+                    <option value="failed">Failed</option>
+                  </select>
+                </div>
+              </div>
+
+              {hasActiveFilters ? (
+                <Button
+                  className="text-xs"
+                  onClick={() => {
+                    setSearchQuery("");
+                    setStatusFilter("all");
+                  }}
+                  size="sm"
+                  type="button"
+                  variant="ghost"
+                >
+                  <X aria-hidden="true" className="mr-1 size-3.5" />
+                  Reset filters
+                </Button>
+              ) : null}
             </div>
           </CardHeader>
           <CardContent className="p-0">
@@ -196,7 +313,7 @@ export function RepositoryManagementPage() {
               </TableHead>
               <TableBody>
                 {repositories.isLoading ? <RepositorySkeletonRows /> : null}
-                {!repositories.isLoading && repositories.data?.items.length === 0 ? (
+                {!repositories.isLoading && allItems.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={5}>
                       <EmptyState
@@ -207,7 +324,30 @@ export function RepositoryManagementPage() {
                     </TableCell>
                   </TableRow>
                 ) : null}
-                {repositories.data?.items.map((repository) => (
+                {!repositories.isLoading && allItems.length > 0 && filteredRepositories.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5}>
+                      <EmptyState
+                        action={
+                          <Button
+                            onClick={() => {
+                              setSearchQuery("");
+                              setStatusFilter("all");
+                            }}
+                            type="button"
+                            variant="ghost"
+                          >
+                            Reset filters
+                          </Button>
+                        }
+                        className="m-4 border-0 bg-panel-muted"
+                        description="No repositories match your current search query or status filter."
+                        title="No matching repositories"
+                      />
+                    </TableCell>
+                  </TableRow>
+                ) : null}
+                {filteredRepositories.map((repository) => (
                   <TableRow key={repository.id}>
                     <TableCell>
                       <div>
