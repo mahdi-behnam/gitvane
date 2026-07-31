@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -24,14 +25,22 @@ export function DeleteRepoModal({
   repositoryName,
 }: DeleteRepoModalProps) {
   const [confirmName, setConfirmName] = useState("");
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (!open) {
       setConfirmName("");
+      setCopied(false);
     }
   }, [open]);
 
   const isConfirmed = confirmName.trim() === repositoryName;
+
+  const handleCopyName = () => {
+    navigator.clipboard.writeText(repositoryName);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,12 +58,34 @@ export function DeleteRepoModal({
             RepoLens and ask the backend to remove its local clone.
           </p>
           <div className="space-y-2">
-            <label
-              className="block text-xs font-medium text-muted"
-              htmlFor="confirm-repository-name"
-            >
-              Please type <span className="font-mono font-semibold text-foreground">{repositoryName}</span> to confirm:
-            </label>
+            <div className="flex items-center justify-between">
+              <label
+                className="block text-xs font-medium text-muted"
+                htmlFor="confirm-repository-name"
+              >
+                Please type <span className="font-mono font-semibold text-foreground">{repositoryName}</span> to confirm:
+              </label>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-6 px-1.5 text-[11px] gap-1 text-muted hover:text-foreground"
+                onClick={handleCopyName}
+                title="Copy repository name"
+              >
+                {copied ? (
+                  <>
+                    <Check className="size-3 text-emerald-500" />
+                    <span className="text-emerald-500">Copied</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="size-3" />
+                    <span>Copy</span>
+                  </>
+                )}
+              </Button>
+            </div>
             <Input
               autoComplete="off"
               id="confirm-repository-name"
