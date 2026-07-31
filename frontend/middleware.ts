@@ -30,6 +30,22 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
+  // Redirect top-level tool routes (/impact, /risk, /graph, /tests, /files) to /repositories/current/...
+  const topLevelToolRoutes = ["/impact", "/risk", "/graph", "/tests", "/files"];
+  const matchedTool = topLevelToolRoutes.find(
+    (tool) => pathname === tool || pathname.startsWith(`${tool}/`)
+  );
+
+  if (matchedTool) {
+    if (!isLoggedIn) {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+    const targetPath = pathname.replace(matchedTool, `/repositories/current${matchedTool}`);
+    const redirectUrl = new URL(targetPath, request.url);
+    redirectUrl.search = request.nextUrl.search;
+    return NextResponse.redirect(redirectUrl);
+  }
+
   return NextResponse.next();
 }
 
