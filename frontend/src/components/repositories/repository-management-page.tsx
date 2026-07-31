@@ -7,7 +7,7 @@ import { AddRepositoryDialog } from "@/components/repositories/add-repository-di
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { DeleteRepoModal } from "@/components/repositories/delete-repo-modal";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Notice } from "@/components/ui/notice";
@@ -449,40 +449,23 @@ function RepositoryRowActions({
         <Play aria-hidden="true" className="size-3.5" />
         {isIndexingActive ? "Indexing" : "Index"}
       </Button>
-      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-        <DialogTrigger asChild>
-          <Button size="sm" type="button" variant="danger">
-            <Trash2 aria-hidden="true" className="size-3.5" />
-            Delete
-          </Button>
-        </DialogTrigger>
-        <DialogContent title="Delete repository">
-          <div className="space-y-4">
-            <p className="text-sm leading-6 text-muted">
-              Delete {repository.name} from RepoLens and ask the backend to remove its
-              local clone.
-            </p>
-            {deleteError ? <Notice tone="danger">{deleteError}</Notice> : null}
-            <div className="flex justify-end gap-2">
-              <Button
-                onClick={() => setDeleteOpen(false)}
-                type="button"
-                variant="ghost"
-              >
-                Cancel
-              </Button>
-              <Button
-                disabled={deleteState.isLoading}
-                onClick={handleDelete}
-                type="button"
-                variant="danger"
-              >
-                Delete repository
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <Button
+        onClick={() => setDeleteOpen(true)}
+        size="sm"
+        type="button"
+        variant="danger"
+      >
+        <Trash2 aria-hidden="true" className="size-3.5" />
+        Delete
+      </Button>
+      <DeleteRepoModal
+        error={deleteError}
+        isLoading={deleteState.isLoading}
+        onConfirm={handleDelete}
+        onOpenChange={setDeleteOpen}
+        open={deleteOpen}
+        repositoryName={repository.name}
+      />
       {indexError ? <p className="w-full text-xs text-danger">{indexError}</p> : null}
     </div>
   );
