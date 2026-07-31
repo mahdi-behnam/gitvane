@@ -1,7 +1,9 @@
 "use client";
 
 import { skipToken } from "@reduxjs/toolkit/query";
-import { RefreshCw, Send, ShieldAlert } from "lucide-react";
+import { AlertCircle, FlaskConical, GitGraph, RefreshCw, Send, ShieldAlert } from "lucide-react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { FormEvent, useEffect, useId, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -51,12 +53,21 @@ function parseChangedFiles(value: string): ChangedFileInput[] {
     }));
 }
 
-export function ImpactAnalysisPage({ repositoryId }: { repositoryId: string }) {
+export function ImpactAnalysisPage({
+  initialPath,
+  repositoryId,
+}: {
+  initialPath?: string;
+  repositoryId: string;
+}) {
   const validRepositoryId = typeof repositoryId === "string" && repositoryId.trim() !== "" ? repositoryId : null;
+  const searchParams = useSearchParams();
+  const pathParam = initialPath ?? searchParams?.get("path") ?? searchParams?.get("search") ?? searchParams?.get("query") ?? "";
+
   const formId = useId();
   const [mode, setMode] = useState<InputMode>("changed_files");
   const [changedFiles, setChangedFiles] = useState(
-    "backend/app/services/indexing_service.py",
+    pathParam || "backend/app/services/indexing_service.py",
   );
   const [rawDiff, setRawDiff] = useState("");
   const [baseRef, setBaseRef] = useState("");
@@ -78,6 +89,13 @@ export function ImpactAnalysisPage({ repositoryId }: { repositoryId: string }) {
       dispatch(setActiveRepositoryId(validRepositoryId));
     }
   }, [dispatch, validRepositoryId]);
+
+  useEffect(() => {
+    if (pathParam) {
+      setChangedFiles(pathParam);
+      setMode("changed_files");
+    }
+  }, [pathParam]);
 
   const parsedChangedFiles = useMemo(
     () => parseChangedFiles(changedFiles),
@@ -143,6 +161,22 @@ export function ImpactAnalysisPage({ repositoryId }: { repositoryId: string }) {
     return (
       <EmptyState
         description="The repository identifier in the route is not valid."
+        title="Repository not found"
+      />
+    );
+  }
+
+  if (repository.error) {
+    return (
+      <EmptyState
+        action={
+          <Button onClick={() => void repository.refetch()} type="button">
+            <RefreshCw aria-hidden="true" className="size-4" />
+            Try again
+          </Button>
+        }
+        description={normalizeApiError(repository.error).message}
+        icon={<AlertCircle aria-hidden="true" className="size-5" />}
         title="Repository not found"
       />
     );
@@ -360,9 +394,9 @@ export function ImpactAnalysisPage({ repositoryId }: { repositoryId: string }) {
 
       {analysisState.isLoading ? <ImpactLoadingState /> : null}
       {lookupState.data ? (
-        <ImpactRunResults response={lookupState.data} />
+        <ImpactRunResults repositoryId={validRepositoryId} response={lookupState.data} />
       ) : analysisState.data ? (
-        <ImpactResults response={analysisState.data} />
+        <ImpactResults repositoryId={validRepositoryId} response={analysisState.data} />
       ) : !analysisState.isLoading ? (
         <EmptyState
           description="Run analysis to inspect changed files, impacted files, evidence, tests, and risk."
@@ -387,7 +421,13 @@ function ImpactLoadingState() {
   );
 }
 
-function ImpactResults({ response }: { response: ImpactAnalyzeResponse }) {
+function ImpactResults({
+  repositoryId,
+  response,
+}: {
+  repositoryId: string;
+  response: ImpactAnalyzeResponse;
+}) {
   return (
     <section className="space-y-4">
       <Card>
@@ -408,7 +448,7 @@ function ImpactResults({ response }: { response: ImpactAnalyzeResponse }) {
 
       <ChangedFiles files={response.changed_files} />
       <ChangedSymbols symbols={response.changed_symbols} />
-      <ImpactedFiles files={response.impacted_files} />
+      <ImpactedFiles files={response.impacted_files} repositoryId={repositoryId} />
       <RecommendedTests tests={response.recommended_tests} />
       <RiskSummary files={response.risk_summary.highest_risk_files} />
       {response.llm_explanation ? (
@@ -428,7 +468,13 @@ function ImpactResults({ response }: { response: ImpactAnalyzeResponse }) {
   );
 }
 
-function ImpactRunResults({ response }: { response: ImpactRunResponse }) {
+function ImpactRunResults({
+  repositoryId,
+  response,
+}: {
+  repositoryId: string;
+  response: ImpactRunResponse;
+}) {
   return (
     <section className="space-y-4">
       <Card>
@@ -446,7 +492,7 @@ function ImpactRunResults({ response }: { response: ImpactRunResponse }) {
           </div>
         </CardContent>
       </Card>
-      <ImpactedFiles files={response.predictions} />
+      <ImpactedFiles files={response.predictions} repositoryId={repositoryId} />
     </section>
   );
 }
@@ -506,7 +552,13 @@ function ChangedSymbols({
   );
 }
 
-function ImpactedFiles({ files }: { files: ImpactedFile[] }) {
+function ImpactedFiles({
+  files,
+  repositoryId,
+}: {
+  files: ImpactedFile[];
+  repositoryId: string;
+}) {
   return (
     <section className="space-y-3">
       <div className="flex items-center justify-between gap-3">
@@ -557,6 +609,32 @@ function ImpactedFiles({ files }: { files: ImpactedFile[] }) {
                 </div>
               </div>
             ) : null}
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button asChild size="sm" variant="ghost">
+                <Link
+                  href={`/repositories/${repositoryId}/graph?path=${encodeURIComponent(file.path)}`}
+                >
+                  <GitGraph aria-hidden="true" className="size-4" />
+                  Open graph
+                </Link>
+              </Button>
+              <Button asChild size="sm" variant="ghost">
+                <Link
+                  href={`/repositories/${repositoryId}/tests?path=${encodeURIComponent(file.path)}`}
+                >
+                  <FlaskConical aria-hidden="true" className="size-4" />
+                  Recommend tests
+                </Link>
+              </Button>
+              <Button asChild size="sm" variant="ghost">
+                <Link
+                  href={`/repositories/${repositoryId}/risk?path=${encodeURIComponent(file.path)}`}
+                >
+                  <ShieldAlert aria-hidden="true" className="size-4" />
+                  View risk
+                </Link>
+              </Button>
+            </div>
           </CardContent>
         </Card>
       ))}

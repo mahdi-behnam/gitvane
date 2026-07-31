@@ -1,7 +1,9 @@
 "use client";
 
 import { skipToken } from "@reduxjs/toolkit/query";
-import { Filter, RefreshCw, ShieldAlert } from "lucide-react";
+import { AlertCircle, FlaskConical, GitGraph, Filter, RefreshCw, ShieldAlert, Zap } from "lucide-react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   Bar,
@@ -39,19 +41,36 @@ import { setActiveRepositoryId } from "@/store/slices/repositorySelectionSlice";
 type RiskFilters = {
   includeTests: boolean;
   language: string;
+  search: string;
   topK: number;
 };
 
 const defaultFilters: RiskFilters = {
   includeTests: false,
   language: "",
+  search: "",
   topK: 20,
 };
 
-export function RiskDashboardPage({ repositoryId }: { repositoryId: string }) {
+export function RiskDashboardPage({
+  initialPath,
+  repositoryId,
+}: {
+  initialPath?: string;
+  repositoryId: string;
+}) {
   const validRepositoryId = typeof repositoryId === "string" && repositoryId.trim() !== "" ? repositoryId : null;
-  const [draftFilters, setDraftFilters] = useState(defaultFilters);
-  const [appliedFilters, setAppliedFilters] = useState(defaultFilters);
+  const searchParams = useSearchParams();
+  const pathParam = initialPath ?? searchParams?.get("path") ?? searchParams?.get("search") ?? searchParams?.get("query") ?? "";
+
+  const [draftFilters, setDraftFilters] = useState<RiskFilters>(() => ({
+    ...defaultFilters,
+    search: pathParam,
+  }));
+  const [appliedFilters, setAppliedFilters] = useState<RiskFilters>(() => ({
+    ...defaultFilters,
+    search: pathParam,
+  }));
   const repository = useGetRepositoryQuery(validRepositoryId ?? skipToken);
   const riskQueryArgs = validRepositoryId
     ? {
@@ -70,16 +89,30 @@ export function RiskDashboardPage({ repositoryId }: { repositoryId: string }) {
     }
   }, [dispatch, validRepositoryId]);
 
+  useEffect(() => {
+    if (pathParam) {
+      setDraftFilters((curr) => ({ ...curr, search: pathParam }));
+      setAppliedFilters((curr) => ({ ...curr, search: pathParam }));
+    }
+  }, [pathParam]);
+
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setAppliedFilters({
       includeTests: draftFilters.includeTests,
       language: draftFilters.language.trim(),
+      search: draftFilters.search.trim(),
       topK: Math.max(1, draftFilters.topK),
     });
   };
 
-  const files = useMemo(() => risk.data?.files ?? [], [risk.data?.files]);
+  const files = useMemo(() => {
+    const rawFiles = risk.data?.files ?? [];
+    if (!appliedFilters.search) return rawFiles;
+    const query = appliedFilters.search.toLowerCase();
+    return rawFiles.filter((file) => file.path.toLowerCase().includes(query));
+  }, [risk.data?.files, appliedFilters.search]);
+
   const error = risk.error ? normalizeApiError(risk.error).message : null;
   const chartData = useMemo(() => buildRiskBuckets(files), [files]);
   const topComponents = useMemo(() => summarizeComponents(files), [files]);
@@ -88,6 +121,22 @@ export function RiskDashboardPage({ repositoryId }: { repositoryId: string }) {
     return (
       <EmptyState
         description="The repository identifier in the route is not valid."
+        title="Repository not found"
+      />
+    );
+  }
+
+  if (repository.error) {
+    return (
+      <EmptyState
+        action={
+          <Button onClick={() => void repository.refetch()} type="button">
+            <RefreshCw aria-hidden="true" className="size-4" />
+            Try again
+          </Button>
+        }
+        description={normalizeApiError(repository.error).message}
+        icon={<AlertCircle aria-hidden="true" className="size-5" />}
         title="Repository not found"
       />
     );
@@ -118,7 +167,7 @@ export function RiskDashboardPage({ repositoryId }: { repositoryId: string }) {
         </CardHeader>
         <CardContent>
           <form
-            className="grid gap-4 lg:grid-cols-[160px_1fr_auto_auto]"
+            className="grid gap-4 lg:grid-cols-[140px_1fr_1fr_auto_auto]"
             onSubmit={handleSubmit}
           >
             <div className="space-y-2">
@@ -137,6 +186,22 @@ export function RiskDashboardPage({ repositoryId }: { repositoryId: string }) {
                 }
                 type="number"
                 value={draftFilters.topK}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="block text-sm font-medium" htmlFor="risk-search">
+                File search
+              </label>
+              <Input
+                id="risk-search"
+                onChange={(event) =>
+                  setDraftFilters((current) => ({
+                    ...current,
+                    search: event.target.value,
+                  }))
+                }
+                placeholder="indexing_service.py"
+                value={draftFilters.search}
               />
             </div>
             <div className="space-y-2">
@@ -198,7 +263,7 @@ export function RiskDashboardPage({ repositoryId }: { repositoryId: string }) {
       ) : files.length > 0 ? (
         <>
           <RiskSummary files={files} chartData={chartData} components={topComponents} />
-          <RiskTable files={files} />
+          <RiskTable files={files} repositoryId={validRepositoryId} />
         </>
       ) : risk.isSuccess ? (
         <EmptyState
@@ -368,7 +433,13 @@ function RiskSummary({
   );
 }
 
-function RiskTable({ files }: { files: RiskFile[] }) {
+function RiskTable({
+  files,
+  repositoryId,
+}: {
+  files: RiskFile[];
+  repositoryId: string;
+}) {
   return (
     <Card>
       <CardHeader>
@@ -381,11 +452,11 @@ function RiskTable({ files }: { files: RiskFile[] }) {
         <Table>
           <TableHead>
             <TableRow>
-              <TableHeaderCell className="w-20">Rank</TableHeaderCell>
+              <TableHeaderCell className="w-16">Rank</TableHeaderCell>
               <TableHeaderCell>File</TableHeaderCell>
-              <TableHeaderCell className="w-28 text-right">Risk</TableHeaderCell>
+              <TableHeaderCell className="w-24 text-right">Risk</TableHeaderCell>
               <TableHeaderCell>Components</TableHeaderCell>
-              <TableHeaderCell>Reasons</TableHeaderCell>
+              <TableHeaderCell>Actions</TableHeaderCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -406,7 +477,32 @@ function RiskTable({ files }: { files: RiskFile[] }) {
                   <ComponentDetails components={file.components} />
                 </TableCell>
                 <TableCell>
-                  <ReasonList reasons={file.reasons} />
+                  <div className="flex flex-wrap gap-1">
+                    <Button asChild size="sm" variant="ghost">
+                      <Link
+                        href={`/repositories/${repositoryId}/impact?path=${encodeURIComponent(file.path)}`}
+                      >
+                        <Zap aria-hidden="true" className="size-3.5" />
+                        Impact
+                      </Link>
+                    </Button>
+                    <Button asChild size="sm" variant="ghost">
+                      <Link
+                        href={`/repositories/${repositoryId}/graph?path=${encodeURIComponent(file.path)}`}
+                      >
+                        <GitGraph aria-hidden="true" className="size-3.5" />
+                        Graph
+                      </Link>
+                    </Button>
+                    <Button asChild size="sm" variant="ghost">
+                      <Link
+                        href={`/repositories/${repositoryId}/tests?path=${encodeURIComponent(file.path)}`}
+                      >
+                        <FlaskConical aria-hidden="true" className="size-3.5" />
+                        Tests
+                      </Link>
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
@@ -425,7 +521,7 @@ function ComponentDetails({ components }: { components: Record<string, number> }
   }
 
   return (
-    <div className="min-w-48 space-y-2">
+    <div className="min-w-44 space-y-2">
       {entries.map(([name, value]) => (
         <div className="space-y-1" key={name}>
           <div className="flex justify-between gap-3 text-xs">
@@ -441,20 +537,6 @@ function ComponentDetails({ components }: { components: Record<string, number> }
         </div>
       ))}
     </div>
-  );
-}
-
-function ReasonList({ reasons }: { reasons: string[] }) {
-  if (reasons.length === 0) {
-    return <span className="text-sm text-muted">No reasons returned.</span>;
-  }
-
-  return (
-    <ul className="max-w-xl space-y-1 text-sm leading-6 text-muted">
-      {reasons.map((reason) => (
-        <li key={reason}>{reason}</li>
-      ))}
-    </ul>
   );
 }
 

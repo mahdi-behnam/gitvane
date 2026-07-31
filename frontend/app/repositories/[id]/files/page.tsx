@@ -1,7 +1,7 @@
-import { RiskDashboardPage } from "@/components/risk/risk-dashboard-page";
+import { SemanticSearchPage } from "@/components/search/semantic-search-page";
 import { Suspense } from "react";
 
-export default async function RepositoryRiskPage({
+export default async function RepositoryFilesPage({
   params,
   searchParams,
 }: {
@@ -21,7 +21,7 @@ export default async function RepositoryRiskPage({
 
   return (
     <Suspense fallback={null}>
-      <RiskDashboardPage initialPath={initialPath} repositoryId={id} />
+      <SemanticSearchPage initialPath={initialPath} repositoryId={id} />
     </Suspense>
   );
 }

@@ -1,7 +1,9 @@
 "use client";
 
-import { ArrowRight, GitGraph, Search } from "lucide-react";
+import { skipToken } from "@reduxjs/toolkit/query";
+import { AlertCircle, ArrowRight, FlaskConical, GitGraph, RefreshCw, Search, ShieldAlert } from "lucide-react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { FormEvent, useEffect, useId, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,12 +20,20 @@ import {
 } from "@/store/api/repolensApi";
 import { useAppDispatch } from "@/store/hooks";
 import { setActiveRepositoryId } from "@/store/slices/repositorySelectionSlice";
-import { skipToken } from "@reduxjs/toolkit/query";
 
-export function SemanticSearchPage({ repositoryId }: { repositoryId: string }) {
+export function SemanticSearchPage({
+  initialPath,
+  repositoryId,
+}: {
+  initialPath?: string;
+  repositoryId: string;
+}) {
   const validRepositoryId = typeof repositoryId === "string" && repositoryId.trim() !== "" ? repositoryId : null;
+  const searchParams = useSearchParams();
+  const pathParam = initialPath ?? searchParams?.get("path") ?? searchParams?.get("search") ?? searchParams?.get("query") ?? "";
+
   const formId = useId();
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(pathParam);
   const [topK, setTopK] = useState(10);
   const [clientError, setClientError] = useState<string | null>(null);
   const [semanticSearch, searchState] = useSemanticSearchMutation();
@@ -35,6 +45,12 @@ export function SemanticSearchPage({ repositoryId }: { repositoryId: string }) {
       dispatch(setActiveRepositoryId(validRepositoryId));
     }
   }, [dispatch, validRepositoryId]);
+
+  useEffect(() => {
+    if (pathParam) {
+      setQuery(pathParam);
+    }
+  }, [pathParam]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -67,6 +83,22 @@ export function SemanticSearchPage({ repositoryId }: { repositoryId: string }) {
     return (
       <EmptyState
         description="The repository identifier in the route is not valid."
+        title="Repository not found"
+      />
+    );
+  }
+
+  if (repository.error) {
+    return (
+      <EmptyState
+        action={
+          <Button onClick={() => void repository.refetch()} type="button">
+            <RefreshCw aria-hidden="true" className="size-4" />
+            Try again
+          </Button>
+        }
+        description={normalizeApiError(repository.error).message}
+        icon={<AlertCircle aria-hidden="true" className="size-5" />}
         title="Repository not found"
       />
     );
@@ -191,7 +223,7 @@ function SearchResultCard({
   repositoryId,
   result,
 }: {
-  repositoryId: number;
+  repositoryId: string;
   result: SemanticSearchResult;
 }) {
   return (
@@ -214,15 +246,27 @@ function SearchResultCard({
         </pre>
         <div className="mt-4 flex flex-wrap gap-2">
           <Button asChild size="sm">
-            <Link href={`/repositories/${repositoryId}/graph`}>
+            <Link href={`/repositories/${repositoryId}/graph?path=${encodeURIComponent(result.path)}`}>
               <GitGraph aria-hidden="true" className="size-4" />
               Open graph
             </Link>
           </Button>
           <Button asChild size="sm" variant="ghost">
-            <Link href={`/repositories/${repositoryId}/impact`}>
+            <Link href={`/repositories/${repositoryId}/impact?path=${encodeURIComponent(result.path)}`}>
               Send to impact
               <ArrowRight aria-hidden="true" className="size-4" />
+            </Link>
+          </Button>
+          <Button asChild size="sm" variant="ghost">
+            <Link href={`/repositories/${repositoryId}/risk?path=${encodeURIComponent(result.path)}`}>
+              <ShieldAlert aria-hidden="true" className="size-4" />
+              View risk
+            </Link>
+          </Button>
+          <Button asChild size="sm" variant="ghost">
+            <Link href={`/repositories/${repositoryId}/tests?path=${encodeURIComponent(result.path)}`}>
+              <FlaskConical aria-hidden="true" className="size-4" />
+              Recommend tests
             </Link>
           </Button>
         </div>

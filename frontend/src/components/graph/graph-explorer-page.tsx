@@ -12,7 +12,9 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { skipToken } from "@reduxjs/toolkit/query";
-import { Filter, GitGraph, RefreshCw, Search } from "lucide-react";
+import { AlertCircle, Filter, FlaskConical, GitGraph, RefreshCw, Search, ShieldAlert, Zap } from "lucide-react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -45,10 +47,25 @@ const defaultFilters: GraphFilters = {
   search: "",
 };
 
-export function GraphExplorerPage({ repositoryId }: { repositoryId: string }) {
+export function GraphExplorerPage({
+  initialPath,
+  repositoryId,
+}: {
+  initialPath?: string;
+  repositoryId: string;
+}) {
   const validRepositoryId = typeof repositoryId === "string" && repositoryId.trim() !== "" ? repositoryId : null;
-  const [draftFilters, setDraftFilters] = useState(defaultFilters);
-  const [appliedFilters, setAppliedFilters] = useState(defaultFilters);
+  const searchParams = useSearchParams();
+  const pathParam = initialPath ?? searchParams?.get("path") ?? searchParams?.get("search") ?? searchParams?.get("query") ?? "";
+
+  const [draftFilters, setDraftFilters] = useState<GraphFilters>(() => ({
+    ...defaultFilters,
+    search: pathParam,
+  }));
+  const [appliedFilters, setAppliedFilters] = useState<GraphFilters>(() => ({
+    ...defaultFilters,
+    search: pathParam,
+  }));
   const [selectedNodeId, setSelectedNodeId] = useState<number | null>(null);
   const repository = useGetRepositoryQuery(validRepositoryId ?? skipToken);
   const subgraph = useGetRepositorySubgraphQuery(
@@ -77,6 +94,13 @@ export function GraphExplorerPage({ repositoryId }: { repositoryId: string }) {
       dispatch(setActiveRepositoryId(validRepositoryId));
     }
   }, [dispatch, validRepositoryId]);
+
+  useEffect(() => {
+    if (pathParam) {
+      setDraftFilters((curr) => ({ ...curr, search: pathParam }));
+      setAppliedFilters((curr) => ({ ...curr, search: pathParam }));
+    }
+  }, [pathParam]);
 
   useEffect(() => {
     if (
@@ -129,6 +153,22 @@ export function GraphExplorerPage({ repositoryId }: { repositoryId: string }) {
     return (
       <EmptyState
         description="The repository identifier in the route is not valid."
+        title="Repository not found"
+      />
+    );
+  }
+
+  if (repository.error) {
+    return (
+      <EmptyState
+        action={
+          <Button onClick={() => void repository.refetch()} type="button">
+            <RefreshCw aria-hidden="true" className="size-4" />
+            Try again
+          </Button>
+        }
+        description={normalizeApiError(repository.error).message}
+        icon={<AlertCircle aria-hidden="true" className="size-5" />}
         title="Repository not found"
       />
     );
@@ -311,6 +351,7 @@ export function GraphExplorerPage({ repositoryId }: { repositoryId: string }) {
             }
             neighborsLoading={neighbors.isFetching}
             node={selectedGraphNode}
+            repositoryId={validRepositoryId}
           />
         </section>
       )}
@@ -424,11 +465,13 @@ function NodeDetailPanel({
   neighborsError,
   neighborsLoading,
   node,
+  repositoryId,
 }: {
   neighbors?: { edges: GraphEdge[]; nodes: GraphNode[] };
   neighborsError: string | null;
   neighborsLoading: boolean;
   node: GraphNode | null;
+  repositoryId: string;
 }) {
   if (!node) {
     return (
@@ -457,6 +500,27 @@ function NodeDetailPanel({
           <Metric label="Generated" value={node.is_generated ? "Yes" : "No"} />
           <Metric label="File ID" value={String(node.id)} />
         </dl>
+
+        <div className="flex flex-wrap gap-2">
+          <Button asChild size="sm" variant="ghost">
+            <Link href={`/repositories/${repositoryId}/impact?path=${encodeURIComponent(node.path)}`}>
+              <Zap aria-hidden="true" className="size-4" />
+              Impact
+            </Link>
+          </Button>
+          <Button asChild size="sm" variant="ghost">
+            <Link href={`/repositories/${repositoryId}/risk?path=${encodeURIComponent(node.path)}`}>
+              <ShieldAlert aria-hidden="true" className="size-4" />
+              Risk
+            </Link>
+          </Button>
+          <Button asChild size="sm" variant="ghost">
+            <Link href={`/repositories/${repositoryId}/tests?path=${encodeURIComponent(node.path)}`}>
+              <FlaskConical aria-hidden="true" className="size-4" />
+              Tests
+            </Link>
+          </Button>
+        </div>
 
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-3">

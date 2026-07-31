@@ -1,7 +1,9 @@
 "use client";
 
 import { skipToken } from "@reduxjs/toolkit/query";
-import { ClipboardList, FlaskConical, Link2, Send } from "lucide-react";
+import { AlertCircle, ClipboardList, FlaskConical, GitGraph, Link2, RefreshCw, Send, Zap } from "lucide-react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { FormEvent, useEffect, useId, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -36,11 +38,20 @@ function parseImpactedFiles(value: string): string[] {
     .filter(Boolean);
 }
 
-export function TestRecommendationsPage({ repositoryId }: { repositoryId: string }) {
+export function TestRecommendationsPage({
+  initialPath,
+  repositoryId,
+}: {
+  initialPath?: string;
+  repositoryId: string;
+}) {
   const validRepositoryId = typeof repositoryId === "string" && repositoryId.trim() !== "" ? repositoryId : null;
+  const searchParams = useSearchParams();
+  const pathParam = initialPath ?? searchParams?.get("path") ?? searchParams?.get("search") ?? searchParams?.get("query") ?? "";
+
   const formId = useId();
   const [changedFiles, setChangedFiles] = useState(
-    "backend/app/services/indexing_service.py",
+    pathParam || "backend/app/services/indexing_service.py",
   );
   const [impactedFiles, setImpactedFiles] = useState("");
   const [topK, setTopK] = useState(10);
@@ -54,6 +65,12 @@ export function TestRecommendationsPage({ repositoryId }: { repositoryId: string
       dispatch(setActiveRepositoryId(validRepositoryId));
     }
   }, [dispatch, validRepositoryId]);
+
+  useEffect(() => {
+    if (pathParam) {
+      setChangedFiles(pathParam);
+    }
+  }, [pathParam]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -90,6 +107,22 @@ export function TestRecommendationsPage({ repositoryId }: { repositoryId: string
     return (
       <EmptyState
         description="The repository identifier in the route is not valid."
+        title="Repository not found"
+      />
+    );
+  }
+
+  if (repository.error) {
+    return (
+      <EmptyState
+        action={
+          <Button onClick={() => void repository.refetch()} type="button">
+            <RefreshCw aria-hidden="true" className="size-4" />
+            Try again
+          </Button>
+        }
+        description={normalizeApiError(repository.error).message}
+        icon={<AlertCircle aria-hidden="true" className="size-5" />}
         title="Repository not found"
       />
     );
@@ -207,7 +240,10 @@ export function TestRecommendationsPage({ repositoryId }: { repositoryId: string
           title="No recommendations"
         />
       ) : recommendations.length > 0 ? (
-        <RecommendationResults recommendations={recommendations} />
+        <RecommendationResults
+          recommendations={recommendations}
+          repositoryId={validRepositoryId}
+        />
       ) : (
         <EmptyState
           description="Enter changed files to ask RepoLens which tests are likely relevant."
@@ -235,8 +271,10 @@ function RecommendationLoadingState() {
 
 function RecommendationResults({
   recommendations,
+  repositoryId,
 }: {
   recommendations: TestRecommendation[];
+  repositoryId: string;
 }) {
   return (
     <section className="space-y-3">
@@ -256,6 +294,7 @@ function RecommendationResults({
             index={index}
             key={`${recommendation.path}:${index}`}
             recommendation={recommendation}
+            repositoryId={repositoryId}
           />
         ))}
       </div>
@@ -266,9 +305,11 @@ function RecommendationResults({
 function RecommendationCard({
   index,
   recommendation,
+  repositoryId,
 }: {
   index: number;
   recommendation: TestRecommendation;
+  repositoryId: string;
 }) {
   return (
     <Card>
@@ -308,6 +349,20 @@ function RecommendationCard({
           ) : (
             <p className="text-sm text-muted">No linked files returned.</p>
           )}
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Button asChild size="sm" variant="ghost">
+            <Link href={`/repositories/${repositoryId}/impact?path=${encodeURIComponent(recommendation.path)}`}>
+              <Zap aria-hidden="true" className="size-4" />
+              Impact
+            </Link>
+          </Button>
+          <Button asChild size="sm" variant="ghost">
+            <Link href={`/repositories/${repositoryId}/graph?path=${encodeURIComponent(recommendation.path)}`}>
+              <GitGraph aria-hidden="true" className="size-4" />
+              Graph
+            </Link>
+          </Button>
         </div>
       </CardContent>
     </Card>

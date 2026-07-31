@@ -1,7 +1,7 @@
-import { RiskDashboardPage } from "@/components/risk/risk-dashboard-page";
+import { TestRecommendationsPage } from "@/components/tests/test-recommendations-page";
 import { Suspense } from "react";
 
-export default async function RepositoryRiskPage({
+export default async function RepositoryTestRecommendationsPage({
   params,
   searchParams,
 }: {
@@ -21,7 +21,7 @@ export default async function RepositoryRiskPage({
 
   return (
     <Suspense fallback={null}>
-      <RiskDashboardPage initialPath={initialPath} repositoryId={id} />
+      <TestRecommendationsPage initialPath={initialPath} repositoryId={id} />
     </Suspense>
   );
 }
