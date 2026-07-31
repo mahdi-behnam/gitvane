@@ -1,6 +1,6 @@
 "use client";
 
-import { Clock, Cpu, FileCode, Layers, Loader2, Wifi, WifiOff } from "lucide-react";
+import { Clock, Cpu, FileCode, Loader2, Wifi, WifiOff } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Notice } from "@/components/ui/notice";

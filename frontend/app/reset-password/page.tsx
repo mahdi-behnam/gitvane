@@ -3,7 +3,7 @@
 import React, { useState, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
-import { ArrowLeft, CheckCircle2, Lock, ShieldCheck } from "lucide-react";
+import { ArrowLeft, CheckCircle2, ShieldCheck } from "lucide-react";
 import { useResetPasswordMutation } from "@/store/api/repolensApi";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";

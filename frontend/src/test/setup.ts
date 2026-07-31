@@ -30,10 +30,10 @@ class EventSourceMock {
   close = vi.fn();
   addEventListener = vi.fn();
   removeEventListener = vi.fn();
-  onopen: any = null;
-  onmessage: any = null;
-  onerror: any = null;
-  constructor(public url: string, public options?: any) {}
+  onopen: ((this: EventSource, ev: Event) => unknown) | null = null;
+  onmessage: ((this: EventSource, ev: MessageEvent) => unknown) | null = null;
+  onerror: ((this: EventSource, ev: Event) => unknown) | null = null;
+  constructor(public url: string, public options?: EventSourceInit) {}
 }
 
 Object.defineProperty(window, "EventSource", {

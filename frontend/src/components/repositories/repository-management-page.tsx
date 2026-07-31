@@ -10,7 +10,6 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { DeleteRepoModal } from "@/components/repositories/delete-repo-modal";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
-import { Notice } from "@/components/ui/notice";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -82,7 +81,7 @@ function RepositoryStatusCell({
     enabled: isIndexing,
     initialProgress,
     onComplete,
-    repositoryId: repository.id as any,
+    repositoryId: String(repository.id),
     token,
   });
 

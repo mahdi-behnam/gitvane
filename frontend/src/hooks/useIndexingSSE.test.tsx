@@ -32,7 +32,7 @@ class MockEventSource {
     }
   }
 
-  emit(type: string, data: any) {
+  emit(type: string, data: unknown) {
     const event = new MessageEvent(type, { data: JSON.stringify(data) });
     if (type === "message" && this.onmessage) {
       this.onmessage(event);
@@ -55,7 +55,7 @@ class MockEventSource {
   }
 }
 
-global.EventSource = MockEventSource as any;
+global.EventSource = MockEventSource as unknown as typeof EventSource;
 
 describe("useIndexingSSE hook & Toast integration", () => {
   it("subscribes to SSE stream and returns progress", async () => {
