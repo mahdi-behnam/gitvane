@@ -1,8 +1,8 @@
-﻿"use client";
+"use client";
 
 import { AlertCircle, Loader2, Play, RefreshCw, Search, Trash2, X } from "lucide-react";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AddRepositoryDialog } from "@/components/repositories/add-repository-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -127,7 +127,31 @@ export function RepositoryManagementPage() {
   const repositories = useListRepositoriesQuery();
   const [activeIndexingIds, setActiveIndexingIds] = useState<Record<string, boolean>>({});
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "ready" | "indexing" | "failed">("all");
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (
+        (e.key === "/" || ((e.metaKey || e.ctrlKey) && e.key === "k")) &&
+        document.activeElement?.tagName !== "INPUT" &&
+        document.activeElement?.tagName !== "TEXTAREA"
+      ) {
+        e.preventDefault();
+        const inputEl = document.getElementById("repository-search-input");
+        inputEl?.focus();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   const apiError = repositories.error
     ? normalizeApiError(repositories.error).message
@@ -147,8 +171,8 @@ export function RepositoryManagementPage() {
   const filteredRepositories = useMemo(() => {
     return allItems.filter((repository) => {
       // 1. Search Query Filter
-      if (searchQuery.trim()) {
-        const query = searchQuery.trim().toLowerCase();
+      if (debouncedSearchQuery.trim()) {
+        const query = debouncedSearchQuery.trim().toLowerCase();
         const nameMatch = repository.name.toLowerCase().includes(query);
         const urlMatch = repository.clone_url
           ? repository.clone_url.toLowerCase().includes(query)
@@ -178,7 +202,7 @@ export function RepositoryManagementPage() {
 
       return true;
     });
-  }, [allItems, searchQuery, statusFilter, activeIndexingIds]);
+  }, [allItems, debouncedSearchQuery, statusFilter, activeIndexingIds]);
 
   const hasActiveFilters = searchQuery.trim() !== "" || statusFilter !== "all";
 
