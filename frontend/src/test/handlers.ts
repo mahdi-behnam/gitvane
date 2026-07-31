@@ -129,6 +129,40 @@ const evaluationStatusFixture: EvaluationStatusResponse = {
 };
 
 export const handlers = [
+  http.get(`${apiBaseUrl}/auth/me`, () =>
+    HttpResponse.json({
+      id: 1,
+      email: "user@example.com",
+      full_name: "Test User",
+      is_active: true,
+      created_at: "2026-06-21T10:00:00Z",
+      updated_at: "2026-06-21T10:00:00Z",
+    }),
+  ),
+  http.put(`${apiBaseUrl}/auth/me`, async ({ request }) => {
+    const body = (await request.json()) as { full_name?: string; password?: string };
+    return HttpResponse.json({
+      id: 1,
+      email: "user@example.com",
+      full_name: body.full_name || "Test User",
+      is_active: true,
+      created_at: "2026-06-21T10:00:00Z",
+      updated_at: "2026-06-21T10:00:00Z",
+    });
+  }),
+  http.post(`${apiBaseUrl}/auth/forgot-password`, async ({ request }) => {
+    const body = (await request.json()) as { email: string };
+    return HttpResponse.json({
+      message: "Password reset email sent (dev mode)",
+      reset_url: `http://localhost:3000/reset-password?token=mocked-token-for-${encodeURIComponent(body.email)}`,
+    });
+  }),
+  http.post(`${apiBaseUrl}/auth/reset-password`, () =>
+    HttpResponse.json({
+      status: "success",
+      message: "Password reset successfully",
+    }),
+  ),
   http.get(`${apiBaseUrl}/health`, () => HttpResponse.json(healthyResponse)),
   http.get(`${apiBaseUrl}/repositories`, () => HttpResponse.json(emptyRepositoryList)),
   http.post(`${apiBaseUrl}/repositories`, () => HttpResponse.json(repositoryFixture)),

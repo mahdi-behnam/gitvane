@@ -1,13 +1,18 @@
 "use client";
 
-import { Check, Moon, Monitor, Sun } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Check, Moon, Monitor, Sun, User as UserIcon, Lock, Save } from "lucide-react";
 import { ThemeToggle } from "@/components/app/theme-toggle";
 import { useTheme } from "@/components/theme/theme-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Notice } from "@/components/ui/notice";
+import { useToast } from "@/components/ui/toast";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { useMeQuery, useUpdateMeMutation } from "@/store/api/repolensApi";
+import { setUser } from "@/store/slices/authSlice";
 import {
   setDependencyDepth,
   setIncludeChangedFilesInImpact,
@@ -24,6 +29,63 @@ export default function SettingsPage() {
   const { mode, setMode } = useTheme();
   const dispatch = useAppDispatch();
   const preferences = useAppSelector((state) => state.appPreferences);
+  const authUser = useAppSelector((state) => state.auth.user);
+  const { notify } = useToast();
+
+  const { data: meData, isLoading: isLoadingMe } = useMeQuery();
+  const [updateMe, { isLoading: isUpdating }] = useUpdateMeMutation();
+
+  const currentUser = authUser || meData;
+
+  const [fullName, setFullName] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [profileError, setProfileError] = useState<string | null>(null);
+  const [profileSuccess, setProfileSuccess] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (currentUser?.full_name) {
+      setFullName(currentUser.full_name);
+    }
+  }, [currentUser?.full_name]);
+
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setProfileError(null);
+    setProfileSuccess(null);
+
+    if (newPassword && newPassword.length < 8) {
+      setProfileError("New password must be at least 8 characters long.");
+      return;
+    }
+
+    if (newPassword && newPassword !== confirmPassword) {
+      setProfileError("Passwords do not match. Please check your entries.");
+      return;
+    }
+
+    try {
+      const updatedUser = await updateMe({
+        full_name: fullName.trim() ? fullName : undefined,
+        password: newPassword || undefined,
+      }).unwrap();
+
+      dispatch(setUser(updatedUser));
+      setNewPassword("");
+      setConfirmPassword("");
+      setProfileSuccess("Profile updated successfully!");
+
+      notify({
+        title: "Profile Updated",
+        description: "Your user settings have been updated successfully.",
+      });
+    } catch (err: unknown) {
+      console.error("Failed to update profile:", err);
+      const apiErr = err as { data?: { detail?: string | Record<string, unknown> } };
+      const detail = apiErr?.data?.detail || "Failed to update profile. Please try again.";
+      setProfileError(typeof detail === "string" ? detail : JSON.stringify(detail));
+    }
+  };
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
@@ -33,6 +95,109 @@ export default function SettingsPage() {
       </div>
 
       <div className="max-w-2xl space-y-6">
+        {/* Profile Settings Card */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <UserIcon className="size-4 text-primary" />
+              <h2 className="text-sm font-semibold">User Profile & Account</h2>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleUpdateProfile} className="space-y-4">
+              {profileError && (
+                <Notice tone="danger" className="text-xs">
+                  {profileError}
+                </Notice>
+              )}
+
+              {profileSuccess && (
+                <Notice tone="success" className="text-xs">
+                  {profileSuccess}
+                </Notice>
+              )}
+
+              <div>
+                <label className="block text-xs font-medium text-muted mb-1.5" htmlFor="profile-email">
+                  Email Address
+                </label>
+                <Input
+                  id="profile-email"
+                  type="email"
+                  value={currentUser?.email || ""}
+                  disabled
+                  className="bg-canvas/50 text-muted cursor-not-allowed"
+                />
+                <p className="mt-1 text-[11px] text-muted">Email address cannot be changed.</p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-muted mb-1.5" htmlFor="profile-fullname">
+                  Full Name
+                </label>
+                <Input
+                  id="profile-fullname"
+                  type="text"
+                  placeholder="Your Name"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  disabled={isLoadingMe || isUpdating}
+                />
+              </div>
+
+              <div className="border-t border-border/60 pt-4 mt-4 space-y-4">
+                <div className="flex items-center gap-2 text-xs font-medium text-foreground">
+                  <Lock className="size-3.5 text-muted" />
+                  <span>Change Password (optional)</span>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-muted mb-1.5" htmlFor="profile-new-password">
+                    New Password
+                  </label>
+                  <Input
+                    id="profile-new-password"
+                    type="password"
+                    placeholder="Leave blank to keep current password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    disabled={isLoadingMe || isUpdating}
+                    minLength={8}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-muted mb-1.5" htmlFor="profile-confirm-password">
+                    Confirm New Password
+                  </label>
+                  <Input
+                    id="profile-confirm-password"
+                    type="password"
+                    placeholder="Confirm new password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    disabled={isLoadingMe || isUpdating}
+                    minLength={8}
+                  />
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <Button
+                  type="submit"
+                  variant="primary"
+                  className="w-full sm:w-auto flex items-center justify-center gap-2"
+                  disabled={isLoadingMe || isUpdating}
+                >
+                  <Save className="size-4" />
+                  <span>{isUpdating ? "Saving Changes..." : "Save Profile Settings"}</span>
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+
+        {/* Theme Settings Card */}
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between gap-3">
@@ -69,6 +234,7 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
+        {/* Analysis & Impact Preferences Card */}
         <Card>
           <CardHeader>
             <h2 className="text-sm font-semibold">Analysis & Impact Preferences</h2>

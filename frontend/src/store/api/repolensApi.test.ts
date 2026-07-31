@@ -26,6 +26,9 @@ describe("repolensApi", () => {
         "runEvaluation",
         "runImpactAnalysis",
         "semanticSearch",
+        "forgotPassword",
+        "resetPassword",
+        "updateMe",
       ]),
     );
   });

@@ -294,3 +294,22 @@ export type UserResponse = {
   full_name: string;
 };
 
+
+export type ForgotPasswordRequest = {
+  email: string;
+};
+
+export type ForgotPasswordResponse = {
+  message: string;
+  reset_url?: string;
+};
+
+export type ResetPasswordRequest = {
+  new_password: string;
+  token: string;
+};
+
+export type UserUpdateRequest = {
+  full_name?: string | null;
+  password?: string | null;
+};

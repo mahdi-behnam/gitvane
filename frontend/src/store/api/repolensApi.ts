@@ -26,6 +26,10 @@ import type {
   LoginRequest,
   TokenResponse,
   UserResponse,
+  ForgotPasswordRequest,
+  ForgotPasswordResponse,
+  ResetPasswordRequest,
+  UserUpdateRequest,
 } from "@/lib/api/types";
 
 type ListRepositoriesArgs = {
@@ -302,7 +306,7 @@ export const repolensApi = createApi({
     }),
   }),
   reducerPath: "repolensApi",
-  tagTypes: ["Evaluation", "Graph", "Impact", "IndexStatus", "Repository", "Risk"],
+  tagTypes: ["Evaluation", "Graph", "Impact", "IndexStatus", "Repository", "Risk", "User"],
 });
 
 export const {
@@ -331,4 +335,7 @@ export const {
   useRefreshMutation,
   useMeQuery,
   useLazyMeQuery,
+  useForgotPasswordMutation,
+  useResetPasswordMutation,
+  useUpdateMeMutation,
 } = repolensApi;
