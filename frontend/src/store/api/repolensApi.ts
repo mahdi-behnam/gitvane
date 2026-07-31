@@ -303,6 +303,38 @@ export const repolensApi = createApi({
     }),
     me: builder.query<UserResponse, void>({
       query: () => "/auth/me",
+      providesTags: ["User"],
+    }),
+    forgotPassword: builder.mutation<
+      { message: string; reset_url?: string },
+      { email: string }
+    >({
+      query: (body) => ({
+        body,
+        method: "POST",
+        url: "/auth/forgot-password",
+      }),
+    }),
+    resetPassword: builder.mutation<
+      { status: string; message: string },
+      { new_password: string; token: string }
+    >({
+      query: (body) => ({
+        body,
+        method: "POST",
+        url: "/auth/reset-password",
+      }),
+    }),
+    updateMe: builder.mutation<
+      UserResponse,
+      { full_name?: string; password?: string }
+    >({
+      query: (body) => ({
+        body,
+        method: "PUT",
+        url: "/auth/me",
+      }),
+      invalidatesTags: ["User"],
     }),
   }),
   reducerPath: "repolensApi",
