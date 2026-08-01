@@ -134,6 +134,8 @@ describe("RepositoryDetailPage", () => {
 
     await screen.findByRole("heading", { name: "repolens" });
     fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    const confirmInput = screen.getByPlaceholderText("repolens");
+    fireEvent.change(confirmInput, { target: { value: "repolens" } });
     fireEvent.click(
       within(screen.getByRole("dialog", { name: "Delete repository" })).getByRole(
         "button",

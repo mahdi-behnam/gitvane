@@ -466,9 +466,18 @@ function RiskTable({
                   #{index + 1}
                 </TableCell>
                 <TableCell>
-                  <span className="break-all font-mono text-sm font-semibold">
-                    {file.path}
-                  </span>
+                  <div>
+                    <span className="break-all font-mono text-sm font-semibold">
+                      {file.path}
+                    </span>
+                    {file.reasons && file.reasons.length > 0 ? (
+                      <ul className="mt-1 space-y-0.5 text-xs text-muted">
+                        {file.reasons.map((reason) => (
+                          <li key={reason}>• {reason}</li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </div>
                 </TableCell>
                 <TableCell className="text-right font-mono text-sm font-semibold">
                   {file.risk_score.toFixed(3)}

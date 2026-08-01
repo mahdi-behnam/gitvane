@@ -1,4 +1,4 @@
-﻿import { fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { http, HttpResponse, delay } from "msw";
 import { describe, expect, it } from "vitest";
 import { RepositoryManagementPage } from "@/components/repositories/repository-management-page";
@@ -106,6 +106,8 @@ describe("RepositoryManagementPage", () => {
     await waitFor(() => expect(indexBodies).toEqual([{}]));
 
     fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    const confirmInput = screen.getByPlaceholderText("repolens");
+    fireEvent.change(confirmInput, { target: { value: "repolens" } });
     fireEvent.click(
       within(screen.getByRole("dialog", { name: "Delete repository" })).getByRole(
         "button",
@@ -187,7 +189,9 @@ describe("RepositoryManagementPage", () => {
     const searchInput = screen.getByLabelText("Search repositories");
     fireEvent.change(searchInput, { target: { value: "frontend" } });
 
-    expect(screen.getByText("Showing 1 of 3 repositories")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText("Showing 1 of 3 repositories")).toBeInTheDocument();
+    });
     expect(screen.queryByText("repolens-backend")).not.toBeInTheDocument();
     expect(screen.getByText("frontend-app")).toBeInTheDocument();
     expect(screen.queryByText("analytics-service")).not.toBeInTheDocument();

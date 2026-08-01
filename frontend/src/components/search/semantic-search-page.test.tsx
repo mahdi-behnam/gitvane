@@ -74,7 +74,7 @@ describe("SemanticSearchPage", () => {
     expect(screen.getByText("0.873")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /open graph/i })).toHaveAttribute(
       "href",
-      "/repositories/77777777-7777-7777-7777-777777777777/graph",
+      "/repositories/77777777-7777-7777-7777-777777777777/graph?path=backend%2Fapp%2Fservices%2Findexing_service.py",
     );
   });
 
