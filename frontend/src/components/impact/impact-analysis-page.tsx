@@ -410,13 +410,66 @@ export function ImpactAnalysisPage({
 
 function ImpactLoadingState() {
   return (
-    <div className="space-y-3">
-      {Array.from({ length: 3 }, (_, index) => (
-        <Card className="p-5" key={index}>
-          <Skeleton className="h-4 w-56" />
-          <Skeleton className="mt-4 h-20 w-full" />
-        </Card>
-      ))}
+    <div className="space-y-4">
+      {/* Analysis Result Summary Skeleton */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between gap-3">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-5 w-16" />
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-3 md:grid-cols-3">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <div
+                className="rounded-lg border border-border bg-panel-muted p-4 space-y-2"
+                key={index}
+              >
+                <Skeleton className="h-3 w-24" />
+                <Skeleton className="h-6 w-12" />
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Likely Impacted Files Skeleton List */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <Skeleton className="h-4 w-40" />
+          <Skeleton className="h-5 w-16" />
+        </div>
+        {Array.from({ length: 2 }).map((_, index) => (
+          <Card key={index}>
+            <CardHeader>
+              <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                <Skeleton className="h-4 w-64" />
+                <Skeleton className="h-5 w-16" />
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-2 md:grid-cols-4">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div className="rounded-lg border border-border bg-panel-muted p-4 space-y-2" key={i}>
+                    <Skeleton className="h-3 w-20" />
+                    <Skeleton className="h-6 w-12" />
+                  </div>
+                ))}
+              </div>
+              <div className="space-y-2">
+                <Skeleton className="h-9 w-full rounded-md" />
+                <Skeleton className="h-9 w-full rounded-md" />
+              </div>
+              <div className="flex gap-2 pt-1">
+                <Skeleton className="h-8 w-24" />
+                <Skeleton className="h-8 w-32" />
+                <Skeleton className="h-8 w-24" />
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     </div>
   );
 }

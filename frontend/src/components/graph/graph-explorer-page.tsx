@@ -459,14 +459,58 @@ function buildFlowEdges(edges: GraphEdge[]): Edge[] {
 function GraphLoadingState() {
   return (
     <section className="grid gap-4 xl:grid-cols-[1fr_360px]">
-      <Card className="p-5">
-        <Skeleton className="h-4 w-36" />
-        <Skeleton className="mt-5 h-[520px] w-full" />
+      <Card className="overflow-hidden">
+        <div className="flex h-[620px] min-h-[480px] flex-col justify-between bg-panel-muted p-6">
+          <div className="flex items-center justify-between">
+            <Skeleton className="h-4 w-36" />
+            <Skeleton className="h-6 w-24" />
+          </div>
+          <div className="my-auto grid grid-cols-2 gap-8 md:grid-cols-3">
+            <Skeleton className="h-16 w-full rounded-lg" />
+            <Skeleton className="h-16 w-full rounded-lg" />
+            <Skeleton className="h-16 w-full rounded-lg" />
+            <Skeleton className="h-16 w-full rounded-lg" />
+            <Skeleton className="h-16 w-full rounded-lg" />
+            <Skeleton className="h-16 w-full rounded-lg" />
+          </div>
+          <div className="flex items-center justify-between">
+            <Skeleton className="h-8 w-24" />
+            <Skeleton className="h-20 w-32 rounded-md" />
+          </div>
+        </div>
       </Card>
-      <Card className="p-5">
-        <Skeleton className="h-4 w-32" />
-        <Skeleton className="mt-5 h-24 w-full" />
-        <Skeleton className="mt-4 h-36 w-full" />
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col gap-2">
+            <Skeleton className="h-5 w-20" />
+            <Skeleton className="h-4 w-48" />
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <div className="grid grid-cols-2 gap-3">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div className="space-y-1 rounded-md border border-border bg-panel-muted p-2" key={i}>
+                <Skeleton className="h-3 w-14" />
+                <Skeleton className="h-4 w-20" />
+              </div>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <Skeleton className="h-8 w-20" />
+            <Skeleton className="h-8 w-20" />
+            <Skeleton className="h-8 w-20" />
+          </div>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Skeleton className="h-4 w-28" />
+              <Skeleton className="h-5 w-16" />
+            </div>
+            <div className="space-y-2">
+              <Skeleton className="h-12 w-full rounded-md" />
+              <Skeleton className="h-12 w-full rounded-md" />
+            </div>
+          </div>
+        </CardContent>
       </Card>
     </section>
   );
@@ -541,8 +585,15 @@ function NodeDetailPanel({
           </div>
           {neighborsLoading ? (
             <div className="space-y-2">
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-2/3" />
+              {Array.from({ length: 2 }).map((_, index) => (
+                <div
+                  className="space-y-1.5 rounded-md border border-border bg-panel-muted px-3 py-2"
+                  key={index}
+                >
+                  <Skeleton className="h-3.5 w-3/4" />
+                  <Skeleton className="h-3 w-1/2" />
+                </div>
+              ))}
             </div>
           ) : neighborsError ? (
             <Notice tone="danger">{neighborsError}</Notice>

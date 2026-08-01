@@ -92,10 +92,32 @@ export function OverviewDashboard() {
 
       <div>
         {repositories.isLoading ? (
-          <Card className="p-8">
-            <Skeleton className="h-5 w-48" />
-            <Skeleton className="mt-4 h-4 w-2/3" />
-            <Skeleton className="mt-6 h-24 w-full" />
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between gap-3">
+                <Skeleton className="h-4 w-36" />
+                <Skeleton className="h-5 w-16" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {Array.from({ length: 3 }).map((_, index) => (
+                  <div
+                    className="grid gap-3 rounded-md border border-border bg-panel-muted px-3 py-3 md:grid-cols-[1fr_auto]"
+                    key={index}
+                  >
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-40" />
+                      <Skeleton className="h-3 w-28" />
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 md:justify-end">
+                      <Skeleton className="h-5 w-16" />
+                      <Skeleton className="h-3 w-20" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
           </Card>
         ) : repositoryError ? (
           <EmptyState
@@ -263,9 +285,12 @@ function RiskInsightCard({
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <div className="space-y-2">
-            <Skeleton className="h-4 w-3/4" />
-            <Skeleton className="h-4 w-1/2" />
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <Skeleton className="h-4 w-48" />
+              <Skeleton className="h-4 w-12" />
+            </div>
+            <Skeleton className="h-8 w-24" />
           </div>
         ) : error ? (
           <Notice tone="danger">{error}</Notice>

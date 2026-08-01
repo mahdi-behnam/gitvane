@@ -299,10 +299,36 @@ export function EvaluationDashboardPage({ repositoryId }: { repositoryId: string
 
 function EvaluationLoadingState() {
   return (
-    <Card className="p-5">
-      <Skeleton className="h-4 w-44" />
-      <Skeleton className="mt-5 h-24 w-full" />
-      <Skeleton className="mt-4 h-24 w-full" />
+    <Card>
+      <CardHeader>
+        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-44" />
+            <Skeleton className="h-3 w-20" />
+          </div>
+          <Skeleton className="h-5 w-20" />
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid gap-3 md:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, index) => (
+            <div
+              className="rounded-md border border-border bg-panel-muted p-3 space-y-2"
+              key={index}
+            >
+              <Skeleton className="h-3 w-20" />
+              <Skeleton className="h-5 w-16" />
+            </div>
+          ))}
+        </div>
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-20" />
+          <div className="flex flex-wrap gap-2">
+            <Skeleton className="h-6 w-24 rounded-md" />
+            <Skeleton className="h-6 w-28 rounded-md" />
+          </div>
+        </div>
+      </CardContent>
     </Card>
   );
 }
@@ -445,9 +471,16 @@ function EvaluationReport({
 }) {
   if (isFetching) {
     return (
-      <Card className="p-5">
-        <Skeleton className="h-4 w-44" />
-        <Skeleton className="mt-5 h-40 w-full" />
+      <Card>
+        <CardHeader>
+          <Skeleton className="h-4 w-36" />
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-11/12" />
+          <Skeleton className="h-4 w-4/5" />
+          <Skeleton className="h-4 w-3/4" />
+        </CardContent>
       </Card>
     );
   }
