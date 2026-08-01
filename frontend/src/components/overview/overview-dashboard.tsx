@@ -59,16 +59,9 @@ export function OverviewDashboard() {
       <div className="flex flex-col gap-4 border-b border-border pb-6 md:flex-row md:items-end md:justify-between">
         <div>
           <Badge tone="info">Overview</Badge>
-          <div className="mt-3">
-            <TermTooltip
-              description="Central command hub for managing repositories, code structure indexing, dependency graphs, and automated risk insights."
-            >
-              <h1 className="text-3xl font-semibold md:text-4xl">RepoLens dashboard</h1>
-            </TermTooltip>
-          </div>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">
-            Register repositories, inspect indexing state, and choose the next analysis
-            workflow.
+          <h1 className="mt-3 text-3xl font-semibold md:text-4xl">RepoLens dashboard</h1>
+          <p className="mt-3 max-w-3xl text-sm leading-6 text-muted">
+            Welcome to RepoLens. Monitor repository indexing states, inspect high-risk modules, and quickly launch code architecture analysis workflows.
           </p>
         </div>
         <Button asChild variant="primary">
@@ -228,7 +221,12 @@ function RecentRepositories({ repositories }: { repositories: Repository[] }) {
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between gap-3">
-          <h2 className="text-sm font-semibold">Recent repositories</h2>
+          <div>
+            <h2 className="text-sm font-semibold">Recent repositories</h2>
+            <p className="mt-1 text-xs text-muted">
+              Your registered codebases and their latest index processing states.
+            </p>
+          </div>
           <Badge>{repositories.length} total</Badge>
         </div>
       </CardHeader>

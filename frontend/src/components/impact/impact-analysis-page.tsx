@@ -188,16 +188,10 @@ export function ImpactAnalysisPage({
       <div className="flex flex-col gap-4 border-b border-border pb-6 md:flex-row md:items-end md:justify-between">
         <div>
           <Badge tone="info">Impact</Badge>
-          <div className="mt-3">
-            <TermTooltip
-              description="Predicts the blast radius of proposed file changes across dependencies, call graphs, and historical co-changes."
-            >
-              <h1 className="text-3xl font-semibold md:text-4xl">Impact analysis</h1>
-            </TermTooltip>
-          </div>
+          <h1 className="mt-3 text-3xl font-semibold md:text-4xl">Impact analysis</h1>
           <p className="mt-3 max-w-3xl text-sm leading-6 text-muted">
-            Predict likely impacted files from changed paths, a raw diff, or a base/head
-            comparison.
+            Predict the blast radius of code modifications before committing changes. Input modified file paths,
+            a raw git diff, or base/head commits to calculate downstream affected modules.
           </p>
         </div>
         <div className="rounded-md border border-border bg-panel px-3 py-2 font-mono text-xs text-muted">
@@ -208,6 +202,9 @@ export function ImpactAnalysisPage({
       <Card>
         <CardHeader>
           <h2 className="text-sm font-semibold">Inputs</h2>
+          <p className="mt-1 text-xs text-muted">
+            Provide changed file paths, a raw patch diff, or branch ref targets to run impact prediction.
+          </p>
         </CardHeader>
         <CardContent>
           <form className="space-y-5" onSubmit={handleSubmit}>
@@ -493,7 +490,12 @@ function ImpactResults({
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between gap-3">
-            <h2 className="text-sm font-semibold">Analysis result</h2>
+            <div>
+              <h2 className="text-sm font-semibold">Analysis result</h2>
+              <p className="mt-1 text-xs text-muted">
+                Summary of analyzed changes, affected code symbols, and predicted downstream file impact count.
+              </p>
+            </div>
             <Badge>Run {response.analysis_run_id}</Badge>
           </div>
         </CardHeader>
@@ -621,8 +623,13 @@ function ImpactedFiles({
 }) {
   return (
     <section className="space-y-3">
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="text-sm font-semibold">Likely impacted files</h2>
+      <div className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h2 className="text-sm font-semibold">Likely impacted files</h2>
+          <p className="mt-0.5 text-xs text-muted">
+            Ranked downstream modules predicted to be affected by the proposed code modifications.
+          </p>
+        </div>
         <Badge>{files.length} files</Badge>
       </div>
       {files.map((file) => (

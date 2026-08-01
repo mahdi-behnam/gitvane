@@ -180,16 +180,9 @@ export function GraphExplorerPage({
       <div className="flex flex-col gap-4 border-b border-border pb-6 md:flex-row md:items-end md:justify-between">
         <div>
           <Badge tone="info">Graph</Badge>
-          <div className="mt-3">
-            <TermTooltip
-              description="Visualizes code entities (functions, classes, modules) and their structural dependencies across the repository."
-            >
-              <h1 className="text-3xl font-semibold md:text-4xl">Dependency graph</h1>
-            </TermTooltip>
-          </div>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">
-            Inspect repository files as dependency nodes, filter the visible subgraph,
-            and select a file to review neighbors.
+          <h1 className="mt-3 text-3xl font-semibold md:text-4xl">Dependency graph</h1>
+          <p className="mt-3 max-w-3xl text-sm leading-6 text-muted">
+            Explore file dependencies, imports, and relationships across your codebase in an interactive architectural graph visualizer.
           </p>
         </div>
         <div className="rounded-md border border-border bg-panel px-3 py-2 font-mono text-xs text-muted">
@@ -200,7 +193,12 @@ export function GraphExplorerPage({
       <Card>
         <CardHeader>
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-            <h2 className="text-sm font-semibold">Graph controls</h2>
+            <div>
+              <h2 className="text-sm font-semibold">Graph controls</h2>
+              <p className="mt-1 text-xs text-muted">
+                Configure rendering thresholds, graph traversal depth, or search specific module paths.
+              </p>
+            </div>
             <Badge>
               {subgraph.data
                 ? `${subgraph.data.nodes.length} nodes`
@@ -215,7 +213,10 @@ export function GraphExplorerPage({
           >
             <div className="space-y-2">
               <label className="block text-sm font-medium" htmlFor="graph-max-nodes">
-                Max nodes
+                <TermTooltip
+                  description="Maximum number of dependency nodes to display in the canvas visualizer at once."
+                  term="Max nodes"
+                />
               </label>
               <Input
                 id="graph-max-nodes"
@@ -229,6 +230,27 @@ export function GraphExplorerPage({
                 }
                 type="number"
                 value={draftFilters.maxNodes}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="block text-sm font-medium" htmlFor="graph-max-depth">
+                <TermTooltip
+                  description="Maximum traversal distance (number of import hops) from the focus node."
+                  term="Max depth"
+                />
+              </label>
+              <Input
+                id="graph-max-depth"
+                max={10}
+                min={1}
+                onChange={(event) =>
+                  setDraftFilters((current) => ({
+                    ...current,
+                    maxDepth: Number(event.target.value),
+                  }))
+                }
+                type="number"
+                value={draftFilters.maxDepth}
               />
             </div>
             <div className="space-y-2">
@@ -549,12 +571,10 @@ function NodeDetailPanel({
   return (
     <Card>
       <CardHeader>
-        <div className="flex flex-col gap-2">
-          <Badge tone={node.is_test ? "success" : "info"}>
-            {node.is_test ? "Test file" : "Source file"}
-          </Badge>
-          <h2 className="break-all font-mono text-sm font-semibold">{node.path}</h2>
-        </div>
+        <h2 className="text-sm font-semibold">Node details</h2>
+        <p className="mt-1 text-xs text-muted">
+          Structural metrics and properties for the selected repository module.
+        </p>
       </CardHeader>
       <CardContent className="space-y-5">
         <dl className="grid grid-cols-2 gap-3 text-sm">
@@ -587,7 +607,12 @@ function NodeDetailPanel({
 
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-3">
-            <h3 className="text-sm font-semibold">File neighbors</h3>
+            <h3 className="text-sm font-semibold">
+              <TermTooltip
+                description="Directly connected incoming (importers) and outgoing (imported dependencies) module files."
+                term="File neighbors"
+              />
+            </h3>
             <Badge>{neighbors?.nodes.length ?? 0} nodes</Badge>
           </div>
           {neighborsLoading ? (

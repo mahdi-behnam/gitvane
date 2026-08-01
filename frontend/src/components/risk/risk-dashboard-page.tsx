@@ -148,16 +148,10 @@ export function RiskDashboardPage({
       <div className="flex flex-col gap-4 border-b border-border pb-6 md:flex-row md:items-end md:justify-between">
         <div>
           <Badge tone="warning">Risk</Badge>
-          <div className="mt-3">
-            <TermTooltip
-              description="Evaluates code churn frequency, cyclomatic complexity, and dependency fan-in to highlight high-risk repository files."
-            >
-              <h1 className="text-3xl font-semibold md:text-4xl">Risk ranking</h1>
-            </TermTooltip>
-          </div>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">
-            Review heuristic file-level risk scores, component signals, and reasons from
-            the current repository index.
+          <h1 className="mt-3 text-3xl font-semibold md:text-4xl">Risk ranking</h1>
+          <p className="mt-3 max-w-3xl text-sm leading-6 text-muted">
+            Identify high-risk files in your codebase calculated from change frequency (churn),
+            cyclomatic complexity, and structural dependency connections (fan-in / fan-out).
           </p>
         </div>
         <div className="rounded-md border border-border bg-panel px-3 py-2 font-mono text-xs text-muted">
@@ -168,7 +162,12 @@ export function RiskDashboardPage({
       <Card>
         <CardHeader>
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-            <h2 className="text-sm font-semibold">Filters</h2>
+            <div>
+              <h2 className="text-sm font-semibold">Filters</h2>
+              <p className="mt-1 text-xs text-muted">
+                Filter repository files by risk threshold, path keywords, or result limits.
+              </p>
+            </div>
             <Badge>Heuristic score</Badge>
           </div>
         </CardHeader>
@@ -357,6 +356,9 @@ function RiskSummary({
       <Card>
         <CardHeader>
           <h2 className="text-sm font-semibold">Risk summary</h2>
+          <p className="mt-1 text-xs text-muted">
+            Overview of total file count, average risk score, and top architectural signal weights.
+          </p>
         </CardHeader>
         <CardContent>
           <div className="grid gap-3 sm:grid-cols-3">
@@ -391,6 +393,9 @@ function RiskSummary({
       <Card>
         <CardHeader>
           <h2 className="text-sm font-semibold">Risk distribution</h2>
+          <p className="mt-1 text-xs text-muted">
+            Histogram grouping files into risk level score buckets (0.0 to 1.0).
+          </p>
         </CardHeader>
         <CardContent>
           <div className="h-64 min-w-0">
@@ -451,7 +456,12 @@ function RiskTable({
     <Card>
       <CardHeader>
         <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-          <h2 className="text-sm font-semibold">Ranked files</h2>
+          <div>
+            <h2 className="text-sm font-semibold">Ranked files</h2>
+            <p className="mt-1 text-xs text-muted">
+              Source files ordered by calculated risk score with detailed component breakdowns.
+            </p>
+          </div>
           <Badge>{files.length} files</Badge>
         </div>
       </CardHeader>
@@ -529,6 +539,29 @@ function RiskTable({
   );
 }
 
+const COMPONENT_DESCRIPTIONS: Record<string, { label: string; desc: string }> = {
+  fan_in: {
+    label: "fan_in",
+    desc: "Number of incoming dependencies (other modules that import this file). High fan-in indicates wide impact if modified.",
+  },
+  fan_out: {
+    label: "fan_out",
+    desc: "Number of outgoing dependencies (modules imported by this file). High fan-out makes this file sensitive to external changes.",
+  },
+  complexity: {
+    label: "complexity",
+    desc: "Cyclomatic decision pathway complexity. Highly complex control flows are prone to subtle bugs.",
+  },
+  churn: {
+    label: "churn",
+    desc: "Recent file modification frequency. Frequently edited files have a higher likelihood of regression.",
+  },
+  dependency: {
+    label: "dependency",
+    desc: "Structural coupling strength in the repository dependency graph.",
+  },
+};
+
 function ComponentDetails({ components }: { components: Record<string, number> }) {
   const entries = Object.entries(components).sort((left, right) => right[1] - left[1]);
 
@@ -538,20 +571,27 @@ function ComponentDetails({ components }: { components: Record<string, number> }
 
   return (
     <div className="min-w-44 space-y-2">
-      {entries.map(([name, value]) => (
-        <div className="space-y-1" key={name}>
-          <div className="flex justify-between gap-3 text-xs">
-            <span className="font-mono text-muted">{name}</span>
-            <span className="font-mono">{value.toFixed(3)}</span>
+      {entries.map(([name, value]) => {
+        const info = COMPONENT_DESCRIPTIONS[name] || {
+          label: name,
+          desc: `Architectural signal weight for ${name}.`,
+        };
+
+        return (
+          <div className="space-y-1" key={name}>
+            <div className="flex justify-between gap-3 text-xs">
+              <TermTooltip description={info.desc} term={info.label} />
+              <span className="font-mono">{value.toFixed(3)}</span>
+            </div>
+            <div className="h-1.5 rounded-sm bg-panel-muted">
+              <div
+                className="h-1.5 rounded-sm bg-primary"
+                style={{ width: `${Math.min(100, Math.max(0, value) * 100)}%` }}
+              />
+            </div>
           </div>
-          <div className="h-1.5 rounded-sm bg-panel-muted">
-            <div
-              className="h-1.5 rounded-sm bg-primary"
-              style={{ width: `${Math.min(100, Math.max(0, value) * 100)}%` }}
-            />
-          </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

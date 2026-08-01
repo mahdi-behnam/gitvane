@@ -142,16 +142,9 @@ export function EvaluationDashboardPage({ repositoryId }: { repositoryId: string
       <div className="flex flex-col gap-4 border-b border-border pb-6 md:flex-row md:items-end md:justify-between">
         <div>
           <Badge tone="info">Evaluation</Badge>
-          <div className="mt-3">
-            <TermTooltip
-              description="Evaluates test suite generation, code retrieval, and static analysis accuracy against benchmark tasks."
-            >
-              <h1 className="text-3xl font-semibold md:text-4xl">Evaluation dashboard</h1>
-            </TermTooltip>
-          </div>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">
-            Run historical prediction evaluations, inspect status manually, and review
-            reported quality metrics when the backend has generated them.
+          <h1 className="mt-3 text-3xl font-semibold md:text-4xl">Evaluation dashboard</h1>
+          <p className="mt-3 max-w-3xl text-sm leading-6 text-muted">
+            Benchmark code search accuracy, retrieval metrics, and impact prediction precision against ground-truth repository tasks.
           </p>
         </div>
         <div className="rounded-md border border-border bg-panel px-3 py-2 font-mono text-xs text-muted">
@@ -162,6 +155,9 @@ export function EvaluationDashboardPage({ repositoryId }: { repositoryId: string
       <Card>
         <CardHeader>
           <h2 className="text-sm font-semibold">Run evaluation</h2>
+          <p className="mt-1 text-xs text-muted">
+            Configure and launch a benchmark evaluation run across historical commits.
+          </p>
         </CardHeader>
         <CardContent>
           <form className="space-y-4" onSubmit={handleRun}>
@@ -400,6 +396,9 @@ function EvaluationMetrics({ summary }: { summary: Record<string, unknown> }) {
       <Card>
         <CardHeader>
           <h2 className="text-sm font-semibold">Metrics summary</h2>
+          <p className="mt-1 text-xs text-muted">
+            Top retrieval and prediction accuracy scores across tested methods.
+          </p>
         </CardHeader>
         <CardContent>
           <div className="grid gap-3 sm:grid-cols-2">
@@ -417,6 +416,9 @@ function EvaluationMetrics({ summary }: { summary: Record<string, unknown> }) {
       <Card>
         <CardHeader>
           <h2 className="text-sm font-semibold">Baseline comparison</h2>
+          <p className="mt-1 text-xs text-muted">
+            Comparative performance bar chart across evaluation algorithms.
+          </p>
         </CardHeader>
         <CardContent>
           <div className="h-64 min-w-0">
