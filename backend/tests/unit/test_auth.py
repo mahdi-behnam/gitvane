@@ -166,6 +166,39 @@ def test_login_invalid_password() -> None:
         app.dependency_overrides.clear()
 
 
+def test_login_oauth_user() -> None:
+    mock_user = MagicMock(spec=User)
+    mock_user.id = 42
+    mock_user.email = "oauth@example.com"
+    mock_user.oauth_provider = "google"
+    mock_user.hashed_password = None
+    mock_user.is_active = True
+
+    class MockExecuteResult:
+        def scalars(self) -> Any:
+            mock_scalar = MagicMock()
+            mock_scalar.first.return_value = mock_user
+            return mock_scalar
+
+    async def override_get_db() -> AsyncGenerator[Any, None]:
+        db = _mock_db_with_add()
+        db.execute.return_value = MockExecuteResult()
+        yield db
+
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        client = TestClient(app)
+        response = client.post(
+            "/api/v1/auth/login",
+            json={"email": "oauth@example.com", "password": "anypassword"},
+        )
+        assert response.status_code == 401
+        assert response.json()["error_type"] == "AuthenticationError"
+        assert "Google OAuth" in response.json()["detail"]
+    finally:
+        app.dependency_overrides.clear()
+
+
 def test_refresh_token_rotation_success() -> None:
     mock_token = MagicMock(spec=UserRefreshToken)
     mock_token.user_id = 42

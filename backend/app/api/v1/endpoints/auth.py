@@ -127,6 +127,11 @@ async def login(
     # Verify credentials
     result = await db.execute(select(User).where(User.email == login_data.email))
     user = result.scalars().first()
+    if user and (user.oauth_provider == "google" or user.hashed_password is None):
+        raise AuthenticationError(
+            "This account was created using Google OAuth. Please sign in with Google or reset your password to use email and password login."
+        )
+
     if not user or not user.hashed_password or not verify_password(login_data.password, user.hashed_password):
         raise AuthenticationError("Invalid or expired credentials")
 
