@@ -676,11 +676,28 @@ function NodeDetailPanel({
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
+const GRAPH_METRIC_DESCRIPTIONS: Record<string, string> = {
+  Language: "Programming language dialect of the selected file node.",
+  LOC: "Lines of Code count for this file.",
+  Generated: "Indicates whether the file is auto-generated or human-written code.",
+  "File ID": "Unique internal node ID in the graph index database.",
+};
+
+function Metric({
+  description,
+  label,
+  value,
+}: {
+  description?: string;
+  label: string;
+  value: string;
+}) {
+  const desc = description || GRAPH_METRIC_DESCRIPTIONS[label];
+
   return (
     <div className="rounded-md border border-border bg-panel-muted px-3 py-2">
       <dt className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">
-        {label}
+        {desc ? <TermTooltip description={desc} term={label} /> : label}
       </dt>
       <dd className="mt-1 break-all font-mono text-xs font-semibold">{value}</dd>
     </div>

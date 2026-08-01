@@ -205,12 +205,21 @@ function buildQuickActions(repositoryScopedHref: string) {
   ];
 }
 
+const OVERVIEW_METRIC_DESCRIPTIONS: Record<string, string> = {
+  Repositories: "Total number of codebases registered in your RepoLens account.",
+  Indexed: "Number of repositories with fully processed architectural index databases.",
+  Files: "Total source code files parsed across indexed repositories.",
+  "Last indexed": "Timestamp of the most recently processed repository indexing run.",
+};
+
 function MetricCard({ label, value }: { label: string; value: string }) {
+  const desc = OVERVIEW_METRIC_DESCRIPTIONS[label];
+
   return (
     <Card className="p-4">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">
-        {label}
-      </p>
+      <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">
+        {desc ? <TermTooltip description={desc} term={label} /> : label}
+      </div>
       <p className="mt-2 truncate font-mono text-lg font-semibold">{value}</p>
     </Card>
   );

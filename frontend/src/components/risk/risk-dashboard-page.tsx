@@ -9,6 +9,7 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  Label,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -290,10 +291,10 @@ export function RiskDashboardPage({
 
 function buildRiskBuckets(files: RiskFile[]) {
   const buckets = [
-    { count: 0, label: "0.00-0.25" },
-    { count: 0, label: "0.25-0.50" },
-    { count: 0, label: "0.50-0.75" },
-    { count: 0, label: "0.75-1.00" },
+    { count: 0, label: "0% - 25% (Low)" },
+    { count: 0, label: "25% - 50% (Moderate)" },
+    { count: 0, label: "50% - 75% (High)" },
+    { count: 0, label: "75% - 100% (Critical)" },
   ];
 
   files.forEach((file) => {
@@ -362,27 +363,46 @@ function RiskSummary({
         </CardHeader>
         <CardContent>
           <div className="grid gap-3 sm:grid-cols-3">
-            <Metric label="Files" value={String(files.length)} />
-            <Metric label="Average" value={averageRisk.toFixed(3)} />
-            <Metric label="Highest" value={highestRisk.risk_score.toFixed(3)} />
+            <Metric
+              description="Total number of repository source files included in this risk assessment."
+              label="Files"
+              value={String(files.length)}
+            />
+            <Metric
+              description="Mean calculated risk score across all evaluated repository files (range 0.0 to 1.0)."
+              label="Average"
+              value={averageRisk.toFixed(3)}
+            />
+            <Metric
+              description="Risk score of the most critical file identified in the current index."
+              label="Highest"
+              value={highestRisk.risk_score.toFixed(3)}
+            />
           </div>
           <div className="mt-5 space-y-3">
             <h3 className="text-sm font-semibold">Top component signals</h3>
             {components.length > 0 ? (
-              components.map((component) => (
-                <div className="space-y-1" key={component.name}>
-                  <div className="flex justify-between gap-3 text-xs">
-                    <span className="font-mono text-muted">{component.name}</span>
-                    <span className="font-mono">{component.value.toFixed(3)}</span>
+              components.map((component) => {
+                const info = COMPONENT_DESCRIPTIONS[component.name] || {
+                  label: component.name,
+                  desc: `Average component signal weight for ${component.name}.`,
+                };
+
+                return (
+                  <div className="space-y-1" key={component.name}>
+                    <div className="flex justify-between gap-3 text-xs">
+                      <TermTooltip description={info.desc} term={info.label} />
+                      <span className="font-mono">{component.value.toFixed(3)}</span>
+                    </div>
+                    <div className="h-2 rounded-sm bg-panel-muted">
+                      <div
+                        className="h-2 rounded-sm bg-primary"
+                        style={{ width: `${Math.min(100, component.value * 100)}%` }}
+                      />
+                    </div>
                   </div>
-                  <div className="h-2 rounded-sm bg-panel-muted">
-                    <div
-                      className="h-2 rounded-sm bg-primary"
-                      style={{ width: `${Math.min(100, component.value * 100)}%` }}
-                    />
-                  </div>
-                </div>
-              ))
+                );
+              })
             ) : (
               <p className="text-sm text-muted">No component values returned.</p>
             )}
@@ -394,7 +414,7 @@ function RiskSummary({
         <CardHeader>
           <h2 className="text-sm font-semibold">Risk distribution</h2>
           <p className="mt-1 text-xs text-muted">
-            Histogram grouping files into risk level score buckets (0.0 to 1.0).
+            Histogram grouping files into risk level percentage buckets (0% to 100%).
           </p>
         </CardHeader>
         <CardContent>
@@ -402,25 +422,42 @@ function RiskSummary({
             <ResponsiveContainer height="100%" minWidth={300} width="100%">
               <BarChart
                 data={chartData}
-                margin={{ bottom: 0, left: -12, right: 8, top: 8 }}
+                margin={{ bottom: 20, left: 10, right: 10, top: 8 }}
               >
                 <CartesianGrid stroke="rgb(var(--color-border))" vertical={false} />
                 <XAxis
                   axisLine={false}
                   dataKey="label"
-                  fontSize={12}
+                  fontSize={11}
                   stroke="rgb(var(--color-muted))"
                   tickMargin={8}
                   tickLine={false}
-                />
+                >
+                  <Label
+                    fill="rgb(var(--color-muted))"
+                    fontSize={11}
+                    offset={-12}
+                    position="insideBottom"
+                    value="Risk Level Range (%)"
+                  />
+                </XAxis>
                 <YAxis
                   allowDecimals={false}
                   axisLine={false}
-                  fontSize={12}
+                  fontSize={11}
                   stroke="rgb(var(--color-muted))"
                   tickMargin={8}
                   tickLine={false}
-                />
+                >
+                  <Label
+                    angle={-90}
+                    fill="rgb(var(--color-muted))"
+                    fontSize={11}
+                    position="insideLeft"
+                    style={{ textAnchor: "middle" }}
+                    value="File Count"
+                  />
+                </YAxis>
                 <Tooltip
                   contentStyle={{
                     background: "rgb(var(--color-panel))",
@@ -596,11 +633,19 @@ function ComponentDetails({ components }: { components: Record<string, number> }
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
+function Metric({
+  description,
+  label,
+  value,
+}: {
+  description?: string;
+  label: string;
+  value: string;
+}) {
   return (
     <div className="rounded-md border border-border bg-panel-muted px-3 py-2">
       <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">
-        {label}
+        {description ? <TermTooltip description={description} term={label} /> : label}
       </div>
       <div className="mt-1 font-mono text-lg font-semibold">{value}</div>
     </div>

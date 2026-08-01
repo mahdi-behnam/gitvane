@@ -794,20 +794,36 @@ function RiskSummary({
   );
 }
 
+const METRIC_DESCRIPTIONS: Record<string, string> = {
+  "Changed files": "Number of modified source files provided as input to the analysis.",
+  "Changed symbols": "Specific functions, classes, or methods detected within the changed files.",
+  "Impacted files": "Total number of downstream repository files predicted to be affected.",
+  "Predictions": "Calculated downstream impact predictions.",
+  dependency: "Structural dependency coupling score in the repository hierarchy.",
+  semantic: "Natural language code similarity embedding score.",
+  cochange: "Historical git commit co-modification frequency.",
+  test: "Associated test suite coverage score.",
+  risk: "Component risk score based on complexity and churn.",
+};
+
 function Metric({
+  description,
   label,
   precision,
   value,
 }: {
+  description?: string;
   label: string;
   precision?: boolean;
   value: number;
 }) {
+  const desc = description || METRIC_DESCRIPTIONS[label];
+
   return (
     <div className="rounded-lg border border-border bg-panel-muted p-4">
-      <p className="font-mono text-xs uppercase tracking-[0.08em] text-muted">
-        {label}
-      </p>
+      <div className="font-mono text-xs uppercase tracking-[0.08em] text-muted">
+        {desc ? <TermTooltip description={desc} term={label} /> : label}
+      </div>
       <p className="mt-2 text-2xl font-semibold">
         {precision ? value.toFixed(2) : value.toLocaleString()}
       </p>

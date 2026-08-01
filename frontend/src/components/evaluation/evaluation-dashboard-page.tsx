@@ -8,6 +8,7 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  Label,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -425,26 +426,43 @@ function EvaluationMetrics({ summary }: { summary: Record<string, unknown> }) {
             <ResponsiveContainer height="100%" minWidth={300} width="100%">
               <BarChart
                 data={chartData.slice(0, 8)}
-                margin={{ bottom: 0, left: -12, right: 8, top: 8 }}
+                margin={{ bottom: 20, left: 10, right: 10, top: 8 }}
               >
                 <CartesianGrid stroke="rgb(var(--color-border))" vertical={false} />
                 <XAxis
                   axisLine={false}
                   dataKey="label"
-                  fontSize={12}
+                  fontSize={11}
                   interval={0}
                   stroke="rgb(var(--color-muted))"
                   tickMargin={8}
                   tickLine={false}
-                />
+                >
+                  <Label
+                    fill="rgb(var(--color-muted))"
+                    fontSize={11}
+                    offset={-12}
+                    position="insideBottom"
+                    value="Tested Algorithm / Metric"
+                  />
+                </XAxis>
                 <YAxis
                   axisLine={false}
                   domain={[0, 1]}
-                  fontSize={12}
+                  fontSize={11}
                   stroke="rgb(var(--color-muted))"
                   tickMargin={8}
                   tickLine={false}
-                />
+                >
+                  <Label
+                    angle={-90}
+                    fill="rgb(var(--color-muted))"
+                    fontSize={11}
+                    position="insideLeft"
+                    style={{ textAnchor: "middle" }}
+                    value="Score (0.0 - 1.0)"
+                  />
+                </YAxis>
                 <Tooltip
                   contentStyle={{
                     background: "rgb(var(--color-panel))",
@@ -544,11 +562,27 @@ function flattenMetrics(
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
+const EVALUATION_METRIC_DESCRIPTIONS: Record<string, string> = {
+  "Commit limit": "Maximum number of git commits evaluated during this benchmark run.",
+  Methods: "Number of retrieval algorithms tested in this evaluation run.",
+  Repository: "Unique identifier of the target codebase.",
+};
+
+function Metric({
+  description,
+  label,
+  value,
+}: {
+  description?: string;
+  label: string;
+  value: string;
+}) {
+  const desc = description || EVALUATION_METRIC_DESCRIPTIONS[label];
+
   return (
     <div className="rounded-md border border-border bg-panel-muted px-3 py-2">
       <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">
-        {label}
+        {desc ? <TermTooltip description={desc} term={label} /> : label}
       </div>
       <div className="mt-1 break-all font-mono text-sm font-semibold">{value}</div>
     </div>
