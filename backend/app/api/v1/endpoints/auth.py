@@ -127,7 +127,7 @@ async def login(
     # Verify credentials
     result = await db.execute(select(User).where(User.email == login_data.email))
     user = result.scalars().first()
-    if user and (user.oauth_provider == "google" or user.hashed_password is None):
+    if user and user.oauth_provider == "google" and not user.hashed_password:
         raise AuthenticationError(
             "This account was created using Google OAuth. Please sign in with Google or reset your password to use email and password login."
         )

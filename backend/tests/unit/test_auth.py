@@ -199,6 +199,39 @@ def test_login_oauth_user() -> None:
         app.dependency_overrides.clear()
 
 
+def test_login_oauth_user_after_password_reset() -> None:
+    mock_user = MagicMock(spec=User)
+    mock_user.id = 42
+    mock_user.email = "oauth@example.com"
+    mock_user.oauth_provider = "google"
+    mock_user.hashed_password = "$2b$12$mockedhash"
+    mock_user.is_active = True
+
+    class MockExecuteResult:
+        def scalars(self) -> Any:
+            mock_scalar = MagicMock()
+            mock_scalar.first.return_value = mock_user
+            return mock_scalar
+
+    async def override_get_db() -> AsyncGenerator[Any, None]:
+        db = _mock_db_with_add()
+        db.execute.return_value = MockExecuteResult()
+        yield db
+
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        with patch("app.api.v1.endpoints.auth.verify_password", return_value=True):
+            client = TestClient(app)
+            response = client.post(
+                "/api/v1/auth/login",
+                json={"email": "oauth@example.com", "password": "newpassword123"},
+            )
+            assert response.status_code == 200
+            assert "access_token" in response.json()
+    finally:
+        app.dependency_overrides.clear()
+
+
 def test_refresh_token_rotation_success() -> None:
     mock_token = MagicMock(spec=UserRefreshToken)
     mock_token.user_id = 42
