@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from "react";
 import { Check, Moon, Monitor, Sun, User as UserIcon, Lock, Save } from "lucide-react";
-import { ThemeToggle } from "@/components/app/theme-toggle";
 import { useTheme } from "@/components/theme/theme-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -205,10 +204,7 @@ export default function SettingsPage() {
         {/* Theme Settings Card */}
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between gap-3">
-              <h2 className="text-sm font-semibold">Theme</h2>
-              <ThemeToggle />
-            </div>
+            <h2 className="text-sm font-semibold">Theme</h2>
           </CardHeader>
           <CardContent>
             <div className="grid gap-2 sm:grid-cols-3">
