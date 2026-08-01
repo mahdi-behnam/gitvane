@@ -56,6 +56,7 @@ type GraphNeighborsArgs = {
 
 const rawBaseQuery = fetchBaseQuery({
   baseUrl: apiBaseUrl,
+  credentials: "include",
   prepareHeaders: (headers, { getState }) => {
     const state = getState() as { auth?: { accessToken: string | null } };
     const token = state.auth?.accessToken;
@@ -77,18 +78,16 @@ function getCookie(name: string): string | undefined {
 const baseQuery: typeof rawBaseQuery = async (args, api, extraOptions) => {
   const adjustedArgs = typeof args === "string" ? { url: args } : { ...args };
 
-  // For requests that require sending cookies (like refresh and logout), ensure credentials: "include" is set
-  const isRefreshOrLogout =
-    adjustedArgs.url?.includes("/auth/refresh") ||
-    adjustedArgs.url?.includes("/auth/logout");
-
-  if (isRefreshOrLogout) {
+  if (!adjustedArgs.credentials) {
     adjustedArgs.credentials = "include";
   }
 
   // Inject CSRF token for state-changing requests or refresh/logout requests
   const method = adjustedArgs.method?.toUpperCase() || "GET";
   const isStateChanging = !["GET", "HEAD", "OPTIONS"].includes(method);
+  const isRefreshOrLogout =
+    adjustedArgs.url?.includes("/auth/refresh") ||
+    adjustedArgs.url?.includes("/auth/logout");
 
   if (isStateChanging || isRefreshOrLogout) {
     const csrfToken = getCookie("csrf_token");
