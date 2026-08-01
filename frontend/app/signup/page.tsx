@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Notice } from "@/components/ui/notice";
 import { Logo } from "@/components/app/logo";
+import { PasswordStrengthIndicator, isPasswordValid } from "@/components/auth/password-strength";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -36,8 +37,8 @@ export default function SignupPage() {
       return;
     }
 
-    if (password.length < 8) {
-      setErrorMsg("Password must be at least 8 characters long.");
+    if (!isPasswordValid(password)) {
+      setErrorMsg("Password must meet all complexity requirements.");
       return;
     }
 
@@ -76,9 +77,17 @@ export default function SignupPage() {
       router.push("/repositories");
     } catch (err: unknown) {
       console.error("Signup failed:", err);
-      const apiErr = err as { data?: { detail?: string | Record<string, unknown> } };
-      const detail = apiErr?.data?.detail || "Registration failed. Please try again.";
-      setErrorMsg(typeof detail === "string" ? detail : JSON.stringify(detail));
+      const apiErr = err as { data?: { detail?: string | Array<{ msg?: string }> | Record<string, unknown> } };
+      const rawDetail = apiErr?.data?.detail;
+      let msg = "Registration failed. Please try again.";
+      if (typeof rawDetail === "string") {
+        msg = rawDetail;
+      } else if (Array.isArray(rawDetail)) {
+        msg = rawDetail.map((d) => (typeof d === "string" ? d : d.msg || JSON.stringify(d))).join(", ");
+      } else if (rawDetail && typeof rawDetail === "object") {
+        msg = JSON.stringify(rawDetail);
+      }
+      setErrorMsg(msg);
     }
   };
 
@@ -148,7 +157,7 @@ export default function SignupPage() {
 
               <div>
                 <label className="block text-xs font-medium text-muted mb-1.5" htmlFor="password">
-                  Password (min 8 chars)
+                  Password
                 </label>
                 <Input
                   id="password"
@@ -159,6 +168,7 @@ export default function SignupPage() {
                   disabled={isSigningUp || isFetchingMe}
                   required
                 />
+                <PasswordStrengthIndicator password={password} />
               </div>
 
               <div>

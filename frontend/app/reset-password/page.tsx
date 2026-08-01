@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Notice } from "@/components/ui/notice";
 import { Logo } from "@/components/app/logo";
 import { useToast } from "@/components/ui/toast";
+import { PasswordStrengthIndicator, isPasswordValid } from "@/components/auth/password-strength";
 
 function ResetPasswordForm() {
   const searchParams = useSearchParams();
@@ -38,8 +39,8 @@ function ResetPasswordForm() {
       return;
     }
 
-    if (newPassword.length < 8) {
-      setErrorMsg("Password must be at least 8 characters long.");
+    if (!isPasswordValid(newPassword)) {
+      setErrorMsg("New password must meet all complexity requirements.");
       return;
     }
 
@@ -61,9 +62,17 @@ function ResetPasswordForm() {
       });
     } catch (err: unknown) {
       console.error("Reset password failed:", err);
-      const apiErr = err as { data?: { detail?: string | Record<string, unknown> } };
-      const detail = apiErr?.data?.detail || "Failed to reset password. The reset link may have expired.";
-      setErrorMsg(typeof detail === "string" ? detail : JSON.stringify(detail));
+      const apiErr = err as { data?: { detail?: string | Array<{ msg?: string }> | Record<string, unknown> } };
+      const rawDetail = apiErr?.data?.detail;
+      let msg = "Failed to reset password. The reset link may have expired.";
+      if (typeof rawDetail === "string") {
+        msg = rawDetail;
+      } else if (Array.isArray(rawDetail)) {
+        msg = rawDetail.map((d) => (typeof d === "string" ? d : d.msg || JSON.stringify(d))).join(", ");
+      } else if (rawDetail && typeof rawDetail === "object") {
+        msg = JSON.stringify(rawDetail);
+      }
+      setErrorMsg(msg);
     }
   };
 
@@ -125,8 +134,8 @@ function ResetPasswordForm() {
                 onChange={(e) => setNewPassword(e.target.value)}
                 disabled={isLoading}
                 required
-                minLength={8}
               />
+              <PasswordStrengthIndicator password={newPassword} />
             </div>
 
             <div>

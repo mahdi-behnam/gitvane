@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from urllib.parse import urlencode
 
-from fastapi import APIRouter, Depends, Response, Request, status
+from fastapi import APIRouter, Depends, Response, Request, status, HTTPException
 from fastapi.responses import RedirectResponse
 import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -489,6 +489,12 @@ async def reset_password(
     user = result.scalars().first()
     if not user:
         raise AuthenticationError("User not found")
+
+    if user.hashed_password and verify_password(reset_data.new_password, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="New password cannot be the same as your old password",
+        )
 
     user.hashed_password = hash_password(reset_data.new_password)
 

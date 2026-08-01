@@ -49,7 +49,7 @@ def test_signup_success() -> None:
             client = TestClient(app)
             response = client.post(
                 "/api/v1/auth/signup",
-                json={"email": "new@example.com", "password": "securepassword123", "full_name": "New User"},
+                json={"email": "new@example.com", "password": "SecureP@ssword123", "full_name": "New User"},
             )
             assert response.status_code == 201
             assert "access_token" in response.json()
@@ -76,12 +76,29 @@ def test_signup_duplicate_email() -> None:
         client = TestClient(app)
         response = client.post(
             "/api/v1/auth/signup",
-            json={"email": "existing@example.com", "password": "securepassword123", "full_name": "Existing User"},
+            json={"email": "existing@example.com", "password": "SecureP@ssword123", "full_name": "Existing User"},
         )
         assert response.status_code == 400
         assert response.json()["error_type"] == "RepoLensError"
     finally:
         app.dependency_overrides.clear()
+
+
+def test_signup_password_complexity_failure() -> None:
+    client = TestClient(app)
+    invalid_passwords = [
+        "short1!",        # < 8 chars
+        "alllowercase1!", # No uppercase
+        "ALLUPPERCASE1!", # No lowercase
+        "NoDigitsHere!",  # No digit
+        "NoSpecial1234",  # No special char
+    ]
+    for invalid_pw in invalid_passwords:
+        response = client.post(
+            "/api/v1/auth/signup",
+            json={"email": "test@example.com", "password": invalid_pw, "full_name": "Test User"},
+        )
+        assert response.status_code == 422
 
 
 def test_login_success() -> None:
@@ -390,6 +407,7 @@ def test_reset_password_success() -> None:
     mock_user = MagicMock(spec=User)
     mock_user.id = 42
     mock_user.email = "reset@example.com"
+    mock_user.hashed_password = "old_hashed_password"
 
     class MockExecuteResult:
         def scalars(self) -> Any:
@@ -404,13 +422,48 @@ def test_reset_password_success() -> None:
 
     app.dependency_overrides[get_db] = override_get_db
     try:
-        client = TestClient(app)
-        response = client.post(
-            "/api/v1/auth/reset-password",
-            json={"token": token, "new_password": "newsecurepassword123"},
-        )
-        assert response.status_code == 200
-        assert response.json() == {"status": "success", "message": "Password reset successfully"}
+        with patch("app.api.v1.endpoints.auth.verify_password", return_value=False):
+            client = TestClient(app)
+            response = client.post(
+                "/api/v1/auth/reset-password",
+                json={"token": token, "new_password": "NewSecureP@ssword123"},
+            )
+            assert response.status_code == 200
+            assert response.json() == {"status": "success", "message": "Password reset successfully"}
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_reset_password_same_as_old_password_fails() -> None:
+    from app.core.security_utils import create_password_reset_token
+    token = create_password_reset_token("reset@example.com")
+
+    mock_user = MagicMock(spec=User)
+    mock_user.id = 42
+    mock_user.email = "reset@example.com"
+    mock_user.hashed_password = "old_hashed_password"
+
+    class MockExecuteResult:
+        def scalars(self) -> Any:
+            mock_scalar = MagicMock()
+            mock_scalar.first.return_value = mock_user
+            return mock_scalar
+
+    async def override_get_db() -> AsyncGenerator[Any, None]:
+        db = _mock_db_with_add()
+        db.execute.return_value = MockExecuteResult()
+        yield db
+
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        with patch("app.api.v1.endpoints.auth.verify_password", return_value=True):
+            client = TestClient(app)
+            response = client.post(
+                "/api/v1/auth/reset-password",
+                json={"token": token, "new_password": "OldSecureP@ssword123"},
+            )
+            assert response.status_code == 400
+            assert response.json()["detail"] == "New password cannot be the same as your old password"
     finally:
         app.dependency_overrides.clear()
 
@@ -443,7 +496,7 @@ def test_update_me_success() -> None:
             client.headers.update({"Authorization": "Bearer some_access_token"})
             response = client.put(
                 "/api/v1/auth/me",
-                json={"full_name": "Updated Name", "password": "newpassword123"},
+                json={"full_name": "Updated Name", "password": "NewSecureP@ssword123"},
             )
             assert response.status_code == 200
             assert response.json()["full_name"] == "Updated Name"
