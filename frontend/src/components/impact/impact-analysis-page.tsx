@@ -5,6 +5,7 @@ import { AlertCircle, FlaskConical, GitGraph, RefreshCw, Send, ShieldAlert } fro
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { FormEvent, useEffect, useId, useMemo, useState } from "react";
+import { TermTooltip } from "@/components/ui/term-tooltip";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -187,7 +188,13 @@ export function ImpactAnalysisPage({
       <div className="flex flex-col gap-4 border-b border-border pb-6 md:flex-row md:items-end md:justify-between">
         <div>
           <Badge tone="info">Impact</Badge>
-          <h1 className="mt-3 text-3xl font-semibold md:text-4xl">Impact analysis</h1>
+          <div className="mt-3">
+            <TermTooltip
+              description="Predicts the blast radius of proposed file changes across dependencies, call graphs, and historical co-changes."
+            >
+              <h1 className="text-3xl font-semibold md:text-4xl">Impact analysis</h1>
+            </TermTooltip>
+          </div>
           <p className="mt-3 max-w-3xl text-sm leading-6 text-muted">
             Predict likely impacted files from changed paths, a raw diff, or a base/head
             comparison.

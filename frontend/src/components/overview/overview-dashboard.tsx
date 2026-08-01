@@ -13,6 +13,7 @@ import {
   ShieldAlert,
 } from "lucide-react";
 import Link from "next/link";
+import { TermTooltip } from "@/components/ui/term-tooltip";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -58,9 +59,13 @@ export function OverviewDashboard() {
       <div className="flex flex-col gap-4 border-b border-border pb-6 md:flex-row md:items-end md:justify-between">
         <div>
           <Badge tone="info">Overview</Badge>
-          <h1 className="mt-3 text-3xl font-semibold md:text-4xl">
-            RepoLens dashboard
-          </h1>
+          <div className="mt-3">
+            <TermTooltip
+              description="Central command hub for managing repositories, code structure indexing, dependency graphs, and automated risk insights."
+            >
+              <h1 className="text-3xl font-semibold md:text-4xl">RepoLens dashboard</h1>
+            </TermTooltip>
+          </div>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">
             Register repositories, inspect indexing state, and choose the next analysis
             workflow.

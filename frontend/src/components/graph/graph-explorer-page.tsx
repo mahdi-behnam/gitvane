@@ -16,6 +16,7 @@ import { AlertCircle, Filter, FlaskConical, GitGraph, RefreshCw, Search, ShieldA
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { TermTooltip } from "@/components/ui/term-tooltip";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -179,7 +180,13 @@ export function GraphExplorerPage({
       <div className="flex flex-col gap-4 border-b border-border pb-6 md:flex-row md:items-end md:justify-between">
         <div>
           <Badge tone="info">Graph</Badge>
-          <h1 className="mt-3 text-3xl font-semibold md:text-4xl">Dependency graph</h1>
+          <div className="mt-3">
+            <TermTooltip
+              description="Visualizes code entities (functions, classes, modules) and their structural dependencies across the repository."
+            >
+              <h1 className="text-3xl font-semibold md:text-4xl">Dependency graph</h1>
+            </TermTooltip>
+          </div>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">
             Inspect repository files as dependency nodes, filter the visible subgraph,
             and select a file to review neighbors.

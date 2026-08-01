@@ -14,6 +14,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { TermTooltip } from "@/components/ui/term-tooltip";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -147,7 +148,13 @@ export function RiskDashboardPage({
       <div className="flex flex-col gap-4 border-b border-border pb-6 md:flex-row md:items-end md:justify-between">
         <div>
           <Badge tone="warning">Risk</Badge>
-          <h1 className="mt-3 text-3xl font-semibold md:text-4xl">Risk ranking</h1>
+          <div className="mt-3">
+            <TermTooltip
+              description="Evaluates code churn frequency, cyclomatic complexity, and dependency fan-in to highlight high-risk repository files."
+            >
+              <h1 className="text-3xl font-semibold md:text-4xl">Risk ranking</h1>
+            </TermTooltip>
+          </div>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">
             Review heuristic file-level risk scores, component signals, and reasons from
             the current repository index.

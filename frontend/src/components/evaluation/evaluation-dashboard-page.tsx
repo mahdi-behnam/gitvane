@@ -13,6 +13,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { TermTooltip } from "@/components/ui/term-tooltip";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -141,9 +142,13 @@ export function EvaluationDashboardPage({ repositoryId }: { repositoryId: string
       <div className="flex flex-col gap-4 border-b border-border pb-6 md:flex-row md:items-end md:justify-between">
         <div>
           <Badge tone="info">Evaluation</Badge>
-          <h1 className="mt-3 text-3xl font-semibold md:text-4xl">
-            Evaluation dashboard
-          </h1>
+          <div className="mt-3">
+            <TermTooltip
+              description="Evaluates test suite generation, code retrieval, and static analysis accuracy against benchmark tasks."
+            >
+              <h1 className="text-3xl font-semibold md:text-4xl">Evaluation dashboard</h1>
+            </TermTooltip>
+          </div>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">
             Run historical prediction evaluations, inspect status manually, and review
             reported quality metrics when the backend has generated them.
