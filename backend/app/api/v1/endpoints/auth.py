@@ -462,7 +462,7 @@ async def forgot_password(
         return {"message": "If your email is registered, you will receive a password reset link."}
 
     token = create_password_reset_token(user.email)
-    reset_url = f"http://localhost:3000/reset-password?token={token}"
+    reset_url = f"{settings.PASSWORD_RESET_URL}?token={token}"
 
     import logging
     logger = logging.getLogger("repolens")

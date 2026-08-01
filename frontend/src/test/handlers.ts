@@ -154,7 +154,7 @@ export const handlers = [
     const body = (await request.json()) as { email: string };
     return HttpResponse.json({
       message: "Password reset email sent (dev mode)",
-      reset_url: `http://localhost:3000/reset-password?token=mocked-token-for-${encodeURIComponent(body.email)}`,
+      reset_url: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/reset-password?token=mocked-token-for-${encodeURIComponent(body.email)}`,
     });
   }),
   http.post(`${apiBaseUrl}/auth/reset-password`, () =>

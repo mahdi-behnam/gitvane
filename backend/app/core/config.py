@@ -59,6 +59,8 @@ class Settings(BaseSettings):
     IMPACT_RISK_WEIGHT: float = 0.10
 
     FRONTEND_URL: str = "http://localhost:3000/auth/callback"
+    FRONTEND_BASE_URL: str = "http://localhost:3000"
+    PASSWORD_RESET_URL: str = "http://localhost:3000/reset-password"
     JWT_SECRET_KEY: str = ""
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
