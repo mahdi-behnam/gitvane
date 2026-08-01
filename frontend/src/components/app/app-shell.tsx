@@ -131,7 +131,13 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [logout] = useLogoutMutation();
   const [isInitializing, setIsInitializing] = useState(true);
 
-  const isAuthPage = ["/login", "/signup", "/auth/callback"].includes(pathname);
+  const isAuthPage = [
+    "/login",
+    "/signup",
+    "/forgot-password",
+    "/reset-password",
+    "/auth/callback",
+  ].includes(pathname);
 
   useEffect(() => {
     if (isAuthPage) {

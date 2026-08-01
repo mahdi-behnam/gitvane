@@ -6,8 +6,9 @@ export function middleware(request: NextRequest) {
   const isLoggedIn = isLoggedInCookie?.value === "true";
   const { pathname } = request.nextUrl;
 
-  // If the cookie is present and path matches /login or /signup, redirect to /repositories
-  if (isLoggedIn && (pathname === "/login" || pathname === "/signup")) {
+  // If the cookie is present and path matches auth pages, redirect to /repositories
+  const authRoutes = ["/login", "/signup", "/forgot-password", "/reset-password"];
+  if (isLoggedIn && authRoutes.includes(pathname)) {
     return NextResponse.redirect(new URL("/repositories", request.url));
   }
 
@@ -53,6 +54,8 @@ export const config = {
   matcher: [
     "/login",
     "/signup",
+    "/forgot-password",
+    "/reset-password",
     "/repositories",
     "/repositories/:path*",
     "/settings",
