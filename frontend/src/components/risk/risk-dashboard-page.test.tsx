@@ -76,7 +76,7 @@ describe("RiskDashboardPage", () => {
     expect(
       screen.getByText("backend/app/services/indexing_service.py"),
     ).toBeInTheDocument();
-    expect(screen.getAllByText("0.870").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("87.0%").length).toBeGreaterThan(0);
     expect(screen.getAllByText("dependency").length).toBeGreaterThan(0);
     expect(screen.getByText(/High dependency fan-in\./)).toBeInTheDocument();
     expect(screen.getByText("Heuristic score")).toBeInTheDocument();

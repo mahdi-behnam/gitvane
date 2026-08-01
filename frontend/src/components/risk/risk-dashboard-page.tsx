@@ -369,14 +369,14 @@ function RiskSummary({
               value={String(files.length)}
             />
             <Metric
-              description="Mean calculated risk score across all evaluated repository files (range 0.0 to 1.0)."
+              description="Mean calculated risk percentage across all evaluated repository files."
               label="Average"
-              value={averageRisk.toFixed(3)}
+              value={`${(averageRisk * 100).toFixed(1)}%`}
             />
             <Metric
-              description="Risk score of the most critical file identified in the current index."
+              description="Risk percentage of the most critical file identified in the current index."
               label="Highest"
-              value={highestRisk.risk_score.toFixed(3)}
+              value={`${(highestRisk.risk_score * 100).toFixed(1)}%`}
             />
           </div>
           <div className="mt-5 space-y-3">
@@ -392,7 +392,7 @@ function RiskSummary({
                   <div className="space-y-1" key={component.name}>
                     <div className="flex justify-between gap-3 text-xs">
                       <TermTooltip description={info.desc} term={info.label} />
-                      <span className="font-mono">{component.value.toFixed(3)}</span>
+                      <span className="font-mono">{(component.value * 100).toFixed(1)}%</span>
                     </div>
                     <div className="h-2 rounded-sm bg-panel-muted">
                       <div
@@ -534,7 +534,7 @@ function RiskTable({
                   </div>
                 </TableCell>
                 <TableCell className="text-right font-mono text-sm font-semibold">
-                  {file.risk_score.toFixed(3)}
+                  {(file.risk_score * 100).toFixed(1)}%
                 </TableCell>
                 <TableCell>
                   <ComponentDetails components={file.components} />
@@ -585,6 +585,10 @@ const COMPONENT_DESCRIPTIONS: Record<string, { label: string; desc: string }> = 
     label: "fan_out",
     desc: "Number of outgoing dependencies (modules imported by this file). High fan-out makes this file sensitive to external changes.",
   },
+  centrality: {
+    label: "centrality",
+    desc: "Graph centrality score measuring how critical this node is as an architectural hub connecting multiple components.",
+  },
   complexity: {
     label: "complexity",
     desc: "Cyclomatic decision pathway complexity. Highly complex control flows are prone to subtle bugs.",
@@ -596,6 +600,10 @@ const COMPONENT_DESCRIPTIONS: Record<string, { label: string; desc: string }> = 
   dependency: {
     label: "dependency",
     desc: "Structural coupling strength in the repository dependency graph.",
+  },
+  risk: {
+    label: "risk",
+    desc: "Overall heuristic risk score combining structural metrics and churn history.",
   },
 };
 
@@ -618,7 +626,7 @@ function ComponentDetails({ components }: { components: Record<string, number> }
           <div className="space-y-1" key={name}>
             <div className="flex justify-between gap-3 text-xs">
               <TermTooltip description={info.desc} term={info.label} />
-              <span className="font-mono">{value.toFixed(3)}</span>
+              <span className="font-mono">{(value * 100).toFixed(1)}%</span>
             </div>
             <div className="h-1.5 rounded-sm bg-panel-muted">
               <div

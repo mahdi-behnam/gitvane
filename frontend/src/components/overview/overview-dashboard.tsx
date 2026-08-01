@@ -313,7 +313,7 @@ function RiskInsightCard({
                 {highestRisk.path}
               </span>
               <span className="font-mono text-xs font-semibold">
-                {highestRisk.risk_score.toFixed(2)}
+                {(highestRisk.risk_score * 100).toFixed(1)}%
               </span>
             </div>
             <Button asChild size="sm">
