@@ -40,6 +40,15 @@ const evaluationMethods: EvaluationMethod[] = [
   "cochange_only",
 ];
 
+const METHOD_DESCRIPTIONS: Record<string, string> = {
+  hybrid: "Combines structural dependency graph, semantic text embeddings, and historical git co-changes into a weighted ensemble score.",
+  dependency_only: "Evaluates downstream impact purely based on AST module imports and dependency graph traversal.",
+  semantic_only: "Evaluates code relevance purely using natural language vector embeddings and semantic similarity.",
+  cochange_only: "Evaluates impact purely based on historical git commit co-modification frequency.",
+  method: "Analysis technique or algorithm variant tested in this evaluation run.",
+  methods: "Collection of analysis techniques and algorithm variants evaluated in this benchmark run.",
+};
+
 function parseKValues(value: string) {
   return value
     .split(",")
@@ -178,7 +187,10 @@ export function EvaluationDashboardPage({ repositoryId }: { repositoryId: string
                   className="block text-sm font-medium"
                   htmlFor="evaluation-commit-limit"
                 >
-                  Commit limit
+                  <TermTooltip
+                    description="Maximum number of historical git commits evaluated during this benchmark run."
+                    term="Commit limit"
+                  />
                 </label>
                 <Input
                   id="evaluation-commit-limit"
@@ -193,7 +205,10 @@ export function EvaluationDashboardPage({ repositoryId }: { repositoryId: string
                   className="block text-sm font-medium"
                   htmlFor="evaluation-k-values"
                 >
-                  K values
+                  <TermTooltip
+                    description="Comma-separated rank cutoffs (e.g. 5, 10, 20) used to calculate Recall@K and Precision@K."
+                    term="K values"
+                  />
                 </label>
                 <Input
                   id="evaluation-k-values"
@@ -204,22 +219,30 @@ export function EvaluationDashboardPage({ repositoryId }: { repositoryId: string
             </div>
 
             <div className="space-y-2">
-              <p className="text-sm font-medium">Methods</p>
+              <div className="text-sm font-medium">
+                <TermTooltip
+                  description="Analysis algorithms and model variants tested during this evaluation run."
+                  term="Methods"
+                />
+              </div>
               <div className="flex flex-wrap gap-2">
-                {evaluationMethods.map((method) => (
-                  <label
-                    className="flex h-9 items-center gap-2 rounded-md border border-border bg-panel px-3 text-sm"
-                    key={method}
-                  >
-                    <input
-                      checked={methods.includes(method)}
-                      className="size-4 rounded border-border text-primary focus:ring-primary"
-                      onChange={() => toggleMethod(method)}
-                      type="checkbox"
-                    />
-                    {method}
-                  </label>
-                ))}
+                {evaluationMethods.map((method) => {
+                  const desc = METHOD_DESCRIPTIONS[method] || `Evaluation algorithm: ${method}`;
+                  return (
+                    <label
+                      className="flex h-9 items-center gap-2 rounded-md border border-border bg-panel px-3 text-sm"
+                      key={method}
+                    >
+                      <input
+                        checked={methods.includes(method)}
+                        className="size-4 rounded border-border text-primary focus:ring-primary"
+                        onChange={() => toggleMethod(method)}
+                        type="checkbox"
+                      />
+                      <TermTooltip description={desc} term={method} />
+                    </label>
+                  );
+                })}
               </div>
             </div>
 
@@ -246,6 +269,9 @@ export function EvaluationDashboardPage({ repositoryId }: { repositoryId: string
       <Card>
         <CardHeader>
           <h2 className="text-sm font-semibold">Manual refresh</h2>
+          <p className="mt-1 text-xs text-muted">
+            Look up an evaluation run by its ID or refresh execution status for the active benchmark.
+          </p>
         </CardHeader>
         <CardContent>
           <div className="grid gap-3 md:grid-cols-[1fr_auto_auto]">
@@ -361,16 +387,24 @@ function EvaluationStatusCard({ status }: { status: EvaluationStatusResponse }) 
           <Notice tone="danger">{status.error_message}</Notice>
         ) : null}
         <div>
-          <h3 className="text-sm font-semibold">Methods</h3>
+          <h3 className="text-sm font-semibold">
+            <TermTooltip
+              description="Collection of analysis techniques and algorithm variants evaluated in this benchmark run."
+              term="Methods"
+            />
+          </h3>
           <div className="mt-2 flex flex-wrap gap-2">
-            {status.methods.map((method) => (
-              <span
-                className="rounded-md border border-border bg-panel-muted px-2 py-1 font-mono text-xs text-muted"
-                key={method}
-              >
-                {method}
-              </span>
-            ))}
+            {status.methods.map((method) => {
+              const desc = METHOD_DESCRIPTIONS[method] || `Evaluation algorithm: ${method}`;
+              return (
+                <span
+                  className="rounded-md border border-border bg-panel-muted px-2 py-1 font-mono text-xs text-muted"
+                  key={method}
+                >
+                  <TermTooltip description={desc} term={method} />
+                </span>
+              );
+            })}
           </div>
         </div>
       </CardContent>
