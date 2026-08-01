@@ -31,8 +31,11 @@ export function useIndexingSSE({
   token,
 }: UseIndexingSSEOptions) {
   const { notify } = useToast();
+  const isIndexingStatus = (st?: string | null) =>
+    Boolean(st && ["indexing", "indexing_queued", "queued", "cloning"].includes(st));
+
   const [progress, setProgress] = useState<IndexingProgressEvent | null>(() => {
-    if (initialProgress && initialProgress.status === "indexing") {
+    if (initialProgress && isIndexingStatus(initialProgress.status)) {
       return initialProgress;
     }
     if (enabled && repositoryId !== null && repositoryId !== "") {
@@ -81,7 +84,7 @@ export function useIndexingSSE({
     if (enabled && wasDisabled) {
       isCompletedRef.current = false;
       toastFiredRef.current = null;
-      if (initialProgress && initialProgress.status === "indexing") {
+      if (initialProgress && isIndexingStatus(initialProgress.status)) {
         setProgress(initialProgress);
       } else if (repositoryId !== null && repositoryId !== "") {
         setProgress({

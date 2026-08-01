@@ -71,7 +71,8 @@ function RepositoryStatusCell({
   repository: Repository;
 }) {
   const token = useAppSelector((state) => state.auth.accessToken);
-  const isIndexing = repository.status === "indexing" || isLocallyIndexing;
+  const indexingStatuses = ["indexing", "indexing_queued", "queued", "cloning"];
+  const isIndexing = indexingStatuses.includes(repository.status) || isLocallyIndexing;
 
   const initialProgress = (repository.repo_metadata?.indexing_progress as
     | IndexingProgressEvent
@@ -188,14 +189,15 @@ export function RepositoryManagementPage() {
       // 2. Status Filter
       if (statusFilter !== "all") {
         const isIndexing =
-          repository.status === "indexing" || Boolean(activeIndexingIds[repository.id]);
+          ["indexing", "indexing_queued", "queued", "cloning"].includes(repository.status) ||
+          Boolean(activeIndexingIds[repository.id]);
 
         if (statusFilter === "ready") {
           if (repository.status !== "ready" && repository.status !== "indexed") return false;
         } else if (statusFilter === "indexing") {
           if (!isIndexing) return false;
         } else if (statusFilter === "failed") {
-          if (repository.status !== "failed" && repository.status !== "error") return false;
+          if (repository.status !== "failed" && repository.status !== "error" && repository.status !== "index_failed") return false;
         }
       }
 
@@ -428,7 +430,9 @@ function RepositoryRowActions({
   const [deleteRepository, deleteState] = useDeleteRepositoryMutation();
 
   const isIndexingActive =
-    repository.status === "indexing" || isLocallyIndexing || indexState.isLoading;
+    ["indexing", "indexing_queued", "queued", "cloning"].includes(repository.status) ||
+    isLocallyIndexing ||
+    indexState.isLoading;
 
   const indexError = indexState.error
     ? normalizeApiError(indexState.error).message
