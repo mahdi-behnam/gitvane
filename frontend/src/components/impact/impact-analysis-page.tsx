@@ -68,7 +68,7 @@ export function ImpactAnalysisPage({
   const formId = useId();
   const [mode, setMode] = useState<InputMode>("changed_files");
   const [changedFiles, setChangedFiles] = useState(
-    pathParam || "backend/app/services/indexing_service.py",
+    pathParam || "",
   );
   const [rawDiff, setRawDiff] = useState("");
   const [baseRef, setBaseRef] = useState("");
@@ -238,6 +238,7 @@ export function ImpactAnalysisPage({
                     <Textarea
                       id={`${formId}-changed-files`}
                       onChange={(event) => setChangedFiles(event.target.value)}
+                      placeholder="e.g. src/auth/service.ts, src/components/Header.tsx"
                       value={changedFiles}
                     />
                   </>
@@ -253,7 +254,7 @@ export function ImpactAnalysisPage({
                     <Textarea
                       id={`${formId}-raw-diff`}
                       onChange={(event) => setRawDiff(event.target.value)}
-                      placeholder="diff --git a/file.ts b/file.ts"
+                      placeholder="diff --git a/src/app.ts b/src/app.ts ..."
                       value={rawDiff}
                     />
                   </>
@@ -270,7 +271,7 @@ export function ImpactAnalysisPage({
                       <Input
                         id={`${formId}-base-ref`}
                         onChange={(event) => setBaseRef(event.target.value)}
-                        placeholder="main"
+                        placeholder="e.g. main"
                         value={baseRef}
                       />
                     </div>
@@ -284,7 +285,7 @@ export function ImpactAnalysisPage({
                       <Input
                         id={`${formId}-head-ref`}
                         onChange={(event) => setHeadRef(event.target.value)}
-                        placeholder="development"
+                        placeholder="e.g. feature-branch"
                         value={headRef}
                       />
                     </div>
@@ -381,7 +382,7 @@ export function ImpactAnalysisPage({
             <Input
               aria-label="Analysis run ID"
               onChange={(event) => setAnalysisRunId(event.target.value)}
-              placeholder="Analysis run ID"
+              placeholder="e.g. 42"
               value={analysisRunId}
             />
             <Button

@@ -51,7 +51,7 @@ export function TestRecommendationsPage({
 
   const formId = useId();
   const [changedFiles, setChangedFiles] = useState(
-    pathParam || "backend/app/services/indexing_service.py",
+    pathParam || "",
   );
   const [impactedFiles, setImpactedFiles] = useState("");
   const [topK, setTopK] = useState(10);
@@ -169,7 +169,7 @@ export function TestRecommendationsPage({
                     setChangedFiles(event.target.value);
                     setClientError(null);
                   }}
-                  placeholder="backend/app/services/indexing_service.py"
+                  placeholder="e.g. src/auth/service.ts"
                   value={changedFiles}
                 />
                 <p className="text-xs leading-5 text-muted">
@@ -186,7 +186,7 @@ export function TestRecommendationsPage({
                 <Textarea
                   id={`${formId}-impacted-files`}
                   onChange={(event) => setImpactedFiles(event.target.value)}
-                  placeholder="backend/app/api/v1/endpoints/indexing.py"
+                  placeholder="e.g. src/api/routes.ts"
                   value={impactedFiles}
                 />
                 <p className="text-xs leading-5 text-muted">

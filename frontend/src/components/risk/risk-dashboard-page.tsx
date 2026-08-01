@@ -207,7 +207,7 @@ export function RiskDashboardPage({
                     search: event.target.value,
                   }))
                 }
-                placeholder="indexing_service.py"
+                placeholder="e.g. src/auth/service.py"
                 value={draftFilters.search}
               />
             </div>
@@ -223,7 +223,7 @@ export function RiskDashboardPage({
                     language: event.target.value,
                   }))
                 }
-                placeholder="python"
+                placeholder="e.g. python, typescript, go"
                 value={draftFilters.language}
               />
             </div>

@@ -265,7 +265,7 @@ export function GraphExplorerPage({
                     language: event.target.value,
                   }))
                 }
-                placeholder="python"
+                placeholder="e.g. python, typescript, go"
                 value={draftFilters.language}
               />
             </div>
@@ -281,7 +281,7 @@ export function GraphExplorerPage({
                     search: event.target.value,
                   }))
                 }
-                placeholder="indexing_service"
+                placeholder="e.g. auth_service or src/api"
                 value={draftFilters.search}
               />
             </div>

@@ -58,7 +58,7 @@ function parseKValues(value: string) {
 
 export function EvaluationDashboardPage({ repositoryId }: { repositoryId: string }) {
   const validRepositoryId = typeof repositoryId === "string" && repositoryId.trim() !== "" ? repositoryId : null;
-  const [name, setName] = useState("Repository evaluation");
+  const [name, setName] = useState("Benchmark run");
   const [commitLimit, setCommitLimit] = useState(50);
   const [kValues, setKValues] = useState("5,10,20");
   const [methods, setMethods] = useState<EvaluationMethod[]>(["hybrid"]);
@@ -85,14 +85,19 @@ export function EvaluationDashboardPage({ repositoryId }: { repositoryId: string
       return;
     }
 
-    if (methods.length === 0) {
-      setClientError("Select at least one evaluation method.");
+    if (!name.trim()) {
+      setClientError("Evaluation run name cannot be empty.");
       return;
     }
 
     const parsedKValues = parseKValues(kValues);
     if (parsedKValues.length === 0) {
-      setClientError("Enter at least one positive k value.");
+      setClientError("Enter at least one positive integer for K values.");
+      return;
+    }
+
+    if (methods.length === 0) {
+      setClientError("Select at least one evaluation method.");
       return;
     }
 
@@ -102,46 +107,50 @@ export function EvaluationDashboardPage({ repositoryId }: { repositoryId: string
         commit_limit: commitLimit,
         k_values: parsedKValues,
         methods,
-        name: name.trim() || undefined,
+        name: name.trim(),
         repository_id: validRepositoryId,
       }).unwrap();
+
       setActiveRunId(response.evaluation_run_id);
-      setLookupRunId(String(response.evaluation_run_id));
-    } catch {
-      // The normalized API message is rendered from mutation state.
+    } catch (err: unknown) {
+      console.error("Failed to run evaluation:", err);
     }
   };
 
   const handleLookup = () => {
-    const parsedRunId = Number(lookupRunId);
-    if (!Number.isInteger(parsedRunId) || parsedRunId <= 0) {
-      setClientError("Enter a valid evaluation run ID.");
+    const runId = Number(lookupRunId.trim());
+    if (!Number.isInteger(runId) || runId <= 0) {
+      setClientError("Enter a valid numeric evaluation run ID.");
       return;
     }
 
     setClientError(null);
-    setActiveRunId(parsedRunId);
+    setActiveRunId(runId);
   };
 
-  const toggleMethod = (method: EvaluationMethod) => {
-    setMethods((current) =>
-      current.includes(method)
-        ? current.filter((currentMethod) => currentMethod !== method)
-        : [...current, method],
-    );
-  };
-
-  const apiError =
-    (runState.error && normalizeApiError(runState.error).message) ||
-    (status.error && normalizeApiError(status.error).message) ||
-    (report.error && normalizeApiError(report.error).message) ||
-    null;
+  const apiError = runState.error ? normalizeApiError(runState.error).message : null;
   const error = clientError ?? apiError;
 
   if (!validRepositoryId) {
     return (
       <EmptyState
         description="The repository identifier in the route is not valid."
+        title="Repository not found"
+      />
+    );
+  }
+
+  if (repository.error) {
+    return (
+      <EmptyState
+        action={
+          <Button onClick={() => void repository.refetch()} type="button">
+            <RefreshCw aria-hidden="true" className="size-4" />
+            Try again
+          </Button>
+        }
+        description={normalizeApiError(repository.error).message}
+        icon={<AlertCircle aria-hidden="true" className="size-5" />}
         title="Repository not found"
       />
     );
@@ -179,6 +188,7 @@ export function EvaluationDashboardPage({ repositoryId }: { repositoryId: string
                 <Input
                   id="evaluation-name"
                   onChange={(event) => setName(event.target.value)}
+                  placeholder="e.g. Benchmark run 1"
                   value={name}
                 />
               </div>
@@ -282,7 +292,7 @@ export function EvaluationDashboardPage({ repositoryId }: { repositoryId: string
               <Input
                 id="evaluation-run-id"
                 onChange={(event) => setLookupRunId(event.target.value)}
-                placeholder="42"
+                placeholder="e.g. 42"
                 value={lookupRunId}
               />
             </div>

@@ -139,7 +139,7 @@ export function SemanticSearchPage({
                   setQuery(event.target.value);
                   setClientError(null);
                 }}
-                placeholder="Where is repository indexing triggered?"
+                placeholder="e.g. How are authentication tokens validated?"
                 value={query}
               />
             </div>
