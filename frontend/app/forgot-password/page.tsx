@@ -80,7 +80,7 @@ export default function ForgotPasswordPage() {
           <div className="mt-8 pt-6 border-t border-border/60">
             <h3 className="font-mono text-xs uppercase tracking-[0.12em] text-muted">Security First</h3>
             <p className="mt-2 text-xs leading-5 text-muted">
-              Password reset links expire automatically for your security. Make sure to check your inbox or dev notifications.
+              Password reset links expire automatically for your security. Please check your inbox and spam folder for instructions.
             </p>
           </div>
         </div>

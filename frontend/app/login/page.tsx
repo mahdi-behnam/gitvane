@@ -80,9 +80,9 @@ export default function LoginPage() {
           </div>
           
           <div className="mt-8 pt-6 border-t border-border/60">
-            <h3 className="font-mono text-xs uppercase tracking-[0.12em] text-muted">Aesthetics & Engine</h3>
+            <h3 className="font-mono text-xs uppercase tracking-[0.12em] text-muted">Repository Intelligence</h3>
             <p className="mt-2 text-xs leading-5 text-muted">
-              Designed with a premium minimalist aesthetic. Features HSL layout styling, full dark mode support, and an advanced static analysis backend.
+              Automated codebase indexer, architecture visualizer, impact risk scorer, and semantic analysis engine.
             </p>
           </div>
         </div>
@@ -116,17 +116,9 @@ export default function LoginPage() {
               </div>
 
               <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="block text-xs font-medium text-muted" htmlFor="password">
-                    Password
-                  </label>
-                  <Link
-                    href="/forgot-password"
-                    className="text-xs text-muted hover:text-foreground underline"
-                  >
-                    Forgot password?
-                  </Link>
-                </div>
+                <label className="block text-xs font-medium text-muted mb-1.5" htmlFor="password">
+                  Password
+                </label>
                 <Input
                   id="password"
                   type="password"
@@ -136,6 +128,14 @@ export default function LoginPage() {
                   disabled={isLoggingIn || isFetchingMe}
                   required
                 />
+                <div className="mt-1.5 text-right">
+                  <Link
+                    href="/forgot-password"
+                    className="text-xs text-muted hover:text-foreground underline"
+                  >
+                    Forgot password?
+                  </Link>
+                </div>
               </div>
 
               <Button

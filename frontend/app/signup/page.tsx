@@ -96,9 +96,9 @@ export default function SignupPage() {
           </div>
           
           <div className="mt-8 pt-6 border-t border-border/60">
-            <h3 className="font-mono text-xs uppercase tracking-[0.12em] text-muted">Aesthetics & Engine</h3>
+            <h3 className="font-mono text-xs uppercase tracking-[0.12em] text-muted">Repository Intelligence</h3>
             <p className="mt-2 text-xs leading-5 text-muted">
-              Designed with a premium minimalist aesthetic. Features HSL layout styling, full dark mode support, and an advanced static analysis backend.
+              Automated codebase indexer, architecture visualizer, impact risk scorer, and semantic analysis engine.
             </p>
           </div>
         </div>

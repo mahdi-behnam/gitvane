@@ -29,7 +29,7 @@ function ResetPasswordForm() {
     setErrorMsg(null);
 
     if (!token) {
-      setErrorMsg("Missing or invalid password reset token. Please request a new password reset link.");
+      setErrorMsg("Missing or invalid password reset link. Please request a new link.");
       return;
     }
 
@@ -76,7 +76,7 @@ function ResetPasswordForm() {
         {!token && (
           <div className="mt-6">
             <Notice tone="danger" className="text-xs">
-              No reset token found in URL. Please check your reset email or request a new password reset.
+              Invalid or missing reset link. Please check your email or request a new password reset link.
             </Notice>
             <div className="mt-4">
               <Button asChild variant="secondary" className="w-full">
@@ -190,9 +190,9 @@ export default function ResetPasswordPage() {
           </div>
           
           <div className="mt-8 pt-6 border-t border-border/60">
-            <h3 className="font-mono text-xs uppercase tracking-[0.12em] text-muted">Token Verification</h3>
+            <h3 className="font-mono text-xs uppercase tracking-[0.12em] text-muted">Session Security</h3>
             <p className="mt-2 text-xs leading-5 text-muted">
-              Once reset, all active sessions and refresh tokens associated with your account will be revoked automatically.
+              Once reset, all active sessions associated with your account will be signed out automatically.
             </p>
           </div>
         </div>
@@ -200,7 +200,7 @@ export default function ResetPasswordPage() {
         {/* Right Bento: Form Card wrapped in Suspense */}
         <Suspense fallback={
           <div className="flex flex-col justify-center items-center rounded-lg border border-border bg-panel p-8 min-h-[300px]">
-            <p className="text-xs text-muted">Loading reset token...</p>
+            <p className="text-xs text-muted">Loading reset link...</p>
           </div>
         }>
           <ResetPasswordForm />
