@@ -206,6 +206,7 @@ export function RiskDashboardPage({
                 type="number"
                 value={draftFilters.topK}
               />
+            </div>
             <div className="space-y-2">
               <label className="block text-sm font-medium" htmlFor="risk-search">
                 File search
