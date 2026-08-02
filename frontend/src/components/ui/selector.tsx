@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { Check, ChevronDown, Loader2, Search, X } from "lucide-react";
-import { cn } from "@/lib/utils/cn";
+import { cn } from "@/lib/utils";
 
 export type SelectorOption = {
   badge?: string;
