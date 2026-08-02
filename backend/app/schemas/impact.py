@@ -82,3 +82,12 @@ class ImpactRunResponse(BaseModel):
     changed_files: list[dict[str, Any]]
     changed_symbols: list[dict[str, Any]]
     predictions: list[ImpactedFileOut]
+
+
+class ImpactRunListItem(BaseModel):
+    analysis_run_id: int
+    input_mode: str
+    status: str
+    changed_files_count: int
+    created_at: str
+

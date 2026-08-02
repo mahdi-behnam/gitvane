@@ -323,3 +323,53 @@ def test_delete_repository_not_found() -> None:
         assert response.status_code == 404
     finally:
         app.dependency_overrides.clear()
+
+
+def test_list_repository_languages_success() -> None:
+    """GET /{id}/languages returns list of distinct languages."""
+    mock_svc = MagicMock()
+    mock_svc.get_repository_or_raise = AsyncMock(return_value=_make_repo())
+    mock_db = MagicMock()
+    mock_res = MagicMock()
+    mock_res.scalars.return_value.all.return_value = ["python", "typescript"]
+    mock_db.execute = AsyncMock(return_value=mock_res)
+
+    app.dependency_overrides[get_db] = lambda: mock_db
+    app.dependency_overrides[get_repository_service] = lambda: mock_svc
+    try:
+        client = TestClient(app)
+        response = client.get(f"/api/v1/repositories/{TEST_UUID}/languages")
+        assert response.status_code == 200
+        assert response.json() == ["python", "typescript"]
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_search_repository_files_success() -> None:
+    """GET /{id}/files/search returns list of matching files."""
+    mock_svc = MagicMock()
+    mock_svc.get_repository_or_raise = AsyncMock(return_value=_make_repo())
+    mock_db = MagicMock()
+    mock_file = MagicMock()
+    mock_file.id = 1
+    mock_file.path = "src/auth.py"
+    mock_file.language = "python"
+    mock_file.loc = 50
+    mock_file.is_test = False
+
+    mock_res = MagicMock()
+    mock_res.scalars.return_value.all.return_value = [mock_file]
+    mock_db.execute = AsyncMock(return_value=mock_res)
+
+    app.dependency_overrides[get_db] = lambda: mock_db
+    app.dependency_overrides[get_repository_service] = lambda: mock_svc
+    try:
+        client = TestClient(app)
+        response = client.get(f"/api/v1/repositories/{TEST_UUID}/files/search?query=auth")
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 1
+        assert data[0]["path"] == "src/auth.py"
+    finally:
+        app.dependency_overrides.clear()
+

@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_db, get_repository_service, get_current_user
 from app.db.models import User
 from app.core.errors import GitOperationError, InvalidPathError, RepositoryNotFoundError
-from app.schemas.repository import RepositoryCreate, RepositoryList, RepositoryOut
+from app.schemas.repository import FileSearchResult, RepositoryCreate, RepositoryList, RepositoryOut
 from app.services.repository_service import RepositoryService
 
 router = APIRouter()
@@ -128,3 +128,71 @@ async def delete_repository(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)
         ) from exc
+
+
+@router.get("/{repository_id}/languages", response_model=list[str])
+async def list_repository_languages(
+    repository_id: UUID,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    svc: Annotated[RepositoryService, Depends(get_repository_service)],
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> list[str]:
+    """Return distinct indexed programming languages for a repository."""
+    try:
+        await svc.get_repository_or_raise(db=db, repository_id=repository_id, owner_id=current_user.id)
+        from sqlalchemy import select
+        from app.db.models import CodeFile
+
+        stmt = (
+            select(CodeFile.language)
+            .where(CodeFile.repository_id == repository_id, CodeFile.language != "")
+            .distinct()
+            .order_by(CodeFile.language)
+        )
+        res = await db.execute(stmt)
+        return list(res.scalars().all())
+    except RepositoryNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)
+        ) from exc
+
+
+@router.get("/{repository_id}/files/search", response_model=list[FileSearchResult])
+async def search_repository_files(
+    repository_id: UUID,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    svc: Annotated[RepositoryService, Depends(get_repository_service)],
+    current_user: Annotated[User, Depends(get_current_user)],
+    query: str = Query("", description="Sub-path query to filter files"),
+    limit: int = Query(50, ge=1, le=200, description="Max matching files to return"),
+) -> list[FileSearchResult]:
+    """Perform fast autocomplete file search in an indexed repository."""
+    try:
+        await svc.get_repository_or_raise(db=db, repository_id=repository_id, owner_id=current_user.id)
+        from sqlalchemy import select
+        from app.db.models import CodeFile
+
+        stmt = select(CodeFile).where(CodeFile.repository_id == repository_id)
+        if query.trim() if hasattr(query, "trim") else query.strip():
+            search_pattern = f"%{query.strip()}%"
+            stmt = stmt.where(CodeFile.path.ilike(search_pattern))
+        stmt = stmt.order_by(CodeFile.path).limit(limit)
+
+        res = await db.execute(stmt)
+        files = res.scalars().all()
+
+        return [
+            FileSearchResult(
+                id=f.id,
+                path=f.path,
+                language=f.language,
+                loc=f.loc,
+                is_test=f.is_test,
+            )
+            for f in files
+        ]
+    except RepositoryNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)
+        ) from exc
+

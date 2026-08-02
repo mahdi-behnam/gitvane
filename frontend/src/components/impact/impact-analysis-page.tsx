@@ -13,6 +13,8 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Input, Textarea } from "@/components/ui/input";
 import { Notice } from "@/components/ui/notice";
 import { Skeleton } from "@/components/ui/skeleton";
+import { FileSelector } from "@/components/ui/file-selector";
+import { Selector, SelectorOption } from "@/components/ui/selector";
 import { normalizeApiError } from "@/lib/api/errors";
 import type {
   ChangedFileInput,
@@ -23,6 +25,7 @@ import type {
 import {
   useGetRepositoryQuery,
   useLazyGetImpactRunQuery,
+  useListImpactRunsQuery,
   useRunImpactAnalysisMutation,
 } from "@/store/api/repolensApi";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -81,8 +84,19 @@ export function ImpactAnalysisPage({
   const [analysisRunId, setAnalysisRunId] = useState("");
   const [clientError, setClientError] = useState<string | null>(null);
   const repository = useGetRepositoryQuery(validRepositoryId ?? skipToken);
+  const impactRunsQuery = useListImpactRunsQuery(validRepositoryId ?? skipToken);
   const [runImpactAnalysis, analysisState] = useRunImpactAnalysisMutation();
   const [lookupRun, lookupState] = useLazyGetImpactRunQuery();
+
+  const impactRunOptions: SelectorOption[] = useMemo(() => {
+    const runs = impactRunsQuery.data ?? [];
+    return runs.map((run) => ({
+      badge: run.status,
+      description: `${run.changed_files_count} file(s) changed • ${run.created_at ? new Date(run.created_at).toLocaleString() : ""}`,
+      label: `Run #${run.analysis_run_id} (${run.input_mode})`,
+      value: String(run.analysis_run_id),
+    }));
+  }, [impactRunsQuery.data]);
   const dispatch = useAppDispatch();
 
   useEffect(() => {
@@ -235,12 +249,18 @@ export function ImpactAnalysisPage({
                     >
                       Changed files
                     </label>
-                    <Textarea
-                      id={`${formId}-changed-files`}
-                      onChange={(event) => setChangedFiles(event.target.value)}
-                      placeholder="e.g. src/auth/service.ts, src/components/Header.tsx"
+                    <FileSelector
+                      mode="multi"
+                      onChange={(val) =>
+                        setChangedFiles(Array.isArray(val) ? val.join("\n") : String(val || ""))
+                      }
+                      placeholder="Select one or more changed files..."
+                      repositoryId={validRepositoryId ?? ""}
                       value={changedFiles}
                     />
+                    <p className="mt-1 text-xs text-muted">
+                      Select files changed in your pull request or commit.
+                    </p>
                   </>
                 ) : null}
                 {mode === "raw_diff" ? (
@@ -376,22 +396,29 @@ export function ImpactAnalysisPage({
       <Card>
         <CardHeader>
           <h2 className="text-sm font-semibold">Run lookup</h2>
+          <p className="mt-1 text-xs text-muted">
+            Select a previous analysis run to inspect its predictions and blast radius.
+          </p>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-3 md:grid-cols-[220px_auto]">
-            <Input
-              aria-label="Analysis run ID"
-              onChange={(event) => setAnalysisRunId(event.target.value)}
-              placeholder="e.g. 42"
+          <div className="grid gap-3 md:grid-cols-[1fr_auto]">
+            <Selector
+              allowCustomValue
+              loading={impactRunsQuery.isFetching}
+              mode="single"
+              onChange={(val) => setAnalysisRunId(String(val || ""))}
+              options={impactRunOptions}
+              placeholder="Select an analysis run..."
+              searchPlaceholder="Search run ID or status..."
               value={analysisRunId}
             />
             <Button
-              disabled={lookupState.isFetching}
+              disabled={lookupState.isFetching || !analysisRunId}
               onClick={handleLookup}
               type="button"
             >
               <RefreshCw aria-hidden="true" className="size-4" />
-              Refresh run
+              Load run
             </Button>
           </div>
         </CardContent>

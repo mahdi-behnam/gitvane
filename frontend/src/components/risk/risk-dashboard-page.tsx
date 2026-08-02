@@ -31,9 +31,12 @@ import {
   TableHeaderCell,
   TableRow,
 } from "@/components/ui/table";
+import { FileSelector } from "@/components/ui/file-selector";
+import { Selector, SelectorOption } from "@/components/ui/selector";
 import { normalizeApiError } from "@/lib/api/errors";
 import type { RiskFile } from "@/lib/api/types";
 import {
+  useGetRepositoryLanguagesQuery,
   useGetRepositoryQuery,
   useGetRepositoryRiskQuery,
 } from "@/store/api/repolensApi";
@@ -74,6 +77,7 @@ export function RiskDashboardPage({
     search: pathParam,
   }));
   const repository = useGetRepositoryQuery(validRepositoryId ?? skipToken);
+  const languagesQuery = useGetRepositoryLanguagesQuery(validRepositoryId ?? skipToken);
   const riskQueryArgs = validRepositoryId
     ? {
         include_tests: appliedFilters.includeTests,
@@ -83,6 +87,14 @@ export function RiskDashboardPage({
       }
     : skipToken;
   const risk = useGetRepositoryRiskQuery(riskQueryArgs);
+
+  const languageOptions: SelectorOption[] = useMemo(() => {
+    const langs = languagesQuery.data ?? [];
+    return [
+      { label: "All languages", value: "" },
+      ...langs.map((lang) => ({ label: lang, value: lang })),
+    ];
+  }, [languagesQuery.data]);
   const dispatch = useAppDispatch();
 
   useEffect(() => {
@@ -194,20 +206,20 @@ export function RiskDashboardPage({
                 type="number"
                 value={draftFilters.topK}
               />
-            </div>
             <div className="space-y-2">
               <label className="block text-sm font-medium" htmlFor="risk-search">
                 File search
               </label>
-              <Input
-                id="risk-search"
-                onChange={(event) =>
+              <FileSelector
+                mode="single"
+                onChange={(val) =>
                   setDraftFilters((current) => ({
                     ...current,
-                    search: event.target.value,
+                    search: String(val || ""),
                   }))
                 }
-                placeholder="e.g. src/auth/service.py"
+                placeholder="All files (select path...)"
+                repositoryId={validRepositoryId ?? ""}
                 value={draftFilters.search}
               />
             </div>
@@ -215,15 +227,19 @@ export function RiskDashboardPage({
               <label className="block text-sm font-medium" htmlFor="risk-language">
                 Language filter
               </label>
-              <Input
-                id="risk-language"
-                onChange={(event) =>
+              <Selector
+                allowCustomValue
+                loading={languagesQuery.isFetching}
+                mode="single"
+                onChange={(val) =>
                   setDraftFilters((current) => ({
                     ...current,
-                    language: event.target.value,
+                    language: String(val || ""),
                   }))
                 }
-                placeholder="e.g. python, typescript, go"
+                options={languageOptions}
+                placeholder="All languages"
+                searchPlaceholder="Type language..."
                 value={draftFilters.language}
               />
             </div>

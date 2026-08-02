@@ -313,3 +313,29 @@ export type UserUpdateRequest = {
   full_name?: string | null;
   password?: string | null;
 };
+
+export type FileSearchResult = {
+  id: number;
+  is_test: boolean;
+  language: string;
+  loc: number;
+  path: string;
+};
+
+export type EvaluationRunListItem = {
+  commit_limit: number;
+  created_at: ISODateTime;
+  evaluation_run_id: number;
+  methods: string[];
+  name: string;
+  status: string;
+};
+
+export type ImpactRunListItem = {
+  analysis_run_id: number;
+  changed_files_count: number;
+  created_at: ISODateTime;
+  input_mode: string;
+  status: string;
+};
+

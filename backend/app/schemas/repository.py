@@ -54,3 +54,14 @@ class RepositoryList(BaseModel):
     total: int
     skip: int
     limit: int
+
+
+class FileSearchResult(BaseModel):
+    """Response schema for repository file autocomplete search"""
+
+    id: int
+    path: str
+    language: str
+    loc: int
+    is_test: bool
+

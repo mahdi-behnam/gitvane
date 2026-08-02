@@ -2,13 +2,16 @@ import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { apiBaseUrl } from "@/lib/api/client";
 import type {
   EvaluationReportResponse,
+  EvaluationRunListItem,
   EvaluationRunRequest,
   EvaluationRunResponse,
   EvaluationStatusResponse,
+  FileSearchResult,
   GraphResponse,
   HealthResponse,
   ImpactAnalyzeRequest,
   ImpactAnalyzeResponse,
+  ImpactRunListItem,
   ImpactRunResponse,
   IndexRepositoryRequest,
   IndexRepositoryResponse,
@@ -335,6 +338,26 @@ export const repolensApi = createApi({
       }),
       invalidatesTags: ["User"],
     }),
+    getRepositoryLanguages: builder.query<string[], string>({
+      query: (repositoryId) => `/repositories/${repositoryId}/languages`,
+      providesTags: ["Repository"],
+    }),
+    searchRepositoryFiles: builder.query<
+      FileSearchResult[],
+      { limit?: number; query?: string; repositoryId: string }
+    >({
+      query: ({ limit = 50, query = "", repositoryId }) =>
+        `/repositories/${repositoryId}/files/search?query=${encodeURIComponent(query)}&limit=${limit}`,
+      providesTags: ["Repository"],
+    }),
+    listEvaluationRuns: builder.query<EvaluationRunListItem[], string>({
+      query: (repositoryId) => `/evaluation/repository/${repositoryId}/runs`,
+      providesTags: ["Evaluation"],
+    }),
+    listImpactRuns: builder.query<ImpactRunListItem[], string>({
+      query: (repositoryId) => `/impact/repository/${repositoryId}/runs`,
+      providesTags: ["Impact"],
+    }),
   }),
   reducerPath: "repolensApi",
   tagTypes: ["Evaluation", "Graph", "Impact", "IndexStatus", "Repository", "Risk", "User"],
@@ -369,4 +392,9 @@ export const {
   useForgotPasswordMutation,
   useResetPasswordMutation,
   useUpdateMeMutation,
+  useGetRepositoryLanguagesQuery,
+  useSearchRepositoryFilesQuery,
+  useLazySearchRepositoryFilesQuery,
+  useListEvaluationRunsQuery,
+  useListImpactRunsQuery,
 } = repolensApi;

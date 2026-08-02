@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input, Textarea } from "@/components/ui/input";
 import { Notice } from "@/components/ui/notice";
-import { Skeleton } from "@/components/ui/skeleton";
+import { FileSelector } from "@/components/ui/file-selector";
 import { normalizeApiError } from "@/lib/api/errors";
 import type { ChangedFileInput, TestRecommendation } from "@/lib/api/types";
 import {
@@ -163,17 +163,18 @@ export function TestRecommendationsPage({
                 >
                   Changed files
                 </label>
-                <Textarea
-                  id={`${formId}-changed-files`}
-                  onChange={(event) => {
-                    setChangedFiles(event.target.value);
+                <FileSelector
+                  mode="multi"
+                  onChange={(val) => {
+                    setChangedFiles(Array.isArray(val) ? val.join("\n") : String(val || ""));
                     setClientError(null);
                   }}
-                  placeholder="e.g. src/auth/service.ts"
+                  placeholder="Select changed files..."
+                  repositoryId={validRepositoryId ?? ""}
                   value={changedFiles}
                 />
                 <p className="text-xs leading-5 text-muted">
-                  One file path per line. These are the direct changes.
+                  Select direct changes for test recommendation evaluation.
                 </p>
               </div>
               <div className="space-y-2">
@@ -183,10 +184,13 @@ export function TestRecommendationsPage({
                 >
                   Impacted files
                 </label>
-                <Textarea
-                  id={`${formId}-impacted-files`}
-                  onChange={(event) => setImpactedFiles(event.target.value)}
-                  placeholder="e.g. src/api/routes.ts"
+                <FileSelector
+                  mode="multi"
+                  onChange={(val) =>
+                    setImpactedFiles(Array.isArray(val) ? val.join("\n") : String(val || ""))
+                  }
+                  placeholder="Select likely affected files (optional)..."
+                  repositoryId={validRepositoryId ?? ""}
                   value={impactedFiles}
                 />
                 <p className="text-xs leading-5 text-muted">

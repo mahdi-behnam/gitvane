@@ -50,3 +50,13 @@ class EvaluationStatusResponse(BaseModel):
 class EvaluationReportResponse(BaseModel):
     evaluation_run_id: int
     markdown: str
+
+
+class EvaluationRunListItem(BaseModel):
+    evaluation_run_id: int
+    name: str
+    status: str
+    commit_limit: int
+    methods: list[str]
+    created_at: str
+

@@ -1,4 +1,5 @@
 from typing import Annotated
+from uuid import UUID
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from fastapi.responses import PlainTextResponse
@@ -11,6 +12,7 @@ from app.db.models import EvaluationRun, User
 from app.db.session import SessionLocal
 from app.schemas.evaluation import (
     EvaluationReportResponse,
+    EvaluationRunListItem,
     EvaluationRunRequest,
     EvaluationRunResponse,
     EvaluationStatusResponse,
@@ -145,3 +147,37 @@ async def get_evaluation_report_markdown(
         return report.markdown
     except RepositoryNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.get("/repository/{repository_id}/runs", response_model=list[EvaluationRunListItem])
+async def list_repository_evaluation_runs(
+    repository_id: UUID,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    repo_svc: Annotated[RepositoryService, Depends(get_repository_service)],
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> list[EvaluationRunListItem]:
+    """Return historical evaluation runs for a repository."""
+    try:
+        await repo_svc.get_repository_or_raise(db, repository_id, owner_id=current_user.id)
+        stmt = (
+            select(EvaluationRun)
+            .where(EvaluationRun.repository_id == repository_id)
+            .order_by(EvaluationRun.started_at.desc())
+        )
+        res = await db.execute(stmt)
+        runs = res.scalars().all()
+
+        return [
+            EvaluationRunListItem(
+                evaluation_run_id=run.id,
+                name=run.name,
+                status=run.status,
+                commit_limit=run.commit_limit,
+                methods=run.config.get("methods", []) if run.config else [],
+                created_at=run.started_at.isoformat() if run.started_at else "",
+            )
+            for run in runs
+        ]
+    except RepositoryNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+

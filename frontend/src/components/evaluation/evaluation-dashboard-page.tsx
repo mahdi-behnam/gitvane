@@ -22,12 +22,14 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Notice } from "@/components/ui/notice";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Selector, SelectorOption } from "@/components/ui/selector";
 import { normalizeApiError } from "@/lib/api/errors";
 import type { EvaluationMethod, EvaluationStatusResponse } from "@/lib/api/types";
 import {
   useGetEvaluationReportMarkdownQuery,
   useGetEvaluationStatusQuery,
   useGetRepositoryQuery,
+  useListEvaluationRunsQuery,
   useRunEvaluationMutation,
 } from "@/store/api/repolensApi";
 import { useAppDispatch } from "@/store/hooks";
@@ -66,10 +68,31 @@ export function EvaluationDashboardPage({ repositoryId }: { repositoryId: string
   const [activeRunId, setActiveRunId] = useState<number | null>(null);
   const [clientError, setClientError] = useState<string | null>(null);
   const repository = useGetRepositoryQuery(validRepositoryId ?? skipToken);
+  const evaluationRunsQuery = useListEvaluationRunsQuery(validRepositoryId ?? skipToken);
   const [runEvaluation, runState] = useRunEvaluationMutation();
   const status = useGetEvaluationStatusQuery(activeRunId ?? skipToken);
   const report = useGetEvaluationReportMarkdownQuery(activeRunId ?? skipToken);
   const dispatch = useAppDispatch();
+
+  const evaluationRunOptions: SelectorOption[] = useMemo(() => {
+    const runs = evaluationRunsQuery.data ?? [];
+    return runs.map((run) => ({
+      badge: run.status,
+      description: `Commit limit: ${run.commit_limit} • Methods: ${run.methods.join(", ")} • ${run.created_at ? new Date(run.created_at).toLocaleString() : ""}`,
+      label: `${run.name} (#${run.evaluation_run_id})`,
+      value: String(run.evaluation_run_id),
+    }));
+  }, [evaluationRunsQuery.data]);
+
+  const methodSelectorOptions: SelectorOption[] = useMemo(
+    () =>
+      evaluationMethods.map((m) => ({
+        description: METHOD_DESCRIPTIONS[m],
+        label: m,
+        value: m,
+      })),
+    [],
+  );
 
   useEffect(() => {
     if (validRepositoryId) {
@@ -235,25 +258,14 @@ export function EvaluationDashboardPage({ repositoryId }: { repositoryId: string
                   term="Methods"
                 />
               </div>
-              <div className="flex flex-wrap gap-2">
-                {evaluationMethods.map((method) => {
-                  const desc = METHOD_DESCRIPTIONS[method] || `Evaluation algorithm: ${method}`;
-                  return (
-                    <label
-                      className="flex h-9 items-center gap-2 rounded-md border border-border bg-panel px-3 text-sm"
-                      key={method}
-                    >
-                      <input
-                        checked={methods.includes(method)}
-                        className="size-4 rounded border-border text-primary focus:ring-primary"
-                        onChange={() => toggleMethod(method)}
-                        type="checkbox"
-                      />
-                      <TermTooltip description={desc} term={method} />
-                    </label>
-                  );
-                })}
-              </div>
+              <Selector
+                mode="multi"
+                onChange={(val) => setMethods(Array.isArray(val) ? (val as EvaluationMethod[]) : [])}
+                options={methodSelectorOptions}
+                placeholder="Select evaluation methods..."
+                searchPlaceholder="Search methods..."
+                value={methods}
+              />
             </div>
 
             <div className="flex flex-col gap-3 border-t border-border pt-4 md:flex-row md:items-center md:justify-between">
@@ -289,10 +301,14 @@ export function EvaluationDashboardPage({ repositoryId }: { repositoryId: string
               <label className="block text-sm font-medium" htmlFor="evaluation-run-id">
                 Evaluation run ID
               </label>
-              <Input
-                id="evaluation-run-id"
-                onChange={(event) => setLookupRunId(event.target.value)}
-                placeholder="e.g. 42"
+              <Selector
+                allowCustomValue
+                loading={evaluationRunsQuery.isFetching}
+                mode="single"
+                onChange={(val) => setLookupRunId(String(val || ""))}
+                options={evaluationRunOptions}
+                placeholder="Select an evaluation run..."
+                searchPlaceholder="Search run name or ID..."
                 value={lookupRunId}
               />
             </div>

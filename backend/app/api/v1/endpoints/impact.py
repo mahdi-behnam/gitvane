@@ -1,4 +1,5 @@
 from typing import Annotated
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
@@ -10,6 +11,7 @@ from app.core.errors import GitOperationError, RepositoryNotFoundError
 from app.schemas.impact import (
     ImpactAnalyzeRequest,
     ImpactAnalyzeResponse,
+    ImpactRunListItem,
     ImpactRunResponse,
 )
 from app.services.impact_service import ImpactService
@@ -60,3 +62,38 @@ async def get_impact_run(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)
         ) from exc
+
+
+@router.get("/repository/{repository_id}/runs", response_model=list[ImpactRunListItem])
+async def list_repository_impact_runs(
+    repository_id: UUID,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    repo_svc: Annotated[RepositoryService, Depends(get_repository_service)],
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> list[ImpactRunListItem]:
+    """Return historical impact analysis runs for a repository."""
+    try:
+        await repo_svc.get_repository_or_raise(db=db, repository_id=repository_id, owner_id=current_user.id)
+        stmt = (
+            select(AnalysisRun)
+            .where(AnalysisRun.repository_id == repository_id)
+            .order_by(AnalysisRun.started_at.desc())
+        )
+        res = await db.execute(stmt)
+        runs = res.scalars().all()
+
+        return [
+            ImpactRunListItem(
+                analysis_run_id=run.id,
+                input_mode=run.input_mode,
+                status=run.status,
+                changed_files_count=len(run.changed_files) if run.changed_files else 0,
+                created_at=run.started_at.isoformat() if run.started_at else "",
+            )
+            for run in runs
+        ]
+    except RepositoryNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)
+        ) from exc
+

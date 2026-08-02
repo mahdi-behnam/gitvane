@@ -24,10 +24,13 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Notice } from "@/components/ui/notice";
 import { Skeleton } from "@/components/ui/skeleton";
+import { FileSelector } from "@/components/ui/file-selector";
+import { Selector, SelectorOption } from "@/components/ui/selector";
 import { normalizeApiError } from "@/lib/api/errors";
 import type { GraphEdge, GraphNode } from "@/lib/api/types";
 import {
   useGetFileNeighborsQuery,
+  useGetRepositoryLanguagesQuery,
   useGetRepositoryQuery,
   useGetRepositorySubgraphQuery,
 } from "@/store/api/repolensApi";
@@ -69,6 +72,7 @@ export function GraphExplorerPage({
   }));
   const [selectedNodeId, setSelectedNodeId] = useState<number | null>(null);
   const repository = useGetRepositoryQuery(validRepositoryId ?? skipToken);
+  const languagesQuery = useGetRepositoryLanguagesQuery(validRepositoryId ?? skipToken);
   const subgraph = useGetRepositorySubgraphQuery(
     validRepositoryId
       ? {
@@ -79,6 +83,14 @@ export function GraphExplorerPage({
         }
       : skipToken,
   );
+
+  const languageOptions: SelectorOption[] = useMemo(() => {
+    const langs = languagesQuery.data ?? [];
+    return [
+      { label: "All languages", value: "" },
+      ...langs.map((lang) => ({ label: lang, value: lang })),
+    ];
+  }, [languagesQuery.data]);
   const selectedGraphNode = useMemo(
     () => subgraph.data?.nodes.find((node) => node.id === selectedNodeId) ?? null,
     [selectedNodeId, subgraph.data?.nodes],
@@ -257,15 +269,19 @@ export function GraphExplorerPage({
               <label className="block text-sm font-medium" htmlFor="graph-language">
                 Language filter
               </label>
-              <Input
-                id="graph-language"
-                onChange={(event) =>
+              <Selector
+                allowCustomValue
+                loading={languagesQuery.isFetching}
+                mode="single"
+                onChange={(val) =>
                   setDraftFilters((current) => ({
                     ...current,
-                    language: event.target.value,
+                    language: String(val || ""),
                   }))
                 }
-                placeholder="e.g. python, typescript, go"
+                options={languageOptions}
+                placeholder="All languages"
+                searchPlaceholder="Type language..."
                 value={draftFilters.language}
               />
             </div>
@@ -273,15 +289,16 @@ export function GraphExplorerPage({
               <label className="block text-sm font-medium" htmlFor="graph-search">
                 Node search
               </label>
-              <Input
-                id="graph-search"
-                onChange={(event) =>
+              <FileSelector
+                mode="single"
+                onChange={(val) =>
                   setDraftFilters((current) => ({
                     ...current,
-                    search: event.target.value,
+                    search: String(val || ""),
                   }))
                 }
-                placeholder="e.g. auth_service or src/api"
+                placeholder="All nodes (select path...)"
+                repositoryId={validRepositoryId ?? ""}
                 value={draftFilters.search}
               />
             </div>
