@@ -2,7 +2,7 @@
 
 import { skipToken } from "@reduxjs/toolkit/query";
 import { BarChart3, Play, RefreshCw, Search } from "lucide-react";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import {
   Bar,
@@ -43,12 +43,17 @@ const evaluationMethods: EvaluationMethod[] = [
 ];
 
 const METHOD_DESCRIPTIONS: Record<string, string> = {
-  hybrid: "Combines structural dependency graph, semantic text embeddings, and historical git co-changes into a weighted ensemble score.",
-  dependency_only: "Evaluates downstream impact purely based on AST module imports and dependency graph traversal.",
-  semantic_only: "Evaluates code relevance purely using natural language vector embeddings and semantic similarity.",
-  cochange_only: "Evaluates impact purely based on historical git commit co-modification frequency.",
+  hybrid:
+    "Combines structural dependency graph, semantic text embeddings, and historical git co-changes into a weighted ensemble score.",
+  dependency_only:
+    "Evaluates downstream impact purely based on AST module imports and dependency graph traversal.",
+  semantic_only:
+    "Evaluates code relevance purely using natural language vector embeddings and semantic similarity.",
+  cochange_only:
+    "Evaluates impact purely based on historical git commit co-modification frequency.",
   method: "Analysis technique or algorithm variant tested in this evaluation run.",
-  methods: "Collection of analysis techniques and algorithm variants evaluated in this benchmark run.",
+  methods:
+    "Collection of analysis techniques and algorithm variants evaluated in this benchmark run.",
 };
 
 function parseKValues(value: string) {
@@ -59,7 +64,10 @@ function parseKValues(value: string) {
 }
 
 export function EvaluationDashboardPage({ repositoryId }: { repositoryId: string }) {
-  const validRepositoryId = typeof repositoryId === "string" && repositoryId.trim() !== "" ? repositoryId : null;
+  const validRepositoryId =
+    typeof repositoryId === "string" && repositoryId.trim() !== ""
+      ? repositoryId
+      : null;
   const [name, setName] = useState("Benchmark run");
   const [commitLimit, setCommitLimit] = useState(50);
   const [kValues, setKValues] = useState("5,10,20");
@@ -68,7 +76,9 @@ export function EvaluationDashboardPage({ repositoryId }: { repositoryId: string
   const [activeRunId, setActiveRunId] = useState<number | null>(null);
   const [clientError, setClientError] = useState<string | null>(null);
   const repository = useGetRepositoryQuery(validRepositoryId ?? skipToken);
-  const evaluationRunsQuery = useListEvaluationRunsQuery(validRepositoryId ?? skipToken);
+  const evaluationRunsQuery = useListEvaluationRunsQuery(
+    validRepositoryId ?? skipToken,
+  );
   const [runEvaluation, runState] = useRunEvaluationMutation();
   const status = useGetEvaluationStatusQuery(activeRunId ?? skipToken);
   const report = useGetEvaluationReportMarkdownQuery(activeRunId ?? skipToken);
@@ -184,9 +194,12 @@ export function EvaluationDashboardPage({ repositoryId }: { repositoryId: string
       <div className="flex flex-col gap-4 border-b border-border pb-6 md:flex-row md:items-end md:justify-between">
         <div>
           <Badge tone="info">Evaluation</Badge>
-          <h1 className="mt-3 text-3xl font-semibold md:text-4xl">Evaluation dashboard</h1>
+          <h1 className="mt-3 text-3xl font-semibold md:text-4xl">
+            Evaluation dashboard
+          </h1>
           <p className="mt-3 max-w-3xl text-sm leading-6 text-muted">
-            Benchmark code search accuracy, retrieval metrics, and impact prediction precision against ground-truth repository tasks.
+            Benchmark code search accuracy, retrieval metrics, and impact prediction
+            precision against ground-truth repository tasks.
           </p>
         </div>
         <div className="rounded-md border border-border bg-panel px-3 py-2 font-mono text-xs text-muted">
@@ -260,7 +273,9 @@ export function EvaluationDashboardPage({ repositoryId }: { repositoryId: string
               </div>
               <Selector
                 mode="multi"
-                onChange={(val) => setMethods(Array.isArray(val) ? (val as EvaluationMethod[]) : [])}
+                onChange={(val) =>
+                  setMethods(Array.isArray(val) ? (val as EvaluationMethod[]) : [])
+                }
                 options={methodSelectorOptions}
                 placeholder="Select evaluation methods..."
                 searchPlaceholder="Search methods..."
@@ -292,7 +307,8 @@ export function EvaluationDashboardPage({ repositoryId }: { repositoryId: string
         <CardHeader>
           <h2 className="text-sm font-semibold">Manual refresh</h2>
           <p className="mt-1 text-xs text-muted">
-            Look up an evaluation run by its ID or refresh execution status for the active benchmark.
+            Look up an evaluation run by its ID or refresh execution status for the
+            active benchmark.
           </p>
         </CardHeader>
         <CardContent>
@@ -421,7 +437,8 @@ function EvaluationStatusCard({ status }: { status: EvaluationStatusResponse }) 
           </h3>
           <div className="mt-2 flex flex-wrap gap-2">
             {status.methods.map((method) => {
-              const desc = METHOD_DESCRIPTIONS[method] || `Evaluation algorithm: ${method}`;
+              const desc =
+                METHOD_DESCRIPTIONS[method] || `Evaluation algorithm: ${method}`;
               return (
                 <span
                   className="rounded-md border border-border bg-panel-muted px-2 py-1 font-mono text-xs text-muted"
