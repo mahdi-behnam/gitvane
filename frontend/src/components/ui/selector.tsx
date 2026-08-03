@@ -25,6 +25,7 @@ export type SelectorProps = {
   options: SelectorOption[];
   placeholder?: string;
   refetchOnOpen?: boolean;
+  searchable?: boolean;
   searchPlaceholder?: string;
   value?: string | string[];
 };
@@ -42,6 +43,7 @@ export function Selector({
   options = [],
   placeholder = "Select an option...",
   refetchOnOpen = false,
+  searchable = true,
   searchPlaceholder = "Type to search...",
   value,
 }: SelectorProps) {
@@ -182,29 +184,31 @@ export function Selector({
       {open ? (
         <div className="absolute z-50 mt-1 max-h-72 w-full overflow-hidden rounded-md border border-border bg-panel shadow-lg animate-in fade-in-50 zoom-in-95">
           {/* Search Box */}
-          <div className="flex items-center border-b border-border px-3 py-2">
-            <Search className="mr-2 size-4 shrink-0 text-muted" />
-            <input
-              className="w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted"
-              onChange={handleSearchInputChange}
-              placeholder={searchPlaceholder}
-              ref={inputRef}
-              type="text"
-              value={search}
-            />
-            {search ? (
-              <button
-                className="text-muted hover:text-foreground"
-                onClick={() => {
-                  setSearch("");
-                  if (onSearchChange) onSearchChange("");
-                }}
-                type="button"
-              >
-                <X className="size-3.5" />
-              </button>
-            ) : null}
-          </div>
+          {searchable ? (
+            <div className="flex items-center border-b border-border px-3 py-2">
+              <Search className="mr-2 size-4 shrink-0 text-muted" />
+              <input
+                className="w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted"
+                onChange={handleSearchInputChange}
+                placeholder={searchPlaceholder}
+                ref={inputRef}
+                type="text"
+                value={search}
+              />
+              {search ? (
+                <button
+                  className="text-muted hover:text-foreground"
+                  onClick={() => {
+                    setSearch("");
+                    if (onSearchChange) onSearchChange("");
+                  }}
+                  type="button"
+                >
+                  <X className="size-3.5" />
+                </button>
+              ) : null}
+            </div>
+          ) : null}
 
           {/* Options List */}
           <div className="max-h-56 overflow-y-auto p-1 space-y-0.5">

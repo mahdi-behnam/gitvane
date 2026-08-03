@@ -278,7 +278,7 @@ export function EvaluationDashboardPage({ repositoryId }: { repositoryId: string
                 }
                 options={methodSelectorOptions}
                 placeholder="Select evaluation methods..."
-                searchPlaceholder="Search methods..."
+                searchable={false}
                 value={methods}
               />
             </div>
