@@ -17,9 +17,10 @@ export type SelectorProps = {
   className?: string;
   disabled?: boolean;
   emptyText?: string;
+  id?: string;
   loading?: boolean;
   mode?: "single" | "multi";
-  onChange?: (value: any) => void;
+  onChange?: (value: string | string[]) => void;
   onOpenChange?: (open: boolean) => void;
   onSearchChange?: (query: string) => void;
   options: SelectorOption[];
@@ -35,6 +36,7 @@ export function Selector({
   className,
   disabled = false,
   emptyText = "No matching options found.",
+  id,
   loading = false,
   mode = "single",
   onChange,
@@ -42,7 +44,6 @@ export function Selector({
   onSearchChange,
   options = [],
   placeholder = "Select an option...",
-  refetchOnOpen = false,
   searchable = true,
   searchPlaceholder = "Type to search...",
   value,
@@ -135,6 +136,9 @@ export function Selector({
     <div className={cn("relative w-full", className)} ref={containerRef}>
       {/* Trigger Button */}
       <button
+        aria-expanded={open}
+        aria-haspopup="listbox"
+        aria-labelledby={id ? `${id}-label` : undefined}
         className={cn(
           "flex min-h-9 w-full items-center justify-between gap-2 rounded-md border border-border bg-panel px-3 py-1.5 text-left text-sm text-foreground shadow-none transition-colors",
           "focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20",
@@ -142,7 +146,9 @@ export function Selector({
           open && "border-primary ring-2 ring-primary/20",
         )}
         disabled={disabled}
+        id={id}
         onClick={handleToggleOpen}
+        role="combobox"
         type="button"
       >
         <div className="flex flex-wrap items-center gap-1.5 overflow-hidden py-0.5">
@@ -162,7 +168,7 @@ export function Selector({
                   onClick={(e) => handleRemoveChip(val, e)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
-                      handleRemoveChip(val, e as any);
+                      handleRemoveChip(val, e as unknown as React.MouseEvent);
                     }
                   }}
                   role="button"
@@ -190,6 +196,12 @@ export function Selector({
               <input
                 className="w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted"
                 onChange={handleSearchInputChange}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && allowCustomValue && search.trim()) {
+                    e.preventDefault();
+                    handleSelectOption(search.trim());
+                  }
+                }}
                 placeholder={searchPlaceholder}
                 ref={inputRef}
                 type="text"

@@ -40,6 +40,7 @@ import { setActiveRepositoryId } from "@/store/slices/repositorySelectionSlice";
 type GraphFilters = {
   includeTests: boolean;
   language: string;
+  maxDepth: number;
   maxNodes: number;
   search: string;
 };
@@ -47,6 +48,7 @@ type GraphFilters = {
 const defaultFilters: GraphFilters = {
   includeTests: true,
   language: "",
+  maxDepth: 3,
   maxNodes: 200,
   search: "",
 };
@@ -130,6 +132,7 @@ export function GraphExplorerPage({
     setAppliedFilters({
       includeTests: draftFilters.includeTests,
       language: draftFilters.language.trim(),
+      maxDepth: draftFilters.maxDepth,
       maxNodes: Math.max(1, draftFilters.maxNodes),
       search: draftFilters.search.trim(),
     });
@@ -224,12 +227,10 @@ export function GraphExplorerPage({
             onSubmit={handleSubmit}
           >
             <div className="space-y-2">
-              <label className="block text-sm font-medium" htmlFor="graph-max-nodes">
-                <TermTooltip
-                  description="Maximum number of dependency nodes to display in the canvas visualizer at once."
-                  term="Max nodes"
-                />
-              </label>
+              <div className="flex items-center gap-1.5 text-sm font-medium">
+                <label htmlFor="graph-max-nodes">Max nodes</label>
+                <TermTooltip description="Maximum number of dependency nodes to display in the canvas visualizer at once." />
+              </div>
               <Input
                 id="graph-max-nodes"
                 max={1000}
@@ -245,12 +246,10 @@ export function GraphExplorerPage({
               />
             </div>
             <div className="space-y-2">
-              <label className="block text-sm font-medium" htmlFor="graph-max-depth">
-                <TermTooltip
-                  description="Maximum traversal distance (number of import hops) from the focus node."
-                  term="Max depth"
-                />
-              </label>
+              <div className="flex items-center gap-1.5 text-sm font-medium">
+                <label htmlFor="graph-max-depth">Max depth</label>
+                <TermTooltip description="Maximum traversal distance (number of import hops) from the focus node." />
+              </div>
               <Input
                 id="graph-max-depth"
                 max={10}
@@ -266,11 +265,12 @@ export function GraphExplorerPage({
               />
             </div>
             <div className="space-y-2">
-              <label className="block text-sm font-medium" htmlFor="graph-language">
+              <span className="block text-sm font-medium" id="graph-language-label">
                 Language filter
-              </label>
+              </span>
               <Selector
                 allowCustomValue
+                id="graph-language"
                 loading={languagesQuery.isFetching}
                 mode="single"
                 onChange={(val) =>
@@ -286,10 +286,11 @@ export function GraphExplorerPage({
               />
             </div>
             <div className="space-y-2">
-              <label className="block text-sm font-medium" htmlFor="graph-search">
+              <span className="block text-sm font-medium" id="graph-search-label">
                 Node search
-              </label>
+              </span>
               <FileSelector
+                id="graph-search"
                 mode="single"
                 onChange={(val) =>
                   setDraftFilters((current) => ({

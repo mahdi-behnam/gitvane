@@ -6,6 +6,7 @@ import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "./tool
 import { cn } from "@/lib/utils";
 
 interface TermTooltipProps {
+  id?: string;
   term?: string;
   description: string;
   children?: React.ReactNode;
@@ -14,6 +15,7 @@ interface TermTooltipProps {
 }
 
 export function TermTooltip({
+  id,
   term,
   description,
   children,
@@ -24,7 +26,7 @@ export function TermTooltip({
     <TooltipProvider delayDuration={150}>
       <Tooltip>
         <span className={cn("inline-flex items-center gap-1.5", className)}>
-          {children || (term && <span>{term}</span>)}
+          {children || (term && <span id={id}>{term}</span>)}
           <TooltipTrigger asChild>
             <button
               type="button"

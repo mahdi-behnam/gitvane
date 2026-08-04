@@ -26,7 +26,7 @@ describe("OverviewDashboard", () => {
           created_at: "2026-06-21T10:00:00Z",
           current_ref: "main",
           default_branch: "main",
-          id: 7,
+          id: "77777777-7777-7777-7777-777777777777",
           indexed_at: "2026-06-21T10:30:00Z",
           last_indexed_commit: "abc123",
           local_path: null,
@@ -48,7 +48,7 @@ describe("OverviewDashboard", () => {
       file_count: 18,
       indexed_at: "2026-06-21T10:30:00Z",
       last_indexed_commit: "abc123",
-      repository_id: 7,
+      repository_id: "77777777-7777-7777-7777-777777777777",
       status: "indexed",
       symbol_count: 44,
     };
@@ -62,15 +62,15 @@ describe("OverviewDashboard", () => {
         },
       ],
       metadata: {},
-      repository_id: 7,
+      repository_id: "77777777-7777-7777-7777-777777777777",
     };
 
     server.use(
       http.get(`${apiBaseUrl}/repositories`, () => HttpResponse.json(response)),
-      http.get(`${apiBaseUrl}/repositories/7/index/status`, () =>
+      http.get(`${apiBaseUrl}/repositories/77777777-7777-7777-7777-777777777777/index/status`, () =>
         HttpResponse.json(indexStatus),
       ),
-      http.get(`${apiBaseUrl}/risk/repositories/7/files`, () =>
+      http.get(`${apiBaseUrl}/risk/repositories/77777777-7777-7777-7777-777777777777/files`, () =>
         HttpResponse.json(riskResponse),
       ),
     );

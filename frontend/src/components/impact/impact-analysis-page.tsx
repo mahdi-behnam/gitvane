@@ -243,13 +243,14 @@ export function ImpactAnalysisPage({
               <div className="mt-4">
                 {mode === "changed_files" ? (
                   <>
-                    <label
+                    <span
                       className="block text-sm font-medium"
-                      htmlFor={`${formId}-changed-files`}
+                      id={`${formId}-changed-files-label`}
                     >
                       Changed files
-                    </label>
+                    </span>
                     <FileSelector
+                      id={`${formId}-changed-files`}
                       mode="multi"
                       onChange={(val) =>
                         setChangedFiles(Array.isArray(val) ? val.join("\n") : String(val || ""))
@@ -401,10 +402,15 @@ export function ImpactAnalysisPage({
           </p>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-3 md:grid-cols-[1fr_auto]">
-            <Selector
-              allowCustomValue
-              loading={impactRunsQuery.isFetching}
+          <div className="space-y-2">
+            <span className="block text-sm font-medium" id="analysis-run-id-label">
+              Analysis run ID
+            </span>
+            <div className="grid gap-3 md:grid-cols-[1fr_auto]">
+              <Selector
+                allowCustomValue
+                id="analysis-run-id"
+                loading={impactRunsQuery.isFetching}
               mode="single"
               onChange={(val) => setAnalysisRunId(String(val || ""))}
               options={impactRunOptions}
@@ -420,6 +426,7 @@ export function ImpactAnalysisPage({
               <RefreshCw aria-hidden="true" className="size-4" />
               Load run
             </Button>
+            </div>
           </div>
         </CardContent>
       </Card>

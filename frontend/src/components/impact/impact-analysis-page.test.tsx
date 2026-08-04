@@ -16,7 +16,7 @@ const repository: Repository = {
   created_at: "2026-06-21T10:00:00Z",
   current_ref: "main",
   default_branch: "main",
-  id: 7,
+  id: "77777777-7777-7777-7777-777777777777",
   indexed_at: "2026-06-21T10:30:00Z",
   last_indexed_commit: "abc123",
   local_path: null,
@@ -108,9 +108,9 @@ describe("ImpactAnalysisPage", () => {
 
     renderWithProviders(<ImpactAnalysisPage repositoryId="77777777-7777-7777-7777-777777777777" />);
 
-    fireEvent.change(screen.getByLabelText("Changed files", { selector: "textarea" }), {
-      target: { value: "backend/app/services/indexing_service.py" },
-    });
+    fireEvent.click(screen.getByLabelText("Changed files"));
+    const option = await screen.findByText("backend/app/services/indexing_service.py");
+    fireEvent.click(option);
     fireEvent.click(screen.getByRole("button", { name: "Analyze impact" }));
 
     await waitFor(() => expect(bodies).toHaveLength(1));
@@ -123,8 +123,8 @@ describe("ImpactAnalysisPage", () => {
     });
     expect(await screen.findByText("Likely impacted files")).toBeInTheDocument();
     expect(
-      screen.getByText(/backend\/app\/api\/v1\/endpoints\/indexing.py/),
-    ).toBeInTheDocument();
+      screen.getAllByText(/backend\/app\/api\/v1\/endpoints\/indexing.py/).length,
+    ).toBeGreaterThan(0);
     expect(screen.getAllByText("dependency").length).toBeGreaterThan(0);
     expect(
       screen.getAllByText("backend/tests/test_indexing.py").length,
@@ -196,10 +196,10 @@ describe("ImpactAnalysisPage", () => {
       raw_diff: null,
     });
 
-    fireEvent.change(screen.getByLabelText("Analysis run ID"), {
-      target: { value: "91" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Refresh run" }));
+    fireEvent.click(screen.getByLabelText("Analysis run ID"));
+    const option = await screen.findByText(/Run #91/i);
+    fireEvent.click(option);
+    fireEvent.click(screen.getByRole("button", { name: "Load run" }));
 
     expect(await screen.findByText("Stored run")).toBeInTheDocument();
     expect(screen.getByText("completed")).toBeInTheDocument();

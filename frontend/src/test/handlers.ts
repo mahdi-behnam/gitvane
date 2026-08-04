@@ -194,6 +194,47 @@ export const handlers = [
   http.get(`${apiBaseUrl}/repositories/:repositoryId/index/status`, () =>
     HttpResponse.json(indexStatusFixture),
   ),
+  http.get(`${apiBaseUrl}/repositories/:repositoryId/files/search`, () =>
+    HttpResponse.json([
+      {
+        id: "1",
+        is_test: false,
+        language: "python",
+        loc: 50,
+        path: "backend/app/api/v1/endpoints/indexing.py",
+      },
+      {
+        id: "2",
+        is_test: false,
+        language: "python",
+        loc: 100,
+        path: "backend/app/services/indexing_service.py",
+      },
+    ]),
+  ),
+  http.get(`${apiBaseUrl}/repositories/:repositoryId/languages`, () =>
+    HttpResponse.json(["python", "typescript", "markdown"]),
+  ),
+  http.get(`${apiBaseUrl}/impact/repository/:repositoryId/runs`, () =>
+    HttpResponse.json([
+      {
+        analysis_run_id: 91,
+        created_at: "2026-06-21T10:00:00Z",
+        input_mode: "changed_files",
+        status: "completed",
+      },
+    ]),
+  ),
+  http.get(`${apiBaseUrl}/evaluation/repository/:repositoryId/runs`, () =>
+    HttpResponse.json([
+      {
+        created_at: "2026-06-21T10:00:00Z",
+        evaluation_run_id: 42,
+        name: "Nightly quality check",
+        status: "completed",
+      },
+    ]),
+  ),
   http.post(`${apiBaseUrl}/search/semantic`, () => {
     const response: SemanticSearchResponse = { results: [] };
 

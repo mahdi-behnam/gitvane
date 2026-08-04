@@ -208,10 +208,11 @@ export function RiskDashboardPage({
               />
             </div>
             <div className="space-y-2">
-              <label className="block text-sm font-medium" htmlFor="risk-search">
+              <span className="block text-sm font-medium" id="risk-search-label">
                 File search
-              </label>
+              </span>
               <FileSelector
+                id="risk-search"
                 mode="single"
                 onChange={(val) =>
                   setDraftFilters((current) => ({
@@ -225,11 +226,12 @@ export function RiskDashboardPage({
               />
             </div>
             <div className="space-y-2">
-              <label className="block text-sm font-medium" htmlFor="risk-language">
+              <span className="block text-sm font-medium" id="risk-language-label">
                 Language filter
-              </label>
+              </span>
               <Selector
                 allowCustomValue
+                id="risk-language"
                 loading={languagesQuery.isFetching}
                 mode="single"
                 onChange={(val) =>

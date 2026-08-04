@@ -1,7 +1,7 @@
 "use client";
 
 import { skipToken } from "@reduxjs/toolkit/query";
-import { BarChart3, Play, RefreshCw, Search } from "lucide-react";
+import { AlertCircle, BarChart3, Play, RefreshCw, Search } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import {
@@ -88,7 +88,7 @@ export function EvaluationDashboardPage({ repositoryId }: { repositoryId: string
     const runs = evaluationRunsQuery.data ?? [];
     return runs.map((run) => ({
       badge: run.status,
-      description: `Commit limit: ${run.commit_limit} • Methods: ${run.methods.join(", ")} • ${run.created_at ? new Date(run.created_at).toLocaleString() : ""}`,
+      description: `Commit limit: ${run.commit_limit} • Methods: ${(run.methods ?? []).join(", ")} • ${run.created_at ? new Date(run.created_at).toLocaleString() : ""}`,
       label: `${run.name} (#${run.evaluation_run_id})`,
       value: String(run.evaluation_run_id),
     }));
@@ -229,15 +229,10 @@ export function EvaluationDashboardPage({ repositoryId }: { repositoryId: string
                 />
               </div>
               <div className="space-y-2">
-                <label
-                  className="block text-sm font-medium"
-                  htmlFor="evaluation-commit-limit"
-                >
-                  <TermTooltip
-                    description="Maximum number of historical git commits evaluated during this benchmark run."
-                    term="Commit limit"
-                  />
-                </label>
+                <div className="flex items-center gap-1.5 text-sm font-medium">
+                  <label htmlFor="evaluation-commit-limit">Commit limit</label>
+                  <TermTooltip description="Maximum number of historical git commits evaluated during this benchmark run." />
+                </div>
                 <Input
                   id="evaluation-commit-limit"
                   min={1}
@@ -247,15 +242,10 @@ export function EvaluationDashboardPage({ repositoryId }: { repositoryId: string
                 />
               </div>
               <div className="space-y-2">
-                <label
-                  className="block text-sm font-medium"
-                  htmlFor="evaluation-k-values"
-                >
-                  <TermTooltip
-                    description="Comma-separated rank cutoffs (e.g. 5, 10, 20) used to calculate Recall@K and Precision@K."
-                    term="K values"
-                  />
-                </label>
+                <div className="flex items-center gap-1.5 text-sm font-medium">
+                  <label htmlFor="evaluation-k-values">K values</label>
+                  <TermTooltip description="Comma-separated rank cutoffs (e.g. 5, 10, 20) used to calculate Recall@K and Precision@K." />
+                </div>
                 <Input
                   id="evaluation-k-values"
                   onChange={(event) => setKValues(event.target.value)}
@@ -265,13 +255,12 @@ export function EvaluationDashboardPage({ repositoryId }: { repositoryId: string
             </div>
 
             <div className="space-y-2">
-              <div className="text-sm font-medium">
-                <TermTooltip
-                  description="Analysis algorithms and model variants tested during this evaluation run."
-                  term="Methods"
-                />
+              <div className="flex items-center gap-1.5 text-sm font-medium">
+                <span id="evaluation-methods-label">Methods</span>
+                <TermTooltip description="Analysis algorithms and model variants tested during this evaluation run." />
               </div>
               <Selector
+                id="evaluation-methods"
                 mode="multi"
                 onChange={(val) =>
                   setMethods(Array.isArray(val) ? (val as EvaluationMethod[]) : [])
@@ -313,11 +302,12 @@ export function EvaluationDashboardPage({ repositoryId }: { repositoryId: string
         <CardContent>
           <div className="grid gap-3 md:grid-cols-[1fr_auto]">
             <div className="space-y-2">
-              <label className="block text-sm font-medium" htmlFor="evaluation-run-id">
+              <span className="block text-sm font-medium" id="evaluation-run-id-label">
                 Evaluation run ID
-              </label>
+              </span>
               <Selector
                 allowCustomValue
+                id="evaluation-run-id"
                 loading={evaluationRunsQuery.isFetching}
                 mode="single"
                 onChange={(val) => setLookupRunId(String(val || ""))}

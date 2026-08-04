@@ -16,7 +16,7 @@ const repository: Repository = {
   created_at: "2026-06-21T10:00:00Z",
   current_ref: "main",
   default_branch: "main",
-  id: 7,
+  id: "77777777-7777-7777-7777-777777777777",
   indexed_at: "2026-06-21T10:30:00Z",
   last_indexed_commit: "abc123",
   local_path: null,
@@ -38,7 +38,7 @@ const statusResponse: EvaluationStatusResponse = {
   evaluation_run_id: 42,
   methods: ["hybrid", "dependency_only"],
   name: "Nightly quality check",
-  repository_id: 7,
+  repository_id: "77777777-7777-7777-7777-777777777777",
   status: "completed",
   summary: {
     hybrid: {
@@ -86,7 +86,9 @@ describe("EvaluationDashboardPage", () => {
     fireEvent.change(screen.getByLabelText("Commit limit"), {
       target: { value: "50" },
     });
-    fireEvent.click(screen.getByLabelText("dependency_only"));
+    fireEvent.click(screen.getByLabelText("Methods"));
+    const methodOption = await screen.findByText("dependency_only");
+    fireEvent.click(methodOption);
     fireEvent.click(screen.getByRole("button", { name: "Run evaluation" }));
 
     await waitFor(() => expect(bodies).toHaveLength(1));
@@ -117,28 +119,38 @@ describe("EvaluationDashboardPage", () => {
 
     renderWithProviders(<EvaluationDashboardPage repositoryId="77777777-7777-7777-7777-777777777777" />);
 
-    fireEvent.change(screen.getByLabelText("Evaluation run ID"), {
+    fireEvent.click(screen.getByRole("combobox", { name: "Evaluation run ID" }));
+    const runInput = screen.getByPlaceholderText("Search run name or ID...");
+    fireEvent.change(runInput, {
       target: { value: "42" },
     });
+    fireEvent.keyDown(runInput, { code: "Enter", key: "Enter" });
     fireEvent.click(screen.getByRole("button", { name: "Load status" }));
 
     expect(await screen.findByText("Nightly quality check")).toBeInTheDocument();
   });
 
-  it("validates methods and lookup IDs", () => {
+  it("validates methods and lookup IDs", async () => {
     useRepositoryHandler();
     renderWithProviders(<EvaluationDashboardPage repositoryId="77777777-7777-7777-7777-777777777777" />);
 
-    fireEvent.click(screen.getByLabelText("hybrid"));
+    // Click hybrid option in dropdown to unselect it
+    fireEvent.click(screen.getByLabelText("Methods"));
+    const hybridOptions = screen.getAllByText("hybrid");
+    fireEvent.click(hybridOptions.at(-1)!);
     fireEvent.click(screen.getByRole("button", { name: "Run evaluation" }));
     expect(
       screen.getByText("Select at least one evaluation method."),
     ).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText("Evaluation run ID"), {
+    fireEvent.click(screen.getByRole("combobox", { name: "Evaluation run ID" }));
+    const lookupInput = screen.getByPlaceholderText("Search run name or ID...");
+    fireEvent.change(lookupInput, {
       target: { value: "abc" },
     });
+    const option = await screen.findByText(/Use "abc"/i);
+    fireEvent.click(option);
     fireEvent.click(screen.getByRole("button", { name: "Load status" }));
-    expect(screen.getByText("Enter a valid evaluation run ID.")).toBeInTheDocument();
+    expect(screen.getByText("Enter a valid numeric evaluation run ID.")).toBeInTheDocument();
   });
 });

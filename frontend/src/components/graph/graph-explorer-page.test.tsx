@@ -12,7 +12,7 @@ const repository: Repository = {
   created_at: "2026-06-21T10:00:00Z",
   current_ref: "main",
   default_branch: "main",
-  id: 7,
+  id: "77777777-7777-7777-7777-777777777777",
   indexed_at: "2026-06-21T10:30:00Z",
   last_indexed_commit: "abc123",
   local_path: null,
@@ -111,9 +111,9 @@ describe("GraphExplorerPage", () => {
     fireEvent.change(screen.getByLabelText("Max nodes"), {
       target: { value: "50" },
     });
-    fireEvent.change(screen.getByLabelText("Language filter"), {
-      target: { value: "python" },
-    });
+    fireEvent.click(screen.getByLabelText("Language filter"));
+    const langOption = await screen.findByText("python");
+    fireEvent.click(langOption);
     fireEvent.click(screen.getByLabelText("Include tests"));
     fireEvent.click(screen.getByRole("button", { name: "Apply" }));
 
@@ -173,9 +173,12 @@ describe("GraphExplorerPage", () => {
       await screen.findByText(/current node limit reached/i),
     ).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText("Node search"), {
+    fireEvent.click(screen.getByLabelText("Node search"));
+    const searchInput = await screen.findByPlaceholderText("Type file path...");
+    fireEvent.change(searchInput, {
       target: { value: "does-not-match" },
     });
+    fireEvent.keyDown(searchInput, { code: "Enter", key: "Enter" });
     fireEvent.click(screen.getByRole("button", { name: "Apply" }));
 
     expect(await screen.findByText("No matching nodes")).toBeInTheDocument();

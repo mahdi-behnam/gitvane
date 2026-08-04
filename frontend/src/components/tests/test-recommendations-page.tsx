@@ -9,8 +9,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Input, Textarea } from "@/components/ui/input";
+import { Input } from "@/components/ui/input";
 import { Notice } from "@/components/ui/notice";
+import { Skeleton } from "@/components/ui/skeleton";
 import { FileSelector } from "@/components/ui/file-selector";
 import { normalizeApiError } from "@/lib/api/errors";
 import type { ChangedFileInput, TestRecommendation } from "@/lib/api/types";
@@ -157,13 +158,14 @@ export function TestRecommendationsPage({
           <form className="space-y-4" onSubmit={handleSubmit}>
             <div className="grid gap-4 lg:grid-cols-2">
               <div className="space-y-2">
-                <label
+                <span
                   className="block text-sm font-medium"
-                  htmlFor={`${formId}-changed-files`}
+                  id={`${formId}-changed-files-label`}
                 >
                   Changed files
-                </label>
+                </span>
                 <FileSelector
+                  id={`${formId}-changed-files`}
                   mode="multi"
                   onChange={(val) => {
                     setChangedFiles(Array.isArray(val) ? val.join("\n") : String(val || ""));
@@ -178,13 +180,14 @@ export function TestRecommendationsPage({
                 </p>
               </div>
               <div className="space-y-2">
-                <label
+                <span
                   className="block text-sm font-medium"
-                  htmlFor={`${formId}-impacted-files`}
+                  id={`${formId}-impacted-files-label`}
                 >
                   Impacted files
-                </label>
+                </span>
                 <FileSelector
+                  id={`${formId}-impacted-files`}
                   mode="multi"
                   onChange={(val) =>
                     setImpactedFiles(Array.isArray(val) ? val.join("\n") : String(val || ""))

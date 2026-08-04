@@ -55,11 +55,13 @@ describe("TestRecommendationsPage", () => {
       }),
     );
 
-    renderWithProviders(<TestRecommendationsPage repositoryId="77777777-7777-7777-7777-777777777777" />);
+    renderWithProviders(
+      <TestRecommendationsPage
+        initialPath="backend/app/services/indexing_service.py"
+        repositoryId="77777777-7777-7777-7777-777777777777"
+      />,
+    );
 
-    fireEvent.change(screen.getByLabelText("Changed files"), {
-      target: { value: "backend/app/services/indexing_service.py" },
-    });
     fireEvent.change(screen.getByLabelText("Top results"), {
       target: { value: "12" },
     });
@@ -88,11 +90,17 @@ describe("TestRecommendationsPage", () => {
       }),
     );
 
-    renderWithProviders(<TestRecommendationsPage repositoryId="77777777-7777-7777-7777-777777777777" />);
+    renderWithProviders(
+      <TestRecommendationsPage
+        initialPath="backend/app/services/indexing_service.py"
+        repositoryId="77777777-7777-7777-7777-777777777777"
+      />,
+    );
 
-    fireEvent.change(screen.getByLabelText("Impacted files"), {
-      target: { value: "backend/app/api/v1/endpoints/indexing.py" },
-    });
+    fireEvent.click(screen.getByLabelText("Impacted files"));
+    const option = await screen.findByText("backend/app/api/v1/endpoints/indexing.py");
+    fireEvent.click(option);
+
     fireEvent.click(screen.getByRole("button", { name: "Recommend tests" }));
 
     await waitFor(() => expect(bodies).toHaveLength(1));
@@ -112,7 +120,12 @@ describe("TestRecommendationsPage", () => {
       ),
     );
 
-    renderWithProviders(<TestRecommendationsPage repositoryId="77777777-7777-7777-7777-777777777777" />);
+    renderWithProviders(
+      <TestRecommendationsPage
+        initialPath="backend/app/services/indexing_service.py"
+        repositoryId="77777777-7777-7777-7777-777777777777"
+      />,
+    );
 
     fireEvent.click(screen.getByRole("button", { name: "Recommend tests" }));
 
@@ -123,9 +136,6 @@ describe("TestRecommendationsPage", () => {
     useRepositoryHandler();
     renderWithProviders(<TestRecommendationsPage repositoryId="77777777-7777-7777-7777-777777777777" />);
 
-    fireEvent.change(screen.getByLabelText("Changed files"), {
-      target: { value: "" },
-    });
     fireEvent.click(screen.getByRole("button", { name: "Recommend tests" }));
 
     expect(
