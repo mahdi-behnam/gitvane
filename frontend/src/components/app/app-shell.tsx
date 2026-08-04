@@ -7,7 +7,6 @@ import {
   GitGraph,
   Home,
   Menu,
-  RefreshCw,
   Search,
   Settings,
   ShieldAlert,
@@ -340,30 +339,6 @@ export function AppShell({ children }: { children: ReactNode }) {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        aria-label="Refresh current view"
-                        onClick={() => {
-                          dispatch(
-                            repolensApi.util.invalidateTags([
-                              "Evaluation",
-                              "Graph",
-                              "Impact",
-                              "IndexStatus",
-                              "Repository",
-                              "Risk",
-                            ]),
-                          );
-                        }}
-                        size="icon"
-                        type="button"
-                      >
-                        <RefreshCw aria-hidden="true" className="size-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Refresh current view</TooltipContent>
-                  </Tooltip>
                   <ThemeToggle />
                 </div>
               </div>

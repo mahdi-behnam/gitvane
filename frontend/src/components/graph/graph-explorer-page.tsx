@@ -321,14 +321,6 @@ export function GraphExplorerPage({
                 <Filter aria-hidden="true" className="size-4" />
                 Apply
               </Button>
-              <Button
-                disabled={subgraph.isFetching}
-                onClick={() => subgraph.refetch()}
-                type="button"
-              >
-                <RefreshCw aria-hidden="true" className="size-4" />
-                Refresh
-              </Button>
             </div>
           </form>
 

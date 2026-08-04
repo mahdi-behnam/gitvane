@@ -219,14 +219,6 @@ export function RepositoryManagementPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button
-            disabled={repositories.isFetching}
-            onClick={() => void repositories.refetch()}
-            type="button"
-          >
-            <RefreshCw aria-hidden="true" className="size-4" />
-            Refresh
-          </Button>
           <AddRepositoryDialog />
         </div>
       </div>

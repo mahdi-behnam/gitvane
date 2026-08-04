@@ -174,10 +174,6 @@ export function RepositoryDetailPage({ repositoryId }: { repositoryId: string })
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button onClick={handleRefresh} type="button">
-            <RefreshCw aria-hidden="true" className="size-4" />
-            Refresh
-          </Button>
           <Button onClick={() => setDeleteOpen(true)} variant="danger">
             <Trash2 aria-hidden="true" className="size-4" />
             Delete

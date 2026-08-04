@@ -305,14 +305,13 @@ export function EvaluationDashboardPage({ repositoryId }: { repositoryId: string
 
       <Card>
         <CardHeader>
-          <h2 className="text-sm font-semibold">Manual refresh</h2>
+          <h2 className="text-sm font-semibold">Lookup evaluation run</h2>
           <p className="mt-1 text-xs text-muted">
-            Look up an evaluation run by its ID or refresh execution status for the
-            active benchmark.
+            Look up an evaluation run by its ID to view its execution status and results.
           </p>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-3 md:grid-cols-[1fr_auto_auto]">
+          <div className="grid gap-3 md:grid-cols-[1fr_auto]">
             <div className="space-y-2">
               <label className="block text-sm font-medium" htmlFor="evaluation-run-id">
                 Evaluation run ID
@@ -331,15 +330,6 @@ export function EvaluationDashboardPage({ repositoryId }: { repositoryId: string
             <Button className="self-end" onClick={handleLookup} type="button">
               <Search aria-hidden="true" className="size-4" />
               Load status
-            </Button>
-            <Button
-              className="self-end"
-              disabled={!activeRunId || status.isFetching}
-              onClick={() => status.refetch()}
-              type="button"
-            >
-              <RefreshCw aria-hidden="true" className="size-4" />
-              Refresh
             </Button>
           </div>
         </CardContent>

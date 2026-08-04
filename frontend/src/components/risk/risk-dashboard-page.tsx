@@ -263,14 +263,6 @@ export function RiskDashboardPage({
                 <Filter aria-hidden="true" className="size-4" />
                 Apply
               </Button>
-              <Button
-                disabled={risk.isFetching}
-                onClick={() => risk.refetch()}
-                type="button"
-              >
-                <RefreshCw aria-hidden="true" className="size-4" />
-                Refresh
-              </Button>
             </div>
           </form>
 
