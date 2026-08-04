@@ -78,6 +78,9 @@ function useRepositoryHandlers() {
     http.get(`${apiBaseUrl}/repositories/77777777-7777-7777-7777-777777777777/index/status`, () =>
       HttpResponse.json(indexStatus),
     ),
+    http.get(`${apiBaseUrl}/repositories/77777777-7777-7777-7777-777777777777/refs`, () =>
+      HttpResponse.json([]),
+    ),
   );
 }
 
@@ -110,10 +113,14 @@ describe("RepositoryDetailPage", () => {
     renderWithProviders(<RepositoryDetailPage repositoryId="77777777-7777-7777-7777-777777777777" />);
 
     await screen.findByRole("heading", { name: "repolens" });
-    fireEvent.change(screen.getByLabelText("Ref"), {
+    fireEvent.click(screen.getByLabelText("Ref"));
+    fireEvent.change(screen.getByPlaceholderText("Type branch, tag, or commit..."), {
       target: { value: "development" },
     });
+    fireEvent.click(screen.getByRole("button", { name: /Use / }));
     fireEvent.click(screen.getByRole("button", { name: "Run index" }));
+
+
 
     await waitFor(() => expect(bodies).toHaveLength(1));
     expect(bodies[0]).toEqual({ ref: "development" });

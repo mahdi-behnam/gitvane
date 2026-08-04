@@ -262,3 +262,136 @@ class GitService:
             except Exception:
                 pass
         return False
+
+    def list_repository_refs(
+        self,
+        repo: git.Repo,
+        query: str = "",
+        limit: int = 50,
+        ref_type: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        """
+        Lists git refs (branches, tags, commits) matching an optional query string.
+        Optimized for performance by bounding scanned commits and deduplicating results.
+        """
+        results: List[Dict[str, Any]] = []
+        seen_names: set = set()
+        q = query.strip().lower()
+
+        # 1. Branches (refs/heads)
+        if not ref_type or ref_type == "branch":
+            try:
+                for head in repo.heads:
+                    name = head.name
+                    if q and q not in name.lower():
+                        continue
+                    if name in seen_names:
+                        continue
+                    seen_names.add(name)
+
+                    commit_sha = ""
+                    commit_msg = ""
+                    try:
+                        commit_sha = head.commit.hexsha[:7]
+                        commit_msg = head.commit.summary
+                    except Exception:
+                        pass
+
+                    if commit_sha:
+                        seen_names.add(commit_sha[:7])
+                        seen_names.add(commit_sha)
+
+                    results.append({
+                        "name": name,
+                        "ref_type": "branch",
+                        "commit_sha": commit_sha,
+                        "commit_message": commit_msg,
+                        "commit_date": None,
+                    })
+                    if len(results) >= limit:
+                        return results
+            except Exception:
+                pass
+
+        # 2. Tags (refs/tags)
+        if not ref_type or ref_type == "tag":
+            try:
+                for tag in repo.tags:
+                    name = tag.name
+                    if q and q not in name.lower():
+                        continue
+                    if name in seen_names:
+                        continue
+                    seen_names.add(name)
+
+                    commit_sha = ""
+                    commit_msg = ""
+                    try:
+                        commit_sha = tag.commit.hexsha[:7]
+                        commit_msg = tag.commit.summary
+                    except Exception:
+                        pass
+
+                    if commit_sha:
+                        seen_names.add(commit_sha[:7])
+                        seen_names.add(commit_sha)
+
+                    results.append({
+                        "name": name,
+                        "ref_type": "tag",
+                        "commit_sha": commit_sha,
+                        "commit_message": commit_msg,
+                        "commit_date": None,
+                    })
+
+                    if len(results) >= limit:
+                        return results
+            except Exception:
+                pass
+
+        # 3. Recent Commits (bounded iteration for performance)
+        if not ref_type or ref_type == "commit":
+            try:
+                max_scan = max(limit * 2, 100)
+                commits = list(repo.iter_commits(max_count=max_scan))
+                for c in commits:
+                    short_sha = c.hexsha[:7]
+                    full_sha = c.hexsha
+                    msg = c.summary
+
+                    if q:
+                        matches = (
+                            q in short_sha.lower()
+                            or q in full_sha.lower()
+                            or q in msg.lower()
+                        )
+                        if not matches:
+                            continue
+
+                    display_name = short_sha
+                    if display_name in seen_names or full_sha in seen_names:
+                        continue
+                    seen_names.add(display_name)
+                    seen_names.add(full_sha)
+
+
+                    c_date = (
+                        datetime.fromtimestamp(c.authored_date).isoformat()
+                        if hasattr(c, "authored_date")
+                        else None
+                    )
+
+                    results.append({
+                        "name": display_name,
+                        "ref_type": "commit",
+                        "commit_sha": full_sha,
+                        "commit_message": msg,
+                        "commit_date": c_date,
+                    })
+                    if len(results) >= limit:
+                        return results
+            except Exception:
+                pass
+
+        return results[:limit]
+

@@ -22,7 +22,9 @@ import { DeleteRepoModal } from "@/components/repositories/delete-repo-modal";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Notice } from "@/components/ui/notice";
+import { RefSelector } from "@/components/ui/ref-selector";
 import { Skeleton } from "@/components/ui/skeleton";
+
 import { normalizeApiError } from "@/lib/api/errors";
 import { formatDateTime } from "@/lib/format";
 import {
@@ -284,13 +286,16 @@ export function RepositoryDetailPage({ repositoryId }: { repositoryId: string })
               <label className="block text-sm font-medium" htmlFor={`${formId}-ref`}>
                 Ref
               </label>
-              <Input
+              <RefSelector
                 id={`${formId}-ref`}
-                onChange={(event) => setRef(event.target.value)}
+                onChange={(val) => setRef(String(val || ""))}
                 placeholder="branch, tag, or commit"
+                repositoryId={validRepositoryId ?? ""}
                 value={ref}
               />
             </div>
+
+
             <div className="flex items-end">
               <Button disabled={indexState.isLoading} type="submit" variant="primary">
                 <Play aria-hidden="true" className="size-4" />

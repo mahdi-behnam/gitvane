@@ -73,8 +73,12 @@ const neighborResponse: GraphResponse = {
 function useRepositoryHandler() {
   server.use(
     http.get(`${apiBaseUrl}/repositories/77777777-7777-7777-7777-777777777777`, () => HttpResponse.json(repository)),
+    http.get(`${apiBaseUrl}/repositories/77777777-7777-7777-7777-777777777777/languages`, () => HttpResponse.json(["python"])),
+    http.get(`${apiBaseUrl}/repositories/77777777-7777-7777-7777-777777777777/files/search`, () => HttpResponse.json([])),
   );
 }
+
+
 
 describe("GraphExplorerPage", () => {
   it("renders repository subgraph nodes, edges, and controls", async () => {
@@ -108,14 +112,15 @@ describe("GraphExplorerPage", () => {
     renderWithProviders(<GraphExplorerPage repositoryId="77777777-7777-7777-7777-777777777777" />);
 
     await waitFor(() => expect(requests.length).toBeGreaterThan(0));
-    fireEvent.change(screen.getByLabelText("Max nodes"), {
+    fireEvent.change(screen.getByRole("spinbutton", { name: /Max nodes/ }), {
       target: { value: "50" },
     });
     fireEvent.click(screen.getByLabelText("Language filter"));
-    const langOption = await screen.findByText("python");
-    fireEvent.click(langOption);
+    const pythonOption = await screen.findByRole("button", { name: "python" });
+    fireEvent.click(pythonOption);
     fireEvent.click(screen.getByLabelText("Include tests"));
     fireEvent.click(screen.getByRole("button", { name: "Apply" }));
+
 
     await waitFor(() => expect(requests.length).toBeGreaterThan(1));
     const lastRequest = new URL(requests.at(-1) ?? "");
@@ -164,21 +169,22 @@ describe("GraphExplorerPage", () => {
     renderWithProviders(<GraphExplorerPage repositoryId="77777777-7777-7777-7777-777777777777" />);
 
     await screen.findByText("backend/app/api/v1/endpoints/indexing.py");
-    fireEvent.change(screen.getByLabelText("Max nodes"), {
+    fireEvent.change(screen.getByRole("spinbutton", { name: /Max nodes/ }), {
       target: { value: "1" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Apply" }));
+
 
     expect(
       await screen.findByText(/current node limit reached/i),
     ).toBeInTheDocument();
 
     fireEvent.click(screen.getByLabelText("Node search"));
-    const searchInput = await screen.findByPlaceholderText("Type file path...");
-    fireEvent.change(searchInput, {
+    fireEvent.change(screen.getByPlaceholderText("Type file path..."), {
       target: { value: "does-not-match" },
     });
-    fireEvent.keyDown(searchInput, { code: "Enter", key: "Enter" });
+    const useButton = await screen.findByRole("button", { name: /Use / });
+    fireEvent.click(useButton);
     fireEvent.click(screen.getByRole("button", { name: "Apply" }));
 
     expect(await screen.findByText("No matching nodes")).toBeInTheDocument();

@@ -56,8 +56,11 @@ const riskResponse: RepositoryRiskResponse = {
 function useRepositoryHandler() {
   server.use(
     http.get(`${apiBaseUrl}/repositories/77777777-7777-7777-7777-777777777777`, () => HttpResponse.json(repository)),
+    http.get(`${apiBaseUrl}/repositories/77777777-7777-7777-7777-777777777777/languages`, () => HttpResponse.json(["python"])),
+    http.get(`${apiBaseUrl}/repositories/77777777-7777-7777-7777-777777777777/files/search`, () => HttpResponse.json([])),
   );
 }
+
 
 describe("RiskDashboardPage", () => {
   it("renders risk summary, chart, table, and component details", async () => {
@@ -98,11 +101,11 @@ describe("RiskDashboardPage", () => {
     fireEvent.change(screen.getByLabelText("Top files"), {
       target: { value: "12" },
     });
-    fireEvent.click(screen.getByLabelText("Language filter"));
-    const option = await screen.findByText("python");
-    fireEvent.click(option);
+    const pythonOption = await screen.findByRole("button", { name: "python" });
+    fireEvent.click(pythonOption);
     fireEvent.click(screen.getByLabelText("Include tests"));
     fireEvent.click(screen.getByRole("button", { name: "Apply" }));
+
 
     await waitFor(() => expect(requests.length).toBeGreaterThan(1));
     const lastRequest = new URL(requests.at(-1) ?? "");

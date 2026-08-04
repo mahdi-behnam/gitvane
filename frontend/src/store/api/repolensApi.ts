@@ -16,7 +16,9 @@ import type {
   IndexRepositoryRequest,
   IndexRepositoryResponse,
   IndexStatusResponse,
+  RefSearchResult,
   Repository,
+
   RepositoryCreate,
   RepositoryList,
   RepositoryRiskArgs,
@@ -350,6 +352,19 @@ export const repolensApi = createApi({
         `/repositories/${repositoryId}/files/search?query=${encodeURIComponent(query)}&limit=${limit}`,
       providesTags: ["Repository"],
     }),
+    searchRepositoryRefs: builder.query<
+      RefSearchResult[],
+      { limit?: number; query?: string; ref_type?: string; repositoryId: string }
+    >({
+      query: ({ limit = 50, query = "", ref_type, repositoryId }) => {
+        let url = `/repositories/${repositoryId}/refs?query=${encodeURIComponent(query)}&limit=${limit}`;
+        if (ref_type) {
+          url += `&ref_type=${encodeURIComponent(ref_type)}`;
+        }
+        return url;
+      },
+      providesTags: ["Repository"],
+    }),
     listEvaluationRuns: builder.query<EvaluationRunListItem[], string>({
       query: (repositoryId) => `/evaluation/repository/${repositoryId}/runs`,
       providesTags: ["Evaluation"],
@@ -395,6 +410,9 @@ export const {
   useGetRepositoryLanguagesQuery,
   useSearchRepositoryFilesQuery,
   useLazySearchRepositoryFilesQuery,
+  useSearchRepositoryRefsQuery,
+  useLazySearchRepositoryRefsQuery,
   useListEvaluationRunsQuery,
   useListImpactRunsQuery,
 } = repolensApi;
+

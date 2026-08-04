@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Notice } from "@/components/ui/notice";
+import { RefSelector } from "@/components/ui/ref-selector";
+
 
 type FormState = {
   branch: string;
@@ -111,13 +113,15 @@ export function AddRepositoryDialog() {
             <label className="block text-sm font-medium" htmlFor={`${formId}-branch`}>
               Branch
             </label>
-            <Input
+            <RefSelector
               id={`${formId}-branch`}
-              onChange={(event) => updateForm("branch", event.target.value)}
+              onChange={(val) => updateForm("branch", String(val || ""))}
               placeholder="main"
               value={form.branch}
             />
           </div>
+
+
 
           <div className="space-y-2">
             <label className="block text-sm font-medium" htmlFor={`${formId}-pat`}>

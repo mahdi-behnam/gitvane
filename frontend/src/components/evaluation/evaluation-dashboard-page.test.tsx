@@ -60,6 +60,7 @@ Hybrid performed best against the available baseline.
 function useRepositoryHandler() {
   server.use(
     http.get(`${apiBaseUrl}/repositories/77777777-7777-7777-7777-777777777777`, () => HttpResponse.json(repository)),
+    http.get(`${apiBaseUrl}/evaluation/repository/77777777-7777-7777-7777-777777777777/runs`, () => HttpResponse.json([])),
   );
 }
 
@@ -80,15 +81,17 @@ describe("EvaluationDashboardPage", () => {
 
     renderWithProviders(<EvaluationDashboardPage repositoryId="77777777-7777-7777-7777-777777777777" />);
 
-    fireEvent.change(screen.getByLabelText("Name"), {
+    fireEvent.change(screen.getByRole("textbox", { name: "Name" }), {
       target: { value: "Nightly quality check" },
     });
-    fireEvent.change(screen.getByLabelText("Commit limit"), {
+    fireEvent.change(screen.getByRole("spinbutton", { name: /Commit limit/ }), {
       target: { value: "50" },
     });
-    fireEvent.click(screen.getByLabelText("Methods"));
-    const methodOption = await screen.findByText("dependency_only");
-    fireEvent.click(methodOption);
+    const methodsTrigger = document.getElementById("evaluation-methods");
+    expect(methodsTrigger).not.toBeNull();
+    fireEvent.click(methodsTrigger!);
+    const depOption = await screen.findByRole("button", { name: /dependency_only/ });
+    fireEvent.click(depOption);
     fireEvent.click(screen.getByRole("button", { name: "Run evaluation" }));
 
     await waitFor(() => expect(bodies).toHaveLength(1));
@@ -119,12 +122,13 @@ describe("EvaluationDashboardPage", () => {
 
     renderWithProviders(<EvaluationDashboardPage repositoryId="77777777-7777-7777-7777-777777777777" />);
 
-    fireEvent.click(screen.getByRole("combobox", { name: "Evaluation run ID" }));
-    const runInput = screen.getByPlaceholderText("Search run name or ID...");
-    fireEvent.change(runInput, {
+    fireEvent.click(screen.getByLabelText("Evaluation run ID"));
+    fireEvent.change(screen.getByPlaceholderText("Search run name or ID..."), {
       target: { value: "42" },
     });
-    fireEvent.keyDown(runInput, { code: "Enter", key: "Enter" });
+    const useBtn = await screen.findByRole("button", { name: /Use / });
+    fireEvent.click(useBtn);
+
     fireEvent.click(screen.getByRole("button", { name: "Load status" }));
 
     expect(await screen.findByText("Nightly quality check")).toBeInTheDocument();
@@ -134,22 +138,24 @@ describe("EvaluationDashboardPage", () => {
     useRepositoryHandler();
     renderWithProviders(<EvaluationDashboardPage repositoryId="77777777-7777-7777-7777-777777777777" />);
 
-    // Click hybrid option in dropdown to unselect it
-    fireEvent.click(screen.getByLabelText("Methods"));
-    const hybridOptions = screen.getAllByText("hybrid");
-    fireEvent.click(hybridOptions.at(-1)!);
+    const methodsTrigger = document.getElementById("evaluation-methods");
+    expect(methodsTrigger).not.toBeNull();
+    fireEvent.click(methodsTrigger!);
+    const hybridOption = await screen.findByRole("button", { name: /hybrid/ });
+    fireEvent.click(hybridOption);
+
     fireEvent.click(screen.getByRole("button", { name: "Run evaluation" }));
     expect(
       screen.getByText("Select at least one evaluation method."),
     ).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("combobox", { name: "Evaluation run ID" }));
-    const lookupInput = screen.getByPlaceholderText("Search run name or ID...");
-    fireEvent.change(lookupInput, {
+    fireEvent.click(screen.getByLabelText("Evaluation run ID"));
+    fireEvent.change(screen.getByPlaceholderText("Search run name or ID..."), {
       target: { value: "abc" },
     });
-    const option = await screen.findByText(/Use "abc"/i);
-    fireEvent.click(option);
+    const useBtn = await screen.findByRole("button", { name: /Use / });
+    fireEvent.click(useBtn);
+
     fireEvent.click(screen.getByRole("button", { name: "Load status" }));
     expect(screen.getByText("Enter a valid numeric evaluation run ID.")).toBeInTheDocument();
   });

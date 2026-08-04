@@ -189,3 +189,24 @@ class RepositoryService:
         await db.delete(repo_obj)
         await db.commit()
         return repo_obj
+
+    async def list_repository_refs(
+        self,
+        db: AsyncSession,
+        repository_id: UUID | str,
+        owner_id: int,
+        query: str = "",
+        limit: int = 50,
+        ref_type: Optional[str] = None,
+    ) -> List[dict]:
+        """Lists git refs (branches, tags, commits) for a repository."""
+        repo = await self.get_repository_or_raise(db, repository_id, owner_id=owner_id)
+        if not repo.local_path:
+            return []
+
+        resolved_path = validate_and_resolve_path(repo.local_path)
+        git_repo = self.git_service.open_repository(resolved_path)
+        return self.git_service.list_repository_refs(
+            repo=git_repo, query=query, limit=limit, ref_type=ref_type
+        )
+

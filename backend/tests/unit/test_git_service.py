@@ -250,3 +250,73 @@ def test_verify_public_accessibility_general_error(mock_git_cls: MagicMock, svc:
 
     with pytest.raises(GitOperationError, match="Git remote check failed"):
         svc.verify_public_accessibility("https://github.com/invalid/repo.git")
+
+
+def test_list_repository_refs_returns_branches_tags_commits(svc: GitService) -> None:
+    repo = MagicMock()
+
+    # Mock branch head
+    head = MagicMock()
+    head.name = "main"
+    head_commit = MagicMock()
+    head_commit.hexsha = "abc123456789"
+    head_commit.summary = "Initial commit"
+    head.commit = head_commit
+    repo.heads = [head]
+
+    # Mock tag
+    tag = MagicMock()
+    tag.name = "v1.0.0"
+    tag_commit = MagicMock()
+    tag_commit.hexsha = "def987654321"
+    tag_commit.summary = "Release v1.0.0"
+    tag.commit = tag_commit
+    repo.tags = [tag]
+
+
+    # Mock commits
+    commit1 = MagicMock()
+    commit1.hexsha = "abc123456789"
+    commit1.summary = "Initial commit"
+    commit1.authored_date = 1600000000
+
+    commit2 = MagicMock()
+    commit2.hexsha = "fed543210987"
+    commit2.summary = "Fix bug in parser"
+    commit2.authored_date = 1600000500
+
+    repo.iter_commits.return_value = [commit1, commit2]
+
+    results = svc.list_repository_refs(repo)
+
+    assert len(results) == 3
+    assert results[0]["name"] == "main"
+    assert results[0]["ref_type"] == "branch"
+    assert results[1]["name"] == "v1.0.0"
+    assert results[1]["ref_type"] == "tag"
+    assert results[2]["name"] == "fed5432"
+    assert results[2]["ref_type"] == "commit"
+
+
+def test_list_repository_refs_filters_by_query(svc: GitService) -> None:
+    repo = MagicMock()
+
+    head = MagicMock()
+    head.name = "feature-login"
+    head.commit.hexsha = "111222333444"
+    head.commit.summary = "Add login screen"
+
+    head2 = MagicMock()
+    head2.name = "main"
+    head2.commit.hexsha = "555666777888"
+    head2.commit.summary = "Main branch commit"
+
+    repo.heads = [head, head2]
+    repo.tags = []
+    repo.iter_commits.return_value = []
+
+    results = svc.list_repository_refs(repo, query="login")
+
+    assert len(results) == 1
+    assert results[0]["name"] == "feature-login"
+

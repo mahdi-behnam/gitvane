@@ -269,6 +269,7 @@ export function GraphExplorerPage({
                 Language filter
               </span>
               <Selector
+                id="graph-language"
                 allowCustomValue
                 id="graph-language"
                 loading={languagesQuery.isFetching}
@@ -284,6 +285,7 @@ export function GraphExplorerPage({
                 searchPlaceholder="Type language..."
                 value={draftFilters.language}
               />
+
             </div>
             <div className="space-y-2">
               <span className="block text-sm font-medium" id="graph-search-label">

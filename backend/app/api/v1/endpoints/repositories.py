@@ -7,8 +7,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_db, get_repository_service, get_current_user
 from app.db.models import User
 from app.core.errors import GitOperationError, InvalidPathError, RepositoryNotFoundError
-from app.schemas.repository import FileSearchResult, RepositoryCreate, RepositoryList, RepositoryOut
+from app.schemas.repository import (
+    FileSearchResult,
+    RefSearchResult,
+    RepositoryCreate,
+    RepositoryList,
+    RepositoryOut,
+)
 from app.services.repository_service import RepositoryService
+
 
 router = APIRouter()
 
@@ -195,4 +202,36 @@ async def search_repository_files(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)
         ) from exc
+
+
+@router.get("/{repository_id}/refs", response_model=list[RefSearchResult])
+async def list_repository_refs(
+    repository_id: UUID,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    svc: Annotated[RepositoryService, Depends(get_repository_service)],
+    current_user: Annotated[User, Depends(get_current_user)],
+    query: str = Query("", description="Optional search query to filter branches/tags/commits"),
+    limit: int = Query(50, ge=1, le=200, description="Max refs to return"),
+    ref_type: str | None = Query(None, description="Filter by ref type ('branch', 'tag', or 'commit')"),
+) -> list[RefSearchResult]:
+    """Perform fast autocomplete git ref search (branches, tags, commits) in a repository."""
+    try:
+        raw_refs = await svc.list_repository_refs(
+            db=db,
+            repository_id=repository_id,
+            owner_id=current_user.id,
+            query=query,
+            limit=limit,
+            ref_type=ref_type,
+        )
+        return [RefSearchResult.model_validate(r) for r in raw_refs]
+    except RepositoryNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)
+        ) from exc
+    except GitOperationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+        ) from exc
+
 

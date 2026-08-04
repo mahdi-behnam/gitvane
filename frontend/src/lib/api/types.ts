@@ -342,3 +342,12 @@ export type ImpactRunListItem = {
   status: string;
 };
 
+export type RefSearchResult = {
+  commit_date: string | null;
+  commit_message: string | null;
+  commit_sha: string | null;
+  name: string;
+  ref_type: "branch" | "tag" | "commit" | string;
+};
+
+

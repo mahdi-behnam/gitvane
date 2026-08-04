@@ -48,6 +48,7 @@ export function Selector({
   searchPlaceholder = "Type to search...",
   value,
 }: SelectorProps) {
+
   const [open, setOpen] = React.useState(false);
   const [search, setSearch] = React.useState("");
   const containerRef = React.useRef<HTMLDivElement>(null);
@@ -90,7 +91,7 @@ export function Selector({
   const selectedValues = React.useMemo(() => {
     if (Array.isArray(value)) return value;
     if (typeof value === "string" && value !== "") {
-      return mode === "multi" ? value.split(",").map((s) => s.trim()).filter(Boolean) : [value];
+      return mode === "multi" ? value.split(/[\n,]/).map((s) => s.trim()).filter(Boolean) : [value];
     }
     return [];
   }, [value, mode]);
@@ -151,6 +152,7 @@ export function Selector({
         role="combobox"
         type="button"
       >
+
         <div className="flex flex-wrap items-center gap-1.5 overflow-hidden py-0.5">
           {selectedValues.length === 0 ? (
             <span className="truncate text-muted">{placeholder}</span>

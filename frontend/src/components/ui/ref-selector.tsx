@@ -1,20 +1,23 @@
 "use client";
 
 import * as React from "react";
-import { useSearchRepositoryFilesQuery } from "@/store/api/repolensApi";
+import { useSearchRepositoryRefsQuery } from "@/store/api/repolensApi";
 import { Selector, SelectorOption, SelectorProps } from "./selector";
 
-export type FileSelectorProps = Omit<SelectorProps, "options"> & {
-  repositoryId: string;
+export type RefSelectorProps = Omit<SelectorProps, "options"> & {
+  refType?: "branch" | "tag" | "commit";
+  repositoryId?: string;
 };
 
-export function FileSelector({
+export function RefSelector({
+  allowCustomValue = true,
   disabled,
-  placeholder = "Select or search file...",
+  placeholder = "Select branch, tag, or commit...",
+  refType,
   repositoryId,
   value,
   ...props
-}: FileSelectorProps) {
+}: RefSelectorProps) {
   const [searchQuery, setSearchQuery] = React.useState("");
   const [debouncedQuery, setDebouncedQuery] = React.useState("");
 
@@ -26,34 +29,44 @@ export function FileSelector({
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  const { data: files = [], isFetching } = useSearchRepositoryFilesQuery(
+  const { data: refs = [], isFetching } = useSearchRepositoryRefsQuery(
     {
       limit: 50,
       query: debouncedQuery,
-      repositoryId,
+      ref_type: refType,
+      repositoryId: repositoryId!,
     },
     { skip: !repositoryId },
   );
 
   const options: SelectorOption[] = React.useMemo(() => {
-    const list: SelectorOption[] = files.map((file) => ({
-      badge: `${file.loc} LOC`,
-      description: `${file.language}${file.is_test ? " • test" : ""}`,
-      label: file.path,
-      value: file.path,
-    }));
+    const list: SelectorOption[] = refs.map((ref) => {
+      let badgeTone: "info" | "success" | "warning" | "danger" | "muted" = "info";
+      if (ref.ref_type === "tag") badgeTone = "success";
+      else if (ref.ref_type === "commit") badgeTone = "muted";
+
+      return {
+        badge: ref.ref_type,
+        badgeTone,
+        description: ref.commit_message || (ref.commit_sha ? `Commit ${ref.commit_sha}` : undefined),
+        label: ref.name,
+        value: ref.name,
+      };
+    });
 
     // If current value is not in returned list, append it so selected value is displayed
     const currentValues = Array.isArray(value)
       ? value
       : typeof value === "string" && value !== ""
-        ? value.split(/[\n,]/).map((s) => s.trim()).filter(Boolean)
+        ? value.split(",").map((s) => s.trim()).filter(Boolean)
         : [];
 
     for (const val of currentValues) {
       if (val && !list.some((o) => o.value === val)) {
         list.unshift({
-          description: "Selected path",
+          badge: "ref",
+          badgeTone: "muted",
+          description: "Current selection",
           label: val,
           value: val,
         });
@@ -61,19 +74,19 @@ export function FileSelector({
     }
 
     return list;
-  }, [files, value]);
+  }, [refs, value]);
 
   return (
     <Selector
       {...props}
-      allowCustomValue
+      allowCustomValue={allowCustomValue}
       disabled={disabled}
-      emptyText="No matching files found."
+      emptyText="No matching refs found."
       loading={isFetching}
       onSearchChange={(q) => setSearchQuery(q)}
       options={options}
       placeholder={placeholder}
-      searchPlaceholder="Type file path..."
+      searchPlaceholder="Type branch, tag, or commit..."
       value={value}
     />
   );

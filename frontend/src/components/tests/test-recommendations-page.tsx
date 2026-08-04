@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Notice } from "@/components/ui/notice";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FileSelector } from "@/components/ui/file-selector";
+
 import { normalizeApiError } from "@/lib/api/errors";
 import type { ChangedFileInput, TestRecommendation } from "@/lib/api/types";
 import {
@@ -196,6 +197,7 @@ export function TestRecommendationsPage({
                   repositoryId={validRepositoryId ?? ""}
                   value={impactedFiles}
                 />
+
                 <p className="text-xs leading-5 text-muted">
                   Optional. Include likely affected files from impact analysis.
                 </p>

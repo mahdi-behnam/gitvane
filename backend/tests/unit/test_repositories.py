@@ -373,3 +373,31 @@ def test_search_repository_files_success() -> None:
     finally:
         app.dependency_overrides.clear()
 
+
+def test_list_repository_refs_endpoint() -> None:
+    mock_svc = MagicMock()
+    mock_svc.list_repository_refs = AsyncMock(return_value=[
+        {
+            "name": "main",
+            "ref_type": "branch",
+            "commit_sha": "abc1234",
+            "commit_message": "Initial commit",
+            "commit_date": None,
+        }
+    ])
+    mock_db = MagicMock()
+
+    app.dependency_overrides[get_db] = lambda: mock_db
+    app.dependency_overrides[get_repository_service] = lambda: mock_svc
+    try:
+        client = TestClient(app)
+        response = client.get(f"/api/v1/repositories/{TEST_UUID}/refs?query=main")
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 1
+        assert data[0]["name"] == "main"
+        assert data[0]["ref_type"] == "branch"
+    finally:
+        app.dependency_overrides.clear()
+
+

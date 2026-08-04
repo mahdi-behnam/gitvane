@@ -224,12 +224,14 @@ export function RiskDashboardPage({
                 repositoryId={validRepositoryId ?? ""}
                 value={draftFilters.search}
               />
+
             </div>
             <div className="space-y-2">
               <span className="block text-sm font-medium" id="risk-language-label">
                 Language filter
               </span>
               <Selector
+                id="risk-language"
                 allowCustomValue
                 id="risk-language"
                 loading={languagesQuery.isFetching}
@@ -245,6 +247,7 @@ export function RiskDashboardPage({
                 searchPlaceholder="Type language..."
                 value={draftFilters.language}
               />
+
             </div>
             <label className="flex h-9 items-center gap-2 self-end rounded-md border border-border bg-panel px-3 text-sm">
               <input

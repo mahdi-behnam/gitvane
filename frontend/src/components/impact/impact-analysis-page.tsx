@@ -14,7 +14,9 @@ import { Input, Textarea } from "@/components/ui/input";
 import { Notice } from "@/components/ui/notice";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FileSelector } from "@/components/ui/file-selector";
+import { RefSelector } from "@/components/ui/ref-selector";
 import { Selector, SelectorOption } from "@/components/ui/selector";
+
 import { normalizeApiError } from "@/lib/api/errors";
 import type {
   ChangedFileInput,
@@ -289,10 +291,11 @@ export function ImpactAnalysisPage({
                       >
                         Base ref
                       </label>
-                      <Input
+                      <RefSelector
                         id={`${formId}-base-ref`}
-                        onChange={(event) => setBaseRef(event.target.value)}
+                        onChange={(val) => setBaseRef(String(val || ""))}
                         placeholder="e.g. main"
+                        repositoryId={validRepositoryId ?? ""}
                         value={baseRef}
                       />
                     </div>
@@ -303,15 +306,18 @@ export function ImpactAnalysisPage({
                       >
                         Head ref
                       </label>
-                      <Input
+                      <RefSelector
                         id={`${formId}-head-ref`}
-                        onChange={(event) => setHeadRef(event.target.value)}
+                        onChange={(val) => setHeadRef(String(val || ""))}
                         placeholder="e.g. feature-branch"
+                        repositoryId={validRepositoryId ?? ""}
                         value={headRef}
                       />
                     </div>
                   </div>
                 ) : null}
+
+
               </div>
             </div>
 
@@ -411,13 +417,13 @@ export function ImpactAnalysisPage({
                 allowCustomValue
                 id="analysis-run-id"
                 loading={impactRunsQuery.isFetching}
-              mode="single"
-              onChange={(val) => setAnalysisRunId(String(val || ""))}
-              options={impactRunOptions}
-              placeholder="Select an analysis run..."
-              searchPlaceholder="Search run ID or status..."
-              value={analysisRunId}
-            />
+                mode="single"
+                onChange={(val) => setAnalysisRunId(String(val || ""))}
+                options={impactRunOptions}
+                placeholder="Select an analysis run..."
+                searchPlaceholder="Search run ID or status..."
+                value={analysisRunId}
+              />
             <Button
               disabled={lookupState.isFetching || !analysisRunId}
               onClick={handleLookup}

@@ -41,8 +41,15 @@ const recommendationResponse: TestRecommendationResponse = {
 function useRepositoryHandler() {
   server.use(
     http.get(`${apiBaseUrl}/repositories/77777777-7777-7777-7777-777777777777`, () => HttpResponse.json(repository)),
+    http.get(`${apiBaseUrl}/repositories/77777777-7777-7777-7777-777777777777/files/search`, () =>
+      HttpResponse.json([
+        { id: 1, is_test: false, language: "python", loc: 100, path: "backend/app/services/indexing_service.py" },
+        { id: 2, is_test: false, language: "python", loc: 50, path: "backend/app/api/v1/endpoints/indexing.py" },
+      ]),
+    ),
   );
 }
+
 
 describe("TestRecommendationsPage", () => {
   it("submits changed files and renders recommendations", async () => {
@@ -62,6 +69,9 @@ describe("TestRecommendationsPage", () => {
       />,
     );
 
+    fireEvent.click(screen.getByLabelText("Changed files"));
+    const option1 = await screen.findByRole("button", { name: /indexing_service\.py/ });
+    fireEvent.click(option1);
     fireEvent.change(screen.getByLabelText("Top results"), {
       target: { value: "12" },
     });
@@ -97,11 +107,20 @@ describe("TestRecommendationsPage", () => {
       />,
     );
 
-    fireEvent.click(screen.getByLabelText("Impacted files"));
-    const option = await screen.findByText("backend/app/api/v1/endpoints/indexing.py");
-    fireEvent.click(option);
+    fireEvent.click(screen.getByLabelText("Changed files"));
+    const option1 = await screen.findByRole("button", { name: /indexing_service\.py/ });
+    fireEvent.click(option1);
 
+    fireEvent.click(screen.getByLabelText("Impacted files"));
+    const option2 = await screen.findByRole("button", { name: /endpoints\/indexing\.py/ });
+    fireEvent.click(option2);
     fireEvent.click(screen.getByRole("button", { name: "Recommend tests" }));
+
+
+
+
+
+
 
     await waitFor(() => expect(bodies).toHaveLength(1));
     expect(bodies[0]).toMatchObject({
@@ -127,6 +146,10 @@ describe("TestRecommendationsPage", () => {
       />,
     );
 
+    fireEvent.click(screen.getByLabelText("Changed files"));
+    const option = await screen.findByText("backend/app/services/indexing_service.py");
+    fireEvent.click(option);
+
     fireEvent.click(screen.getByRole("button", { name: "Recommend tests" }));
 
     expect(await screen.findByText("No recommendations")).toBeInTheDocument();
@@ -142,4 +165,5 @@ describe("TestRecommendationsPage", () => {
       screen.getByText("Enter at least one changed file path."),
     ).toBeInTheDocument();
   });
+
 });

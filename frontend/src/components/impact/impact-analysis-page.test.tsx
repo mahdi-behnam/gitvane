@@ -92,8 +92,21 @@ const impactResponse: ImpactAnalyzeResponse = {
 function useRepositoryHandler() {
   server.use(
     http.get(`${apiBaseUrl}/repositories/77777777-7777-7777-7777-777777777777`, () => HttpResponse.json(repository)),
+    http.get(`${apiBaseUrl}/repositories/77777777-7777-7777-7777-777777777777/files/search`, () =>
+      HttpResponse.json([
+        { is_test: false, language: "python", loc: 120, path: "backend/app/services/indexing_service.py" },
+      ]),
+    ),
+    http.get(`${apiBaseUrl}/repositories/77777777-7777-7777-7777-777777777777/refs`, () =>
+      HttpResponse.json([
+        { name: "main", ref_type: "branch", commit_sha: "abc1234", commit_message: "init", commit_date: "2026-06-21T10:00:00Z" },
+        { name: "development", ref_type: "branch", commit_sha: "def5678", commit_message: "dev branch", commit_date: "2026-06-21T11:00:00Z" },
+      ]),
+    ),
+    http.get(`${apiBaseUrl}/impact/repository/77777777-7777-7777-7777-777777777777/runs`, () => HttpResponse.json([])),
   );
 }
+
 
 describe("ImpactAnalysisPage", () => {
   it("submits changed files and renders impact evidence", async () => {
@@ -109,7 +122,7 @@ describe("ImpactAnalysisPage", () => {
     renderWithProviders(<ImpactAnalysisPage repositoryId="77777777-7777-7777-7777-777777777777" />);
 
     fireEvent.click(screen.getByLabelText("Changed files"));
-    const option = await screen.findByText("backend/app/services/indexing_service.py");
+    const option = await screen.findByRole("button", { name: /indexing_service\.py/ });
     fireEvent.click(option);
     fireEvent.click(screen.getByRole("button", { name: "Analyze impact" }));
 
@@ -181,12 +194,16 @@ describe("ImpactAnalysisPage", () => {
     renderWithProviders(<ImpactAnalysisPage repositoryId="77777777-7777-7777-7777-777777777777" />);
 
     fireEvent.click(screen.getByRole("button", { name: "Refs" }));
-    fireEvent.change(screen.getByLabelText("Base ref"), {
-      target: { value: "main" },
-    });
-    fireEvent.change(screen.getByLabelText("Head ref"), {
-      target: { value: "development" },
-    });
+    fireEvent.click(screen.getByLabelText("Base ref"));
+    const mainOption = await screen.findByRole("button", { name: /main/ });
+    fireEvent.click(mainOption);
+
+    fireEvent.click(screen.getByLabelText("Head ref"));
+    const devOption = await screen.findByRole("button", { name: /development/ });
+    fireEvent.click(devOption);
+
+
+
     fireEvent.click(screen.getByRole("button", { name: "Analyze impact" }));
 
     await waitFor(() => expect(bodies).toHaveLength(1));
@@ -197,8 +214,11 @@ describe("ImpactAnalysisPage", () => {
     });
 
     fireEvent.click(screen.getByLabelText("Analysis run ID"));
-    const option = await screen.findByText(/Run #91/i);
-    fireEvent.click(option);
+    fireEvent.change(screen.getByPlaceholderText("Search run ID or status..."), {
+      target: { value: "91" },
+    });
+    const useRunBtn = await screen.findByRole("button", { name: /Use / });
+    fireEvent.click(useRunBtn);
     fireEvent.click(screen.getByRole("button", { name: "Load run" }));
 
     expect(await screen.findByText("Stored run")).toBeInTheDocument();

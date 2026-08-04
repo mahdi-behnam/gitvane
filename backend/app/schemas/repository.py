@@ -65,3 +65,14 @@ class FileSearchResult(BaseModel):
     loc: int
     is_test: bool
 
+
+class RefSearchResult(BaseModel):
+    """Response schema for repository git ref autocomplete search"""
+
+    name: str = Field(..., description="Ref display name (branch, tag, or commit SHA)")
+    ref_type: str = Field(..., description="Ref type: 'branch', 'tag', or 'commit'")
+    commit_sha: Optional[str] = Field(None, description="Full or short commit SHA")
+    commit_message: Optional[str] = Field(None, description="Short commit message summary")
+    commit_date: Optional[str] = Field(None, description="Commit timestamp string")
+
+

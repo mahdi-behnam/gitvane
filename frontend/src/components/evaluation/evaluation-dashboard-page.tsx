@@ -262,6 +262,7 @@ export function EvaluationDashboardPage({ repositoryId }: { repositoryId: string
               <Selector
                 id="evaluation-methods"
                 mode="multi"
+
                 onChange={(val) =>
                   setMethods(Array.isArray(val) ? (val as EvaluationMethod[]) : [])
                 }
