@@ -82,9 +82,11 @@ async def test_semantic_search_returns_ranked_results() -> None:
     response = await service.semantic_search(db, TEST_UUID, "jwt expiration", top_k=5)
 
     assert response.results[0].path == "src/auth/token.py"
+    assert response.results[0].language == "python"
     assert response.results[0].symbol == "validate"
     assert response.results[0].score == 0.83
     assert "validate token expiry" in response.results[0].snippet
+
 
 
 @pytest.mark.asyncio()

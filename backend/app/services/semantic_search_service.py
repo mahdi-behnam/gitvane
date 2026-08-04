@@ -52,7 +52,9 @@ class SemanticSearchService:
         chunk, code_file, symbol, distance = row
         return SemanticSearchResult(
             path=code_file.path,
+            language=code_file.language if code_file else None,
             symbol=symbol.qualified_name if symbol else None,
+            signature=symbol.signature if symbol else None,
             start_line=chunk.start_line,
             end_line=chunk.end_line,
             score=self._distance_to_score(distance),
@@ -66,6 +68,18 @@ class SemanticSearchService:
 
     def _snippet(self, text: str, max_chars: int = 600) -> str:
         normalized = "\n".join(line.rstrip() for line in text.strip().splitlines())
+        lines = normalized.splitlines()
+        if lines and any(
+            lines[0].startswith(prefix)
+            for prefix in ("path:", "language:", "symbol:", "signature:")
+        ):
+            idx = 0
+            while idx < len(lines) and lines[idx].strip() != "":
+                idx += 1
+            if idx < len(lines):
+                normalized = "\n".join(lines[idx + 1 :]).strip()
+
         if len(normalized) <= max_chars:
             return normalized
         return f"{normalized[: max_chars - 3].rstrip()}..."
+

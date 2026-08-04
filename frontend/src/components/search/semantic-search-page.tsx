@@ -21,6 +21,8 @@ import {
 import { useAppDispatch } from "@/store/hooks";
 import { setActiveRepositoryId } from "@/store/slices/repositorySelectionSlice";
 
+import { CodeHighlight } from "@/components/ui/code-highlight";
+
 export function SemanticSearchPage({
   initialPath,
   repositoryId,
@@ -219,6 +221,76 @@ function SearchLoadingState() {
   );
 }
 
+function parseSearchResultMetadata(result: SemanticSearchResult) {
+  let path = result.path;
+  let language = result.language ?? null;
+  let symbol = result.symbol ?? null;
+  let signature = result.signature ?? null;
+  let cleanSnippet = result.snippet;
+
+  const lines = result.snippet.split("\n");
+  if (
+    lines.length > 0 &&
+    (lines[0].startsWith("path:") ||
+      lines[0].startsWith("language:") ||
+      lines[0].startsWith("symbol:") ||
+      lines[0].startsWith("signature:"))
+  ) {
+    let headerEndIdx = 0;
+    while (headerEndIdx < lines.length && lines[headerEndIdx].trim() !== "") {
+      const line = lines[headerEndIdx];
+      if (line.startsWith("path:") && !path) {
+        path = line.slice(5).trim();
+      } else if (line.startsWith("language:") && !language) {
+        language = line.slice(9).trim();
+      } else if (line.startsWith("symbol:") && !symbol) {
+        symbol = line.slice(7).trim();
+      } else if (line.startsWith("signature:") && !signature) {
+        signature = line.slice(10).trim();
+      }
+      headerEndIdx++;
+    }
+    if (headerEndIdx < lines.length) {
+      cleanSnippet = lines.slice(headerEndIdx + 1).join("\n").trim();
+    }
+  }
+
+  if (!language && path) {
+    const ext = path.split(".").pop()?.toLowerCase();
+    const extMap: Record<string, string> = {
+      c: "c",
+      cpp: "cpp",
+      css: "css",
+      go: "go",
+      html: "html",
+      java: "java",
+      js: "javascript",
+      json: "json",
+      jsx: "javascript",
+      md: "markdown",
+      py: "python",
+      rs: "rust",
+      sh: "bash",
+      sql: "sql",
+      ts: "typescript",
+      tsx: "typescript",
+      yaml: "yaml",
+      yml: "yaml",
+    };
+    if (ext && extMap[ext]) {
+      language = extMap[ext];
+    }
+  }
+
+  return {
+    code: cleanSnippet,
+    language,
+    path,
+    signature,
+    symbol,
+  };
+}
+
 function SearchResultCard({
   repositoryId,
   result,
@@ -226,45 +298,62 @@ function SearchResultCard({
   repositoryId: string;
   result: SemanticSearchResult;
 }) {
+  const { path, language, symbol, signature, code } = parseSearchResultMetadata(result);
+
   return (
     <Card>
       <CardHeader>
-        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-          <div className="min-w-0">
-            <h3 className="truncate font-mono text-sm font-semibold">{result.path}</h3>
-            <p className="mt-1 font-mono text-xs text-muted">
-              {result.symbol ?? "File scope"} · lines {result.start_line}-
-              {result.end_line}
-            </p>
+        <div className="space-y-3">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="flex flex-wrap items-center gap-2 font-mono text-xs">
+              <span className="font-semibold text-foreground">{path}</span>
+              <span className="text-muted">·</span>
+              <span className="rounded border border-border bg-panel-muted px-1.5 py-0.5 text-muted">
+                lines {result.start_line}-{result.end_line}
+              </span>
+              {language ? <Badge tone="info">{language}</Badge> : null}
+              {symbol ? (
+                <span className="rounded border border-border bg-panel-muted px-1.5 py-0.5 font-medium text-foreground">
+                  {symbol}
+                </span>
+              ) : null}
+            </div>
+            <Badge tone="info">{result.score.toFixed(3)}</Badge>
           </div>
-          <Badge tone="info">{result.score.toFixed(3)}</Badge>
+
+          {signature ? (
+            <div className="flex items-center gap-2 rounded border border-border/80 bg-panel-muted/50 p-2 text-xs">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted">
+                Signature:
+              </span>
+              <CodeHighlight code={signature} inline language={language} />
+            </div>
+          ) : null}
         </div>
       </CardHeader>
       <CardContent>
-        <pre className="overflow-x-auto rounded-md border border-border bg-panel-muted p-4 font-mono text-xs leading-6 text-foreground">
-          <code>{result.snippet}</code>
-        </pre>
+        <CodeHighlight code={code} language={language} />
         <div className="mt-4 flex flex-wrap gap-2">
           <Button asChild size="sm">
-            <Link href={`/repositories/${repositoryId}/graph?path=${encodeURIComponent(result.path)}`}>
+            <Link href={`/repositories/${repositoryId}/graph?path=${encodeURIComponent(path)}`}>
               <GitGraph aria-hidden="true" className="size-4" />
               Open graph
             </Link>
           </Button>
           <Button asChild size="sm" variant="ghost">
-            <Link href={`/repositories/${repositoryId}/impact?path=${encodeURIComponent(result.path)}`}>
+            <Link href={`/repositories/${repositoryId}/impact?path=${encodeURIComponent(path)}`}>
               Send to impact
               <ArrowRight aria-hidden="true" className="size-4" />
             </Link>
           </Button>
           <Button asChild size="sm" variant="ghost">
-            <Link href={`/repositories/${repositoryId}/risk?path=${encodeURIComponent(result.path)}`}>
+            <Link href={`/repositories/${repositoryId}/risk?path=${encodeURIComponent(path)}`}>
               <ShieldAlert aria-hidden="true" className="size-4" />
               View risk
             </Link>
           </Button>
           <Button asChild size="sm" variant="ghost">
-            <Link href={`/repositories/${repositoryId}/tests?path=${encodeURIComponent(result.path)}`}>
+            <Link href={`/repositories/${repositoryId}/tests?path=${encodeURIComponent(path)}`}>
               <FlaskConical aria-hidden="true" className="size-4" />
               Recommend tests
             </Link>
@@ -274,3 +363,4 @@ function SearchResultCard({
     </Card>
   );
 }
+

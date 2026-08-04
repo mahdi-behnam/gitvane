@@ -14,11 +14,14 @@ class SemanticSearchRequest(SearchBase):
 
 class SemanticSearchResult(BaseModel):
     path: str
+    language: str | None = None
     symbol: str | None = None
+    signature: str | None = None
     start_line: int
     end_line: int
     score: float
     snippet: str
+
 
 
 class SemanticSearchResponse(BaseModel):

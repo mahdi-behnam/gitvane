@@ -99,12 +99,15 @@ export type SemanticSearchRequest = {
 
 export type SemanticSearchResult = {
   end_line: number;
+  language?: string | null;
   path: string;
   score: number;
+  signature?: string | null;
   snippet: string;
   start_line: number;
   symbol: string | null;
 };
+
 
 export type SemanticSearchResponse = {
   results: SemanticSearchResult[];

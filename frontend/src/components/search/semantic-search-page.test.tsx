@@ -35,8 +35,10 @@ describe("SemanticSearchPage", () => {
       results: [
         {
           end_line: 24,
+          language: "python",
           path: "backend/app/services/indexing_service.py",
           score: 0.873,
+          signature: "async def index_repository(self, db, repository_id)",
           snippet: "async def index_repository(...):\n    return result",
           start_line: 12,
           symbol: "IndexingService.index_repository",
@@ -72,10 +74,13 @@ describe("SemanticSearchPage", () => {
       await screen.findByText("backend/app/services/indexing_service.py"),
     ).toBeInTheDocument();
     expect(screen.getByText("0.873")).toBeInTheDocument();
+    expect(screen.getByText("python")).toBeInTheDocument();
+    expect(screen.getByText("Signature:")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /open graph/i })).toHaveAttribute(
       "href",
       "/repositories/77777777-7777-7777-7777-777777777777/graph?path=backend%2Fapp%2Fservices%2Findexing_service.py",
     );
+
   });
 
   it("renders empty results", async () => {
