@@ -1,5 +1,6 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { apiBaseUrl } from "@/lib/api/client";
+import { setCredentials, clearCredentials } from "@/store/slices/authSlice";
 import type {
   EvaluationReportResponse,
   EvaluationRunListItem,
@@ -18,7 +19,6 @@ import type {
   IndexStatusResponse,
   RefSearchResult,
   Repository,
-
   RepositoryCreate,
   RepositoryList,
   RepositoryRiskArgs,
@@ -125,8 +125,62 @@ const baseQuery: typeof rawBaseQuery = async (args, api, extraOptions) => {
   return rawBaseQuery(adjustedArgs, api, extraOptions);
 };
 
+let refreshPromise: Promise<TokenResponse | null> | null = null;
+
+const baseQueryWithReauth: typeof rawBaseQuery = async (args, api, extraOptions) => {
+  let result = await baseQuery(args, api, extraOptions);
+
+  const url = typeof args === "string" ? args : args.url;
+  const isAuthEndpoint =
+    url?.includes("/auth/login") ||
+    url?.includes("/auth/refresh") ||
+    url?.includes("/auth/logout") ||
+    url?.includes("/auth/forgot-password") ||
+    url?.includes("/auth/reset-password");
+
+  if (result.error && result.error.status === 401 && !isAuthEndpoint) {
+    if (!refreshPromise) {
+      refreshPromise = (async () => {
+        try {
+          const refreshResult = await baseQuery(
+            { url: "/auth/refresh", method: "POST" },
+            api,
+            extraOptions
+          );
+
+          if (refreshResult.data) {
+            const data = refreshResult.data as TokenResponse;
+            api.dispatch(setCredentials({ accessToken: data.access_token }));
+            return data;
+          } else {
+            api.dispatch(clearCredentials());
+            if (typeof document !== "undefined") {
+              document.cookie =
+                "repolens_logged_in=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+            }
+            return null;
+          }
+        } catch {
+          api.dispatch(clearCredentials());
+          return null;
+        } finally {
+          refreshPromise = null;
+        }
+      })();
+    }
+
+    const refreshResult = await refreshPromise;
+
+    if (refreshResult) {
+      result = await baseQuery(args, api, extraOptions);
+    }
+  }
+
+  return result;
+};
+
 export const repolensApi = createApi({
-  baseQuery,
+  baseQuery: baseQueryWithReauth,
   endpoints: (builder) => ({
     createRepository: builder.mutation<Repository, RepositoryCreate>({
       invalidatesTags: ["Repository"],
