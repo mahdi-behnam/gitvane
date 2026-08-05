@@ -54,6 +54,23 @@ const navigationItems = [
   { href: "/settings", icon: Settings, label: "Settings" },
 ];
 
+export function parseJwtExp(token: string): number | null {
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return null;
+    const base64Url = parts[1];
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+    const decodedStr =
+      typeof atob === "function"
+        ? atob(base64)
+        : Buffer.from(base64, "base64").toString("utf-8");
+    const parsed = JSON.parse(decodedStr);
+    return typeof parsed.exp === "number" ? parsed.exp : null;
+  } catch {
+    return null;
+  }
+}
+
 function isActivePath(pathname: string, href: string) {
   if (href === "/") {
     return pathname === "/";
@@ -183,6 +200,36 @@ export function AppShell({ children }: { children: ReactNode }) {
 
     initializeAuth();
   }, [accessToken, refresh, triggerMe, dispatch, isAuthPage, router]);
+
+  useEffect(() => {
+    if (!accessToken || isAuthPage) {
+      return;
+    }
+
+    const exp = parseJwtExp(accessToken);
+    const REFRESH_MARGIN_MS = 60 * 1000;
+    const DEFAULT_REFRESH_INTERVAL_MS = 10 * 60 * 1000;
+
+    let delayMs = DEFAULT_REFRESH_INTERVAL_MS;
+    if (exp) {
+      const nowMs = Date.now();
+      delayMs = exp * 1000 - nowMs - REFRESH_MARGIN_MS;
+      if (delayMs <= 0) {
+        delayMs = 1000;
+      }
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        const tokenRes = await refresh().unwrap();
+        dispatch(setCredentials({ accessToken: tokenRes.access_token }));
+      } catch (err) {
+        console.error("Proactive background refresh failed:", err);
+      }
+    }, delayMs);
+
+    return () => clearTimeout(timer);
+  }, [accessToken, isAuthPage, refresh, dispatch]);
 
   const handleLogout = async () => {
     try {
