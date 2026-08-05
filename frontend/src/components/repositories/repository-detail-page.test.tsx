@@ -113,11 +113,11 @@ describe("RepositoryDetailPage", () => {
     renderWithProviders(<RepositoryDetailPage repositoryId="77777777-7777-7777-7777-777777777777" />);
 
     await screen.findByRole("heading", { name: "repolens" });
-    fireEvent.click(screen.getByLabelText("Ref"));
+    fireEvent.click(screen.getByRole("combobox", { name: "Ref" }));
     fireEvent.change(screen.getByPlaceholderText("Type branch, tag, or commit..."), {
       target: { value: "development" },
     });
-    fireEvent.click(screen.getByRole("button", { name: /Use / }));
+    fireEvent.click(await screen.findByRole("button", { name: /Use / }));
     fireEvent.click(screen.getByRole("button", { name: "Run index" }));
 
 

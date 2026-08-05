@@ -69,9 +69,6 @@ describe("TestRecommendationsPage", () => {
       />,
     );
 
-    fireEvent.click(screen.getByLabelText("Changed files"));
-    const option1 = await screen.findByRole("button", { name: /indexing_service\.py/ });
-    fireEvent.click(option1);
     fireEvent.change(screen.getByLabelText("Top results"), {
       target: { value: "12" },
     });
@@ -107,20 +104,10 @@ describe("TestRecommendationsPage", () => {
       />,
     );
 
-    fireEvent.click(screen.getByLabelText("Changed files"));
-    const option1 = await screen.findByRole("button", { name: /indexing_service\.py/ });
-    fireEvent.click(option1);
-
     fireEvent.click(screen.getByLabelText("Impacted files"));
     const option2 = await screen.findByRole("button", { name: /endpoints\/indexing\.py/ });
     fireEvent.click(option2);
     fireEvent.click(screen.getByRole("button", { name: "Recommend tests" }));
-
-
-
-
-
-
 
     await waitFor(() => expect(bodies).toHaveLength(1));
     expect(bodies[0]).toMatchObject({
@@ -146,14 +133,16 @@ describe("TestRecommendationsPage", () => {
       />,
     );
 
-    fireEvent.click(screen.getByLabelText("Changed files"));
-    const option = await screen.findByText("backend/app/services/indexing_service.py");
-    fireEvent.click(option);
-
     fireEvent.click(screen.getByRole("button", { name: "Recommend tests" }));
 
     expect(await screen.findByText("No recommendations")).toBeInTheDocument();
   });
+
+
+
+
+
+
 
   it("requires at least one changed file", () => {
     useRepositoryHandler();

@@ -129,6 +129,17 @@ const evaluationStatusFixture: EvaluationStatusResponse = {
 };
 
 export const handlers = [
+  http.post(`${apiBaseUrl}/auth/refresh`, () =>
+    HttpResponse.json({
+      access_token: "mock-access-token",
+      token_type: "bearer",
+    }),
+  ),
+  http.post(`${apiBaseUrl}/auth/logout`, () =>
+    HttpResponse.json({
+      status: "success",
+    }),
+  ),
   http.get(`${apiBaseUrl}/auth/me`, () =>
     HttpResponse.json({
       id: 1,

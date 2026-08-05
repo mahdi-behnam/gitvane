@@ -15,7 +15,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { usePathname } from "next/navigation";
-import { useState, useEffect, type ReactNode } from "react";
+import { useState, useEffect, useRef, type ReactNode } from "react";
 import { Logo } from "@/components/app/logo";
 import { ThemeToggle } from "@/components/app/theme-toggle";
 import { Button } from "@/components/ui/button";
@@ -138,11 +138,18 @@ export function AppShell({ children }: { children: ReactNode }) {
     "/auth/callback",
   ].includes(pathname);
 
+  const hasAttemptedRefreshRef = useRef(false);
+
   useEffect(() => {
     if (isAuthPage) {
       setIsInitializing(false);
       return;
     }
+
+    if (hasAttemptedRefreshRef.current) {
+      return;
+    }
+    hasAttemptedRefreshRef.current = true;
 
     async function initializeAuth() {
       if (!accessToken) {

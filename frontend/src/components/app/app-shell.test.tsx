@@ -15,7 +15,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 describe("AppShell", () => {
-  it("renders navigation and theme controls", () => {
+  it("renders navigation and theme controls", async () => {
     renderWithProviders(
       <ThemeProvider>
         <ToastProvider>
@@ -26,7 +26,8 @@ describe("AppShell", () => {
       </ThemeProvider>,
     );
 
-    expect(screen.getAllByText("RepoLens").length).toBeGreaterThan(0);
+    expect(await screen.findByText("Repo")).toBeInTheDocument();
+    expect(screen.getByText("Lens")).toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: /overview/i }).length).toBeGreaterThan(
       0,
     );

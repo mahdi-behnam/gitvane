@@ -194,15 +194,13 @@ describe("ImpactAnalysisPage", () => {
     renderWithProviders(<ImpactAnalysisPage repositoryId="77777777-7777-7777-7777-777777777777" />);
 
     fireEvent.click(screen.getByRole("button", { name: "Refs" }));
-    fireEvent.click(screen.getByLabelText("Base ref"));
+    fireEvent.click(screen.getByRole("combobox", { name: "Base ref" }));
     const mainOption = await screen.findByRole("button", { name: /main/ });
     fireEvent.click(mainOption);
 
-    fireEvent.click(screen.getByLabelText("Head ref"));
+    fireEvent.click(screen.getByRole("combobox", { name: "Head ref" }));
     const devOption = await screen.findByRole("button", { name: /development/ });
     fireEvent.click(devOption);
-
-
 
     fireEvent.click(screen.getByRole("button", { name: "Analyze impact" }));
 
@@ -213,7 +211,7 @@ describe("ImpactAnalysisPage", () => {
       raw_diff: null,
     });
 
-    fireEvent.click(screen.getByLabelText("Analysis run ID"));
+    fireEvent.click(screen.getByRole("combobox", { name: "Analysis run ID" }));
     fireEvent.change(screen.getByPlaceholderText("Search run ID or status..."), {
       target: { value: "91" },
     });

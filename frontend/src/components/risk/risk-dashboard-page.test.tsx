@@ -101,6 +101,7 @@ describe("RiskDashboardPage", () => {
     fireEvent.change(screen.getByLabelText("Top files"), {
       target: { value: "12" },
     });
+    fireEvent.click(screen.getByLabelText("Language filter"));
     const pythonOption = await screen.findByRole("button", { name: "python" });
     fireEvent.click(pythonOption);
     fireEvent.click(screen.getByLabelText("Include tests"));
