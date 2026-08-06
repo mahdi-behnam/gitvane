@@ -12,7 +12,19 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { skipToken } from "@reduxjs/toolkit/query";
-import { AlertCircle, Filter, FlaskConical, GitGraph, RefreshCw, Search, ShieldAlert, Zap } from "lucide-react";
+import {
+  AlertCircle,
+  Filter,
+  FlaskConical,
+  FolderTree,
+  GitGraph,
+  Grid3X3,
+  Layers,
+  RefreshCw,
+  Search,
+  ShieldAlert,
+  Zap,
+} from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { FormEvent, useEffect, useMemo, useState } from "react";
@@ -36,6 +48,9 @@ import {
 } from "@/store/api/repolensApi";
 import { useAppDispatch } from "@/store/hooks";
 import { setActiveRepositoryId } from "@/store/slices/repositorySelectionSlice";
+import { DependencyTreeView } from "./dependency-tree-view";
+import { RiskMatrixView } from "./risk-matrix-view";
+import { HierarchyLayerView } from "./hierarchy-layer-view";
 
 type GraphFilters = {
   includeTests: boolean;
@@ -44,6 +59,8 @@ type GraphFilters = {
   maxNodes: number;
   search: string;
 };
+
+type ViewMode = "topology" | "tree" | "matrix" | "hierarchy";
 
 const defaultFilters: GraphFilters = {
   includeTests: true,
@@ -64,6 +81,7 @@ export function GraphExplorerPage({
   const searchParams = useSearchParams();
   const pathParam = initialPath ?? searchParams?.get("path") ?? searchParams?.get("search") ?? searchParams?.get("query") ?? "";
 
+  const [viewMode, setViewMode] = useState<ViewMode>("topology");
   const [draftFilters, setDraftFilters] = useState<GraphFilters>(() => ({
     ...defaultFilters,
     search: pathParam,
@@ -93,10 +111,12 @@ export function GraphExplorerPage({
       ...langs.map((lang) => ({ label: lang, value: lang })),
     ];
   }, [languagesQuery.data]);
+
   const selectedGraphNode = useMemo(
     () => subgraph.data?.nodes.find((node) => node.id === selectedNodeId) ?? null,
     [selectedNodeId, subgraph.data?.nodes],
   );
+
   const neighbors = useGetFileNeighborsQuery(
     validRepositoryId && selectedNodeId
       ? { fileId: selectedNodeId, repositoryId: validRepositoryId }
@@ -196,7 +216,7 @@ export function GraphExplorerPage({
         <div>
           <h1 className="mt-3 text-3xl font-semibold md:text-4xl">Dependency graph</h1>
           <p className="mt-3 max-w-3xl text-sm leading-6 text-muted">
-            Explore file dependencies, imports, and relationships across your codebase in an interactive architectural graph visualizer.
+            Explore file dependencies, imports, and relationships across your codebase in interactive architectural graph visualizers.
           </p>
         </div>
         <div className="rounded-md border border-border bg-panel px-3 py-2 font-mono text-xs text-muted">
@@ -283,7 +303,6 @@ export function GraphExplorerPage({
                 searchPlaceholder="Type language..."
                 value={draftFilters.language}
               />
-
             </div>
             <div className="space-y-2">
               <span className="block text-sm font-medium" id="graph-search-label">
@@ -354,45 +373,123 @@ export function GraphExplorerPage({
           title="No matching nodes"
         />
       ) : (
-        <section className="grid gap-4 xl:grid-cols-[1fr_360px]">
-          <Card className="overflow-hidden">
-            <div className="h-[620px] min-h-[480px] bg-panel-muted">
-              <ReactFlow
-                edges={flowEdges}
-                fitView
-                fitViewOptions={{ padding: 0.24 }}
-                nodes={flowNodes}
-                nodesDraggable
-                onNodeClick={(_event, node) => setSelectedNodeId(Number(node.id))}
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-panel p-1.5 shadow-xs">
+            <span className="pl-2 text-xs font-semibold uppercase tracking-wider text-muted">
+              View Switcher
+            </span>
+            <div className="flex flex-wrap items-center gap-1">
+              <Button
+                onClick={() => setViewMode("topology")}
+                size="sm"
+                type="button"
+                variant={viewMode === "topology" ? "primary" : "ghost"}
               >
-                <Background color="rgb(var(--color-border))" gap={24} />
-                <MiniMap
-                  className="border-l border-t border-border bg-panel"
-                  maskColor="rgb(var(--color-panel) / 0.72)"
-                  nodeBorderRadius={8}
-                  nodeColor={(node) =>
-                    node.data?.isTest
-                      ? "rgb(var(--color-success))"
-                      : "rgb(var(--color-primary))"
-                  }
-                  nodeStrokeColor="rgb(var(--color-border))"
-                  pannable
-                  zoomable
-                />
-                <Controls showInteractive={false} />
-              </ReactFlow>
+                <GitGraph aria-hidden="true" className="size-4" />
+                Interactive Topology
+              </Button>
+              <Button
+                onClick={() => setViewMode("tree")}
+                size="sm"
+                type="button"
+                variant={viewMode === "tree" ? "primary" : "ghost"}
+              >
+                <FolderTree aria-hidden="true" className="size-4" />
+                Dependency Tree View
+              </Button>
+              <Button
+                onClick={() => setViewMode("matrix")}
+                size="sm"
+                type="button"
+                variant={viewMode === "matrix" ? "primary" : "ghost"}
+              >
+                <Grid3X3 aria-hidden="true" className="size-4" />
+                Risk/Impact Matrix View
+              </Button>
+              <Button
+                onClick={() => setViewMode("hierarchy")}
+                size="sm"
+                type="button"
+                variant={viewMode === "hierarchy" ? "primary" : "ghost"}
+              >
+                <Layers aria-hidden="true" className="size-4" />
+                Hierarchy View
+              </Button>
             </div>
-          </Card>
-          <NodeDetailPanel
-            neighbors={neighbors.data}
-            neighborsError={
-              neighbors.error ? normalizeApiError(neighbors.error).message : null
-            }
-            neighborsLoading={neighbors.isFetching}
-            node={selectedGraphNode}
-            repositoryId={validRepositoryId}
-          />
-        </section>
+          </div>
+
+          <section className="grid gap-4 xl:grid-cols-[1fr_360px]">
+            {viewMode === "topology" && (
+              <Card className="overflow-hidden">
+                <div className="h-[620px] min-h-[480px] bg-panel-muted">
+                  <ReactFlow
+                    edges={flowEdges}
+                    fitView
+                    fitViewOptions={{ padding: 0.24 }}
+                    nodes={flowNodes}
+                    nodesDraggable
+                    onNodeClick={(_event, node) => setSelectedNodeId(Number(node.id))}
+                  >
+                    <Background color="rgb(var(--color-border))" gap={24} />
+                    <MiniMap
+                      className="border border-border bg-panel rounded-lg overflow-hidden"
+                      maskColor="rgb(var(--color-panel) / 0.65)"
+                      maskStrokeColor="rgb(var(--color-primary))"
+                      maskStrokeWidth={2}
+                      nodeBorderRadius={6}
+                      nodeColor={(node) =>
+                        node.data?.isTest
+                          ? "rgb(var(--color-success))"
+                          : "rgb(var(--color-primary))"
+                      }
+                      nodeStrokeColor="rgb(var(--color-border))"
+                      pannable
+                      zoomable
+                    />
+                    <Controls className="bg-panel border border-border shadow-md rounded-lg" showInteractive={false} />
+                  </ReactFlow>
+                </div>
+              </Card>
+            )}
+
+            {viewMode === "tree" && (
+              <DependencyTreeView
+                edges={filteredEdges}
+                nodes={filteredNodes}
+                onSelectNode={setSelectedNodeId}
+                selectedNodeId={selectedNodeId}
+              />
+            )}
+
+            {viewMode === "matrix" && (
+              <RiskMatrixView
+                edges={filteredEdges}
+                nodes={filteredNodes}
+                onSelectNode={setSelectedNodeId}
+                selectedNodeId={selectedNodeId}
+              />
+            )}
+
+            {viewMode === "hierarchy" && (
+              <HierarchyLayerView
+                edges={filteredEdges}
+                nodes={filteredNodes}
+                onSelectNode={setSelectedNodeId}
+                selectedNodeId={selectedNodeId}
+              />
+            )}
+
+            <NodeDetailPanel
+              neighbors={neighbors.data}
+              neighborsError={
+                neighbors.error ? normalizeApiError(neighbors.error).message : null
+              }
+              neighborsLoading={neighbors.isFetching}
+              node={selectedGraphNode}
+              repositoryId={validRepositoryId}
+            />
+          </section>
+        </div>
       )}
     </div>
   );
@@ -650,7 +747,7 @@ function NodeDetailPanel({
                     {neighbor.path}
                   </p>
                   <p className="mt-1 text-xs text-muted">
-                    {neighbor.language || "unknown"} · {neighbor.loc} LOC
+                    {neighbor.language || "unknown"} � {neighbor.loc} LOC
                   </p>
                 </div>
               ))}
@@ -675,7 +772,7 @@ function NodeDetailPanel({
                   </span>
                 </div>
                 <p className="mt-1 break-all text-muted">
-                  {edge.source_path} → {edge.target_path}
+                  {edge.source_path} ? {edge.target_path}
                 </p>
               </div>
             ))}

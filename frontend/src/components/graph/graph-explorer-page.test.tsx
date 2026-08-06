@@ -78,8 +78,6 @@ function useRepositoryHandler() {
   );
 }
 
-
-
 describe("GraphExplorerPage", () => {
   it("renders repository subgraph nodes, edges, and controls", async () => {
     useRepositoryHandler();
@@ -121,7 +119,6 @@ describe("GraphExplorerPage", () => {
     fireEvent.click(screen.getByLabelText("Include tests"));
     fireEvent.click(screen.getByRole("button", { name: "Apply" }));
 
-
     await waitFor(() => expect(requests.length).toBeGreaterThan(1));
     const lastRequest = new URL(requests.at(-1) ?? "");
     expect(lastRequest.searchParams.get("max_nodes")).toBe("50");
@@ -155,6 +152,28 @@ describe("GraphExplorerPage", () => {
     ).toBeGreaterThan(0);
   });
 
+  it("switches graph views via the view switcher buttons", async () => {
+    useRepositoryHandler();
+    server.use(
+      http.get(`${apiBaseUrl}/graph/repositories/77777777-7777-7777-7777-777777777777/subgraph`, () =>
+        HttpResponse.json(graphResponse),
+      ),
+    );
+
+    renderWithProviders(<GraphExplorerPage repositoryId="77777777-7777-7777-7777-777777777777" />);
+
+    expect(await screen.findByText("Repository subgraph")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Dependency Tree View" }));
+    expect(await screen.findByText("Hierarchical Module Directory Tree")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Risk/Impact Matrix View" }));
+    expect(await screen.findByText("Risk & Impact Matrix View")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Hierarchy View" }));
+    expect(await screen.findByText("Architecture Layer Hierarchy View")).toBeInTheDocument();
+  });
+
   it("renders large graph and search empty states", async () => {
     useRepositoryHandler();
     server.use(
@@ -173,7 +192,6 @@ describe("GraphExplorerPage", () => {
       target: { value: "1" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Apply" }));
-
 
     expect(
       await screen.findByText(/current node limit reached/i),

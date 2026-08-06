@@ -139,3 +139,44 @@ a {
   }
 }
 
+
+/* ReactFlow Dark/Light Mode Visual Fixes */
+.react-flow__controls {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgb(var(--color-border)) !important;
+}
+
+.react-flow__controls-button {
+  background-color: rgb(var(--color-panel)) !important;
+  border-bottom: 1px solid rgb(var(--color-border)) !important;
+  color: rgb(var(--color-foreground)) !important;
+  fill: rgb(var(--color-foreground)) !important;
+}
+
+.react-flow__controls-button:hover {
+  background-color: rgb(var(--color-panel-muted)) !important;
+}
+
+.react-flow__controls-button svg {
+  fill: currentColor !important;
+  stroke: currentColor !important;
+  color: rgb(var(--color-foreground)) !important;
+}
+
+.react-flow__minimap {
+  background-color: rgb(var(--color-panel)) !important;
+  border-radius: 8px;
+  border: 1px solid rgb(var(--color-border)) !important;
+}
+
+.react-flow__minimap-mask {
+  fill: rgb(var(--color-panel) / 0.65) !important;
+  stroke: rgb(var(--color-primary)) !important;
+  stroke-width: 2px !important;
+}
+
+.react-flow__minimap-node {
+  stroke-width: 1px;
+}
