@@ -211,7 +211,6 @@ export function RepositoryManagementPage() {
     <div className="mx-auto max-w-7xl space-y-6">
       <div className="flex flex-col gap-4 border-b border-border pb-6 md:flex-row md:items-end md:justify-between">
         <div>
-          <Badge tone="info">Repositories</Badge>
           <h1 className="mt-3 text-3xl font-semibold md:text-4xl">Repositories</h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">
             Register repositories, inspect indexing state, and choose where analysis
@@ -247,12 +246,7 @@ export function RepositoryManagementPage() {
                     : `${allItems.length} total repositories`}
                 </p>
               </div>
-              <div className="flex items-center gap-2">
-                {hasActiveFilters ? (
-                  <Badge tone="info">{filteredRepositories.length} matching</Badge>
-                ) : null}
-                <Badge tone="neutral">{allItems.length} total</Badge>
-              </div>
+              
             </div>
 
             <div className="flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">

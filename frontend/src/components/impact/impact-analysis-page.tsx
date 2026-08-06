@@ -203,7 +203,6 @@ export function ImpactAnalysisPage({
     <div className="mx-auto max-w-7xl space-y-6">
       <div className="flex flex-col gap-4 border-b border-border pb-6 md:flex-row md:items-end md:justify-between">
         <div>
-          <Badge tone="info">Impact</Badge>
           <h1 className="mt-3 text-3xl font-semibold md:text-4xl">Impact analysis</h1>
           <p className="mt-3 max-w-3xl text-sm leading-6 text-muted">
             Predict the blast radius of code modifications before committing changes. Input modified file paths,
@@ -537,7 +536,7 @@ function ImpactResults({
                 Summary of analyzed changes, affected code symbols, and predicted downstream file impact count.
               </p>
             </div>
-            <Badge>Run {response.analysis_run_id}</Badge>
+            <span className="font-mono text-xs text-muted">Run {response.analysis_run_id}</span>
           </div>
         </CardHeader>
         <CardContent>
@@ -671,7 +670,7 @@ function ImpactedFiles({
             Ranked downstream modules predicted to be affected by the proposed code modifications.
           </p>
         </div>
-        <Badge>{files.length} files</Badge>
+        <span className="text-xs text-muted font-medium">{files.length} files</span>
       </div>
       {files.map((file) => (
         <Card key={file.path}>
@@ -683,7 +682,7 @@ function ImpactedFiles({
                 </h3>
                 <p className="mt-1 text-xs text-muted">Score {file.score.toFixed(3)}</p>
               </div>
-              <Badge tone="info">{file.score.toFixed(3)}</Badge>
+              <span className="font-mono text-xs font-semibold text-primary">{file.score.toFixed(3)}</span>
             </div>
           </CardHeader>
           <CardContent>

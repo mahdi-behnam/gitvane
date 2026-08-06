@@ -194,7 +194,6 @@ export function GraphExplorerPage({
     <div className="mx-auto max-w-7xl space-y-6">
       <div className="flex flex-col gap-4 border-b border-border pb-6 md:flex-row md:items-end md:justify-between">
         <div>
-          <Badge tone="info">Graph</Badge>
           <h1 className="mt-3 text-3xl font-semibold md:text-4xl">Dependency graph</h1>
           <p className="mt-3 max-w-3xl text-sm leading-6 text-muted">
             Explore file dependencies, imports, and relationships across your codebase in an interactive architectural graph visualizer.
@@ -624,7 +623,7 @@ function NodeDetailPanel({
                 term="File neighbors"
               />
             </h3>
-            <Badge>{neighbors?.nodes.length ?? 0} nodes</Badge>
+            <span className="text-xs text-muted font-medium">{neighbors?.nodes.length ?? 0} nodes</span>
           </div>
           {neighborsLoading ? (
             <div className="space-y-2">

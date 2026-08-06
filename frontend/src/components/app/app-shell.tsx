@@ -33,9 +33,13 @@ import { setCredentials, clearCredentials } from "@/store/slices/authSlice";
 import { setActiveRepositoryId } from "@/store/slices/repositorySelectionSlice";
 import { cn } from "@/lib/utils";
 
-const navigationItems = [
+const mainNavItems = [
   { href: "/", icon: Home, label: "Overview" },
   { href: "/repositories", icon: Waypoints, label: "Repositories" },
+  { href: "/settings", icon: Settings, label: "Settings" },
+];
+
+const repositorySubItems = [
   { href: "/repositories/current/search", icon: Search, label: "Search" },
   { href: "/repositories/current/impact", icon: Activity, label: "Impact" },
   { href: "/repositories/current/graph", icon: GitGraph, label: "Graph" },
@@ -46,7 +50,13 @@ const navigationItems = [
     icon: BarChart3,
     label: "Evaluation",
   },
-  { href: "/settings", icon: Settings, label: "Settings" },
+];
+
+const navigationItems = [
+  mainNavItems[0],
+  mainNavItems[1],
+  ...repositorySubItems,
+  mainNavItems[2],
 ];
 
 export function parseJwtExp(token: string): number | null {
@@ -89,40 +99,55 @@ function NavigationLinks({ onNavigate }: { onNavigate?: () => void }) {
     (state) => state.repositorySelection.activeRepositoryId,
   );
 
+  const renderItem = (item: { href: string; icon: any; label: string }, isSubItem = false) => {
+    const Icon = item.icon;
+    let resolvedHref = item.href;
+    if (item.href.startsWith("/repositories/current/")) {
+      const tool = item.href.replace("/repositories/current/", "");
+      resolvedHref = activeRepositoryId
+        ? `/repositories/${activeRepositoryId}/${tool}`
+        : `/repositories/current/${tool}`;
+    }
+
+    const active = isActivePath(pathname, resolvedHref);
+
+    return (
+      <Link
+        aria-current={active ? "page" : undefined}
+        className={cn(
+          "relative flex items-center gap-2.5 rounded-lg px-2.5 text-xs font-medium transition-all duration-150",
+          isSubItem ? "h-7 text-[11px]" : "h-9 text-xs",
+          active
+            ? "bg-primary/10 text-primary font-semibold shadow-sm"
+            : "text-muted hover:bg-panel-muted/80 hover:text-foreground",
+        )}
+        href={resolvedHref}
+        key={item.href}
+        onClick={onNavigate}
+      >
+        {active && (
+          <span className="absolute left-0 top-1.5 bottom-1.5 w-1 rounded-r-full bg-primary" />
+        )}
+        <Icon aria-hidden="true" className={cn(isSubItem ? "size-3.5 shrink-0" : "size-4 shrink-0", active ? "text-primary" : "text-muted/80")} />
+        <span>{item.label}</span>
+      </Link>
+    );
+  };
+
   return (
     <nav aria-label="Primary" className="space-y-1">
-      {navigationItems.map((item) => {
-        const Icon = item.icon;
-        let resolvedHref = item.href;
-        if (item.href.startsWith("/repositories/current/")) {
-          const tool = item.href.replace("/repositories/current/", "");
-          resolvedHref = activeRepositoryId
-            ? `/repositories/${activeRepositoryId}/${tool}`
-            : `/repositories/current/${tool}`;
+      {mainNavItems.map((item) => {
+        if (item.href === "/repositories") {
+          return (
+            <div key={item.href} className="space-y-1">
+              {renderItem(item)}
+              <div className="ml-3.5 my-0.5 space-y-0.5 border-l border-border/60 pl-2.5">
+                {repositorySubItems.map((subItem) => renderItem(subItem, true))}
+              </div>
+            </div>
+          );
         }
-
-        const active = isActivePath(pathname, resolvedHref);
-
-        return (
-          <Link
-            aria-current={active ? "page" : undefined}
-            className={cn(
-              "relative flex h-9 items-center gap-3 rounded-lg px-3 text-xs font-medium transition-all duration-150",
-              active
-                ? "bg-primary/10 text-primary font-semibold shadow-sm"
-                : "text-muted hover:bg-panel-muted/80 hover:text-foreground",
-            )}
-            href={resolvedHref}
-            key={item.href}
-            onClick={onNavigate}
-          >
-            {active && (
-              <span className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-primary" />
-            )}
-            <Icon aria-hidden="true" className={cn("size-4 shrink-0", active ? "text-primary" : "text-muted/80")} />
-            <span>{item.label}</span>
-          </Link>
-        );
+        return renderItem(item);
       })}
     </nav>
   );

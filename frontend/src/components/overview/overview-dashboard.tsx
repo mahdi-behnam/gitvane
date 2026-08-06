@@ -58,7 +58,6 @@ export function OverviewDashboard() {
     <div className="mx-auto max-w-7xl space-y-8">
       <div className="flex flex-col gap-5 border-b border-border/70 pb-6 md:flex-row md:items-end md:justify-between">
         <div>
-          <Badge tone="info">Overview</Badge>
           <h1 className="mt-3 text-3xl font-extrabold tracking-tight md:text-4xl text-balance">
             RepoLens Dashboard
           </h1>
@@ -245,7 +244,7 @@ function RecentRepositories({ repositories }: { repositories: Repository[] }) {
               Your registered codebases and their latest index processing states.
             </p>
           </div>
-          <Badge>{repositories.length} total</Badge>
+          <span className="text-xs text-muted font-medium">{repositories.length} total</span>
         </div>
       </CardHeader>
       <CardContent>
@@ -356,7 +355,7 @@ function EvaluationInsightCard({ repositoryId }: { repositoryId: string }) {
       <CardHeader>
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-sm font-bold tracking-tight">Evaluation summary</h2>
-          <Badge tone="neutral">Manual run</Badge>
+          <span className="text-xs text-muted font-medium">Manual run</span>
         </div>
       </CardHeader>
       <CardContent>

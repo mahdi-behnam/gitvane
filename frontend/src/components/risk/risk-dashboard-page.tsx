@@ -160,7 +160,6 @@ export function RiskDashboardPage({
     <div className="mx-auto max-w-7xl space-y-6">
       <div className="flex flex-col gap-4 border-b border-border pb-6 md:flex-row md:items-end md:justify-between">
         <div>
-          <Badge tone="warning">Risk</Badge>
           <h1 className="mt-3 text-3xl font-semibold md:text-4xl">Risk ranking</h1>
           <p className="mt-3 max-w-3xl text-sm leading-6 text-muted">
             Identify high-risk files in your codebase calculated from change frequency (churn),
@@ -181,7 +180,7 @@ export function RiskDashboardPage({
                 Filter repository files by risk threshold, path keywords, or result limits.
               </p>
             </div>
-            <Badge>Heuristic score</Badge>
+            <span className="text-xs text-muted font-medium">Heuristic score</span>
           </div>
         </CardHeader>
         <CardContent>
@@ -512,7 +511,7 @@ function RiskTable({
               Source files ordered by calculated risk score with detailed component breakdowns.
             </p>
           </div>
-          <Badge>{files.length} files</Badge>
+          <span className="text-xs text-muted font-medium">{files.length} files</span>
         </div>
       </CardHeader>
       <CardContent className="p-0">

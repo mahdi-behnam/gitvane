@@ -110,7 +110,6 @@ export function SemanticSearchPage({
     <div className="mx-auto max-w-7xl space-y-6">
       <div className="flex flex-col gap-4 border-b border-border pb-6 md:flex-row md:items-end md:justify-between">
         <div>
-          <Badge tone="info">Search</Badge>
           <h1 className="mt-3 text-3xl font-semibold md:text-4xl">Semantic search</h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">
             Search indexed code by intent and inspect scored snippets from the selected
@@ -186,7 +185,7 @@ export function SemanticSearchPage({
         <section className="space-y-3">
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-sm font-semibold">Results</h2>
-            <Badge>{results.length} returned</Badge>
+            <span className="text-xs text-muted font-medium">{results.length} returned</span>
           </div>
           {results.map((result, index) => (
             <SearchResultCard
@@ -311,14 +310,14 @@ function SearchResultCard({
               <span className="rounded border border-border bg-panel-muted px-1.5 py-0.5 text-muted">
                 lines {result.start_line}-{result.end_line}
               </span>
-              {language ? <Badge tone="info">{language}</Badge> : null}
+              {language ? <span className="font-mono text-xs text-muted font-medium">{language}</span> : null}
               {symbol ? (
                 <span className="rounded border border-border bg-panel-muted px-1.5 py-0.5 font-medium text-foreground">
                   {symbol}
                 </span>
               ) : null}
             </div>
-            <Badge tone="info">{result.score.toFixed(3)}</Badge>
+            <span className="font-mono text-xs font-semibold text-primary">{result.score.toFixed(3)}</span>
           </div>
 
           {signature ? (

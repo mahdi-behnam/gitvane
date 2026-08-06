@@ -166,7 +166,6 @@ export function RepositoryDetailPage({ repositoryId }: { repositoryId: string })
     <div className="mx-auto max-w-7xl space-y-6">
       <div className="flex flex-col gap-4 border-b border-border pb-6 md:flex-row md:items-end md:justify-between">
         <div>
-          <Badge tone="info">Repository</Badge>
           <h1 className="mt-3 text-3xl font-semibold md:text-4xl">
             {repositoryData.name}
           </h1>

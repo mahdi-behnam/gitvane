@@ -27,7 +27,7 @@ export function TableRow({ className, ...props }: HTMLAttributes<HTMLTableRowEle
   return (
     <tr
       className={cn(
-        "border-b border-border transition hover:bg-panel-muted",
+        "border-b border-border last:border-b-0 transition hover:bg-panel-muted",
         className,
       )}
       {...props}
