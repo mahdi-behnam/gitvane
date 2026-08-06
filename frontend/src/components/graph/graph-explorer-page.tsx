@@ -40,6 +40,7 @@ import { FileSelector } from "@/components/ui/file-selector";
 import { Selector, SelectorOption } from "@/components/ui/selector";
 import { normalizeApiError } from "@/lib/api/errors";
 import type { GraphEdge, GraphNode } from "@/lib/api/types";
+import { formatPercent, formatSnakeCase } from "@/lib/format";
 import {
   useGetFileNeighborsQuery,
   useGetRepositoryLanguagesQuery,
@@ -567,7 +568,7 @@ function buildFlowEdges(edges: GraphEdge[]): Edge[] {
       confidence: edge.confidence,
     },
     id: String(edge.id),
-    label: edge.edge_type,
+    label: formatSnakeCase(edge.edge_type),
     labelBgPadding: [8, 4],
     labelBgStyle: {
       fill: "rgb(var(--color-panel))",
@@ -766,9 +767,9 @@ function NodeDetailPanel({
                 key={edge.id}
               >
                 <div className="flex items-center justify-between gap-3">
-                  <span className="font-mono">{edge.edge_type}</span>
+                  <span className="font-mono">{formatSnakeCase(edge.edge_type)}</span>
                   <span className="font-mono text-muted">
-                    {edge.confidence.toFixed(2)}
+                    {formatPercent(edge.confidence, 0)}
                   </span>
                 </div>
                 <p className="mt-1 break-all text-muted">

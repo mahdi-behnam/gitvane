@@ -90,7 +90,7 @@ describe("EvaluationDashboardPage", () => {
     const methodsTrigger = document.getElementById("evaluation-methods");
     expect(methodsTrigger).not.toBeNull();
     fireEvent.click(methodsTrigger!);
-    const depOption = await screen.findByRole("button", { name: /dependency_only/ });
+    const depOption = await screen.findByRole("button", { name: /Dependency Only/ });
     fireEvent.click(depOption);
     fireEvent.click(screen.getByRole("button", { name: "Run evaluation" }));
 
@@ -103,7 +103,7 @@ describe("EvaluationDashboardPage", () => {
       repository_id: "77777777-7777-7777-7777-777777777777",
     });
     expect(await screen.findByText("Nightly quality check")).toBeInTheDocument();
-    expect(screen.getByText("completed")).toBeInTheDocument();
+    expect(screen.getByText("Completed")).toBeInTheDocument();
     expect(screen.getByText("Run 42")).toBeInTheDocument();
     expect(screen.getByText("Metrics summary")).toBeInTheDocument();
     expect(screen.getByText("Baseline comparison")).toBeInTheDocument();
@@ -141,7 +141,7 @@ describe("EvaluationDashboardPage", () => {
     const methodsTrigger = document.getElementById("evaluation-methods");
     expect(methodsTrigger).not.toBeNull();
     fireEvent.click(methodsTrigger!);
-    const hybridOption = await screen.findByRole("button", { name: /hybrid/ });
+    const hybridOption = await screen.findByRole("button", { name: /hybrid/i });
     fireEvent.click(hybridOption);
 
     fireEvent.click(screen.getByRole("button", { name: "Run evaluation" }));

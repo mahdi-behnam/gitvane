@@ -82,7 +82,7 @@ describe("TestRecommendationsPage", () => {
     });
     expect(await screen.findByText("Recommended tests")).toBeInTheDocument();
     expect(screen.getByText("backend/tests/test_indexing.py")).toBeInTheDocument();
-    expect(screen.getByText("0.830")).toBeInTheDocument();
+    expect(screen.getByText("83.0%")).toBeInTheDocument();
     expect(screen.getByText(/Covers indexing workflow/)).toBeInTheDocument();
     expect(screen.getByText(/does not execute tests/i)).toBeInTheDocument();
   });

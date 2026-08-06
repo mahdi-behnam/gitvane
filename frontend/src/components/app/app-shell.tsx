@@ -22,6 +22,7 @@ import { UserMenu } from "@/components/auth/user-menu";
 import { Button } from "@/components/ui/button";
 import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { Selector, type SelectorOption } from "@/components/ui/selector";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
   useListRepositoriesQuery,
@@ -368,22 +369,26 @@ export function AppShell({ children }: { children: ReactNode }) {
                     >
                       Active repository
                     </label>
-                    <select
-                      className="mt-1 block h-8 w-full max-w-[210px] truncate rounded-lg border border-border/80 bg-panel px-2.5 text-xs font-semibold text-foreground shadow-panel transition-colors hover:border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    <Selector
+                      className="mt-1 w-48 sm:w-52"
                       id="header-active-repo-select"
-                      onChange={(event) => {
-                        const val = event.target.value;
-                        handleRepositoryChange(val || null);
+                      loading={repositories.isLoading}
+                      onChange={(val) => {
+                        const selectedVal = Array.isArray(val) ? val[0] : val;
+                        handleRepositoryChange(selectedVal || null);
                       }}
+                      options={[
+                        { label: "None selected", value: "" },
+                        ...(repositories.data?.items.map((repo) => ({
+                          description: repo.default_branch ? `Branch: ${repo.default_branch}` : undefined,
+                          label: repo.name,
+                          value: repo.id,
+                        })) ?? []),
+                      ]}
+                      placeholder="Select repository..."
+                      searchPlaceholder="Filter repos..."
                       value={activeRepositoryId ?? ""}
-                    >
-                      <option value="">None selected</option>
-                      {repositories.data?.items.map((repo) => (
-                        <option key={repo.id} value={repo.id}>
-                          {repo.name}
-                        </option>
-                      ))}
-                    </select>
+                    />
                   </div>
                 </div>
 

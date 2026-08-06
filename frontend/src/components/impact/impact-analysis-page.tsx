@@ -18,6 +18,7 @@ import { RefSelector } from "@/components/ui/ref-selector";
 import { Selector, SelectorOption } from "@/components/ui/selector";
 
 import { normalizeApiError } from "@/lib/api/errors";
+import { formatPercent, formatSnakeCase } from "@/lib/format";
 import type {
   ChangedFileInput,
   ImpactAnalyzeResponse,
@@ -95,7 +96,7 @@ export function ImpactAnalysisPage({
     return runs.map((run) => ({
       badge: run.status,
       description: `${run.changed_files_count} file(s) changed • ${run.created_at ? new Date(run.created_at).toLocaleString() : ""}`,
-      label: `Run #${run.analysis_run_id} (${run.input_mode})`,
+      label: `Run #${run.analysis_run_id} (${formatSnakeCase(run.input_mode)})`,
       value: String(run.analysis_run_id),
     }));
   }, [impactRunsQuery.data]);
@@ -583,7 +584,7 @@ function ImpactRunResults({
         <CardHeader>
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-sm font-semibold">Stored run</h2>
-            <Badge>{response.status}</Badge>
+            <Badge>{formatSnakeCase(response.status)}</Badge>
           </div>
         </CardHeader>
         <CardContent>
@@ -680,15 +681,15 @@ function ImpactedFiles({
                 <h3 className="truncate font-mono text-sm font-semibold">
                   #{file.rank} {file.path}
                 </h3>
-                <p className="mt-1 text-xs text-muted">Score {file.score.toFixed(3)}</p>
+                <p className="mt-1 text-xs text-muted">Impact Score {formatPercent(file.score)}</p>
               </div>
-              <span className="font-mono text-xs font-semibold text-primary">{file.score.toFixed(3)}</span>
+              <span className="font-mono text-xs font-semibold text-primary">{formatPercent(file.score)}</span>
             </div>
           </CardHeader>
           <CardContent>
             <div className="grid gap-2 md:grid-cols-4">
               {Object.entries(file.component_scores).map(([name, score]) => (
-                <Metric key={name} label={name} value={score} precision />
+                <Metric key={name} label={formatSnakeCase(name)} value={score} precision />
               ))}
             </div>
             <div className="mt-4 space-y-2">
@@ -697,7 +698,7 @@ function ImpactedFiles({
                   className="rounded-md border border-border bg-panel-muted px-3 py-2 text-sm"
                   key={`${file.path}:${reason.type}:${reason.message}`}
                 >
-                  <span className="font-medium">{reason.type}</span>
+                  <span className="font-medium">{formatSnakeCase(reason.type)}</span>
                   <span className="ml-2 text-muted">{reason.message}</span>
                 </div>
               ))}
@@ -865,7 +866,7 @@ function Metric({
         {desc ? <TermTooltip description={desc} term={label} /> : label}
       </div>
       <p className="mt-2 text-2xl font-semibold">
-        {precision ? value.toFixed(2) : value.toLocaleString()}
+        {precision ? formatPercent(value) : value.toLocaleString()}
       </p>
     </div>
   );

@@ -16,6 +16,7 @@ import { FileSelector } from "@/components/ui/file-selector";
 
 import { normalizeApiError } from "@/lib/api/errors";
 import type { ChangedFileInput, TestRecommendation } from "@/lib/api/types";
+import { formatPercent } from "@/lib/format";
 import {
   useGetRepositoryQuery,
   useRecommendTestsMutation,
@@ -335,7 +336,7 @@ function RecommendationCard({
               {recommendation.reason ?? "No reason provided."}
             </p>
           </div>
-          <Metric label="Score" value={recommendation.score.toFixed(3)} />
+          <Metric label="Score" value={formatPercent(recommendation.score)} />
         </div>
       </CardHeader>
       <CardContent>

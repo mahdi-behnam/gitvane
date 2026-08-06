@@ -138,7 +138,7 @@ describe("ImpactAnalysisPage", () => {
     expect(
       screen.getAllByText(/backend\/app\/api\/v1\/endpoints\/indexing.py/).length,
     ).toBeGreaterThan(0);
-    expect(screen.getAllByText("dependency").length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/dependency/i).length).toBeGreaterThan(0);
     expect(
       screen.getAllByText("backend/tests/test_indexing.py").length,
     ).toBeGreaterThan(0);
@@ -220,6 +220,6 @@ describe("ImpactAnalysisPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Load run" }));
 
     expect(await screen.findByText("Stored run")).toBeInTheDocument();
-    expect(screen.getByText("completed")).toBeInTheDocument();
+    expect(screen.getByText("Completed")).toBeInTheDocument();
   });
 });

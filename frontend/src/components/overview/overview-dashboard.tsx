@@ -22,7 +22,7 @@ import { Notice } from "@/components/ui/notice";
 import { Skeleton } from "@/components/ui/skeleton";
 import { normalizeApiError } from "@/lib/api/errors";
 import type { Repository, RiskFile } from "@/lib/api/types";
-import { formatDateTime } from "@/lib/format";
+import { formatDateTime, formatSnakeCase } from "@/lib/format";
 import {
   useGetIndexStatusQuery,
   useGetRepositoryRiskQuery,
@@ -263,7 +263,7 @@ function RecentRepositories({ repositories }: { repositories: Repository[] }) {
               </span>
               <span className="flex flex-wrap items-center gap-2.5 md:justify-end">
                 <Badge tone={repository.status === "indexed" ? "success" : "neutral"}>
-                  {repository.status}
+                  {formatSnakeCase(repository.status)}
                 </Badge>
                 <span className="font-mono text-xs text-muted tabular-nums">
                   {formatDateTime(repository.indexed_at)}

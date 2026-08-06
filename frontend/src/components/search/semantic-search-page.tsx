@@ -14,6 +14,7 @@ import { Notice } from "@/components/ui/notice";
 import { Skeleton } from "@/components/ui/skeleton";
 import { normalizeApiError } from "@/lib/api/errors";
 import type { SemanticSearchResult } from "@/lib/api/types";
+import { formatPercent } from "@/lib/format";
 import {
   useGetRepositoryQuery,
   useSemanticSearchMutation,
@@ -317,7 +318,7 @@ function SearchResultCard({
                 </span>
               ) : null}
             </div>
-            <span className="font-mono text-xs font-semibold text-primary">{result.score.toFixed(3)}</span>
+            <span className="font-mono text-xs font-semibold text-primary">{formatPercent(result.score)}</span>
           </div>
 
           {signature ? (

@@ -25,7 +25,7 @@ import { RefSelector } from "@/components/ui/ref-selector";
 import { Skeleton } from "@/components/ui/skeleton";
 
 import { normalizeApiError } from "@/lib/api/errors";
-import { formatDateTime } from "@/lib/format";
+import { formatDateTime, formatSnakeCase } from "@/lib/format";
 import {
   useDeleteRepositoryMutation,
   useGetIndexStatusQuery,
@@ -209,7 +209,7 @@ export function RepositoryDetailPage({ repositoryId }: { repositoryId: string })
                   <Badge
                     tone={repositoryData.status === "indexed" ? "success" : "neutral"}
                   >
-                    {repositoryData.status}
+                    {formatSnakeCase(repositoryData.status)}
                   </Badge>
                 </dd>
               </div>

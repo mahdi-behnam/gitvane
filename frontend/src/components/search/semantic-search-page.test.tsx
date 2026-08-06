@@ -73,7 +73,7 @@ describe("SemanticSearchPage", () => {
     expect(
       await screen.findByText("backend/app/services/indexing_service.py"),
     ).toBeInTheDocument();
-    expect(screen.getByText("0.873")).toBeInTheDocument();
+    expect(screen.getByText("87.3%")).toBeInTheDocument();
     expect(screen.getByText("python")).toBeInTheDocument();
     expect(screen.getByText("Signature:")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /open graph/i })).toHaveAttribute(

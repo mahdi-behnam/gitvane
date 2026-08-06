@@ -25,6 +25,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Selector, SelectorOption } from "@/components/ui/selector";
 import { normalizeApiError } from "@/lib/api/errors";
 import type { EvaluationMethod, EvaluationStatusResponse } from "@/lib/api/types";
+import { formatPercent, formatSnakeCase } from "@/lib/format";
 import {
   useGetEvaluationReportMarkdownQuery,
   useGetEvaluationStatusQuery,
@@ -98,7 +99,7 @@ export function EvaluationDashboardPage({ repositoryId }: { repositoryId: string
     () =>
       evaluationMethods.map((m) => ({
         description: METHOD_DESCRIPTIONS[m],
-        label: m,
+        label: formatSnakeCase(m),
         value: m,
       })),
     [],
@@ -395,7 +396,7 @@ function EvaluationStatusCard({ status }: { status: EvaluationStatusResponse }) 
             </p>
           </div>
           <Badge tone={status.status === "completed" ? "success" : "warning"}>
-            {status.status}
+            {formatSnakeCase(status.status)}
           </Badge>
         </div>
       </CardHeader>
@@ -424,7 +425,7 @@ function EvaluationStatusCard({ status }: { status: EvaluationStatusResponse }) 
                   className="rounded-md border border-border bg-panel-muted px-2 py-1 font-mono text-xs text-muted"
                   key={method}
                 >
-                  <TermTooltip description={desc} term={method} />
+                  <TermTooltip description={desc} term={formatSnakeCase(method)} />
                 </span>
               );
             })}
@@ -463,8 +464,8 @@ function EvaluationMetrics({ summary }: { summary: Record<string, unknown> }) {
             {topMetrics.map((metric) => (
               <Metric
                 key={`${metric.method}:${metric.metric}`}
-                label={`${metric.method} ${metric.metric}`}
-                value={metric.value.toFixed(3)}
+                label={`${formatSnakeCase(metric.method)} ${formatSnakeCase(metric.metric)}`}
+                value={formatPercent(metric.value)}
               />
             ))}
           </div>
@@ -517,7 +518,7 @@ function EvaluationMetrics({ summary }: { summary: Record<string, unknown> }) {
                     fontSize={11}
                     position="insideLeft"
                     style={{ textAnchor: "middle" }}
-                    value="Score (0.0 - 1.0)"
+                    value="Score (%)"
                   />
                 </YAxis>
                 <Tooltip

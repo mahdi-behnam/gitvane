@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/table";
 import { normalizeApiError } from "@/lib/api/errors";
 import type { IndexingProgressEvent, Repository } from "@/lib/api/types";
-import { formatDateTime } from "@/lib/format";
+import { formatDateTime, formatSnakeCase } from "@/lib/format";
 import { useIndexingSSE } from "@/lib/hooks/useIndexingSSE";
 import {
   useDeleteRepositoryMutation,
@@ -118,7 +118,7 @@ function RepositoryStatusCell({
 
   return (
     <Badge tone={repository.status === "indexed" ? "success" : "neutral"}>
-      {repository.status}
+      {formatSnakeCase(repository.status)}
     </Badge>
   );
 }

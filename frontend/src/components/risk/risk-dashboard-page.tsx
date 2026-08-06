@@ -35,6 +35,7 @@ import { FileSelector } from "@/components/ui/file-selector";
 import { Selector, SelectorOption } from "@/components/ui/selector";
 import { normalizeApiError } from "@/lib/api/errors";
 import type { RiskFile } from "@/lib/api/types";
+import { formatSnakeCase } from "@/lib/format";
 import {
   useGetRepositoryLanguagesQuery,
   useGetRepositoryQuery,
@@ -396,7 +397,7 @@ function RiskSummary({
             {components.length > 0 ? (
               components.map((component) => {
                 const info = COMPONENT_DESCRIPTIONS[component.name] || {
-                  label: component.name,
+                  label: formatSnakeCase(component.name),
                   desc: `Average component signal weight for ${component.name}.`,
                 };
 
@@ -590,31 +591,31 @@ function RiskTable({
 
 const COMPONENT_DESCRIPTIONS: Record<string, { label: string; desc: string }> = {
   fan_in: {
-    label: "fan_in",
+    label: "Fan In",
     desc: "Number of incoming dependencies (other modules that import this file). High fan-in indicates wide impact if modified.",
   },
   fan_out: {
-    label: "fan_out",
+    label: "Fan Out",
     desc: "Number of outgoing dependencies (modules imported by this file). High fan-out makes this file sensitive to external changes.",
   },
   centrality: {
-    label: "centrality",
+    label: "Centrality",
     desc: "Graph centrality score measuring how critical this node is as an architectural hub connecting multiple components.",
   },
   complexity: {
-    label: "complexity",
+    label: "Complexity",
     desc: "Cyclomatic decision pathway complexity. Highly complex control flows are prone to subtle bugs.",
   },
   churn: {
-    label: "churn",
+    label: "Churn",
     desc: "Recent file modification frequency. Frequently edited files have a higher likelihood of regression.",
   },
   dependency: {
-    label: "dependency",
+    label: "Dependency",
     desc: "Structural coupling strength in the repository dependency graph.",
   },
   risk: {
-    label: "risk",
+    label: "Risk",
     desc: "Overall heuristic risk score combining structural metrics and churn history.",
   },
 };
@@ -630,7 +631,7 @@ function ComponentDetails({ components }: { components: Record<string, number> }
     <div className="min-w-44 space-y-2">
       {entries.map(([name, value]) => {
         const info = COMPONENT_DESCRIPTIONS[name] || {
-          label: name,
+          label: formatSnakeCase(name),
           desc: `Architectural signal weight for ${name}.`,
         };
 
