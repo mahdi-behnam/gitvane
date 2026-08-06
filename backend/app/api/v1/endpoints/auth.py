@@ -27,6 +27,7 @@ from app.schemas.user import (
     PasswordResetRequest,
     PasswordResetConfirm,
     UserUpdate,
+    PasswordChange,
 )
 
 import smtplib
@@ -372,6 +373,7 @@ async def oauth2_callback_google(
     email = profile.get("email")
     oauth_id = profile.get("sub")
     full_name = profile.get("name", email)
+    picture = profile.get("picture")
 
     if not email or not oauth_id:
         raise AuthenticationError("Incomplete Google profile details received")
@@ -390,10 +392,13 @@ async def oauth2_callback_google(
         if user:
             user.oauth_provider = "google"
             user.oauth_id = oauth_id
+            if picture:
+                user.picture = picture
         else:
             user = User(
                 email=email,
                 full_name=full_name,
+                picture=picture,
                 oauth_provider="google",
                 oauth_id=oauth_id,
                 is_active=True,
@@ -403,6 +408,8 @@ async def oauth2_callback_google(
     else:
         user.full_name = full_name
         user.email = email
+        if picture:
+            user.picture = picture
 
     # Generate tokens
     access_token = create_access_token(subject=user.id)
@@ -528,8 +535,38 @@ async def update_me(
         current_user.full_name = user_update.full_name
 
     if user_update.password is not None:
+        if not user_update.current_password:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Current password is required to change password",
+            )
+        if not current_user.hashed_password or not verify_password(
+            user_update.current_password, current_user.hashed_password
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Incorrect current password",
+            )
         current_user.hashed_password = hash_password(user_update.password)
 
     await db.commit()
     await db.refresh(current_user)
     return current_user
+
+
+@router.post("/change-password", status_code=status.HTTP_200_OK)
+async def change_password(
+    password_change: PasswordChange,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, str]:
+    if not current_user.hashed_password or not verify_password(
+        password_change.current_password, current_user.hashed_password
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Incorrect current password",
+        )
+    current_user.hashed_password = hash_password(password_change.new_password)
+    await db.commit()
+    return {"status": "success", "message": "Password updated successfully"}

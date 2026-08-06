@@ -29,6 +29,7 @@ class User(Base):
     email: Mapped[str] = mapped_column(String, unique=True, index=True, nullable=False)
     hashed_password: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     full_name: Mapped[str] = mapped_column(String, nullable=False)
+    picture: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     oauth_provider: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     oauth_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     is_active: Mapped[bool] = mapped_column(default=True, nullable=False)

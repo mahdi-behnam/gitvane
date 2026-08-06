@@ -87,6 +87,6 @@ describe("OverviewDashboard", () => {
       screen.getAllByText("backend/app/services/indexing_service.py").length,
     ).toBeGreaterThan(0);
     expect(screen.getByText("Evaluation summary")).toBeInTheDocument();
-    expect(screen.getByText(/does not invent evaluation results/)).toBeInTheDocument();
+    expect(screen.getByText(/Evaluation results will appear after running an evaluation pipeline/)).toBeInTheDocument();
   });
 });

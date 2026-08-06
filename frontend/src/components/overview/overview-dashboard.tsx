@@ -366,12 +366,8 @@ function EvaluationInsightCard({ repositoryId }: { repositoryId: string }) {
             start a run or refresh an existing report.
           </p>
           <div className="rounded-lg border border-border/70 bg-panel-muted/60 px-3.5 py-2.5">
-            <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">
-              Current backend surface
-            </p>
             <p className="mt-1.5 text-xs text-muted">
-              No latest-run endpoint is available, so this card does not invent
-              evaluation results.
+              Evaluation results will appear after running an evaluation pipeline.
             </p>
           </div>
           <Button asChild size="sm">

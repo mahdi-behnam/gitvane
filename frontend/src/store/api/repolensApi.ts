@@ -381,7 +381,7 @@ export const repolensApi = createApi({
     }),
     updateMe: builder.mutation<
       UserResponse,
-      { full_name?: string; password?: string }
+      { current_password?: string; full_name?: string; password?: string }
     >({
       query: (body) => ({
         body,

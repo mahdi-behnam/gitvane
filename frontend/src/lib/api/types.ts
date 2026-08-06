@@ -295,6 +295,8 @@ export type UserResponse = {
   id: number;
   email: string;
   full_name: string;
+  oauth_provider?: string | null;
+  picture?: string | null;
 };
 
 
@@ -313,6 +315,7 @@ export type ResetPasswordRequest = {
 };
 
 export type UserUpdateRequest = {
+  current_password?: string | null;
   full_name?: string | null;
   password?: string | null;
 };

@@ -341,6 +341,7 @@ def test_get_me_success() -> None:
     mock_user.id = 42
     mock_user.email = "me@example.com"
     mock_user.full_name = "Me"
+    mock_user.picture = None
     mock_user.is_active = True
     mock_user.oauth_provider = None
     mock_user.created_at = datetime.now(UTC)
@@ -539,10 +540,44 @@ def test_update_me_success() -> None:
     mock_user.id = 42
     mock_user.email = "update@example.com"
     mock_user.full_name = "Original Name"
+    mock_user.hashed_password = "old_hashed_password"
+    mock_user.picture = None
     mock_user.is_active = True
     mock_user.oauth_provider = None
     mock_user.created_at = datetime.now(UTC)
     mock_user.updated_at = datetime.now(UTC)
+
+    class MockExecuteResult:
+        def scalars(self) -> Any:
+            mock_scalar = MagicMock()
+            mock_scalar.first.return_value = mock_user
+            return mock_scalar
+
+    async def override_get_db() -> AsyncGenerator[Any, None]:
+        db = _mock_db_with_add()
+        db.execute.return_value = MockExecuteResult()
+        yield db
+
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        with patch("app.api.deps.decode_access_token", return_value={"sub": "42"}),              patch("app.api.v1.endpoints.auth.verify_password", return_value=True):
+            client = TestClient(app)
+            client.headers.update({"Authorization": "Bearer some_access_token"})
+            response = client.put(
+                "/api/v1/auth/me",
+                json={"full_name": "Updated Name", "current_password": "OldSecureP@ssword123", "password": "NewSecureP@ssword123"},
+            )
+            assert response.status_code == 200
+            assert response.json()["full_name"] == "Updated Name"
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_update_me_password_missing_current_password_fails() -> None:
+    mock_user = MagicMock(spec=User)
+    mock_user.id = 42
+    mock_user.email = "update@example.com"
+    mock_user.hashed_password = "old_hashed_password"
 
     class MockExecuteResult:
         def scalars(self) -> Any:
@@ -562,10 +597,41 @@ def test_update_me_success() -> None:
             client.headers.update({"Authorization": "Bearer some_access_token"})
             response = client.put(
                 "/api/v1/auth/me",
-                json={"full_name": "Updated Name", "password": "NewSecureP@ssword123"},
+                json={"password": "NewSecureP@ssword123"},
+            )
+            assert response.status_code == 400
+            assert response.json()["detail"] == "Current password is required to change password"
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_change_password_endpoint_success() -> None:
+    mock_user = MagicMock(spec=User)
+    mock_user.id = 42
+    mock_user.hashed_password = "old_hashed_password"
+
+    class MockExecuteResult:
+        def scalars(self) -> Any:
+            mock_scalar = MagicMock()
+            mock_scalar.first.return_value = mock_user
+            return mock_scalar
+
+    async def override_get_db() -> AsyncGenerator[Any, None]:
+        db = _mock_db_with_add()
+        db.execute.return_value = MockExecuteResult()
+        yield db
+
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        with patch("app.api.deps.decode_access_token", return_value={"sub": "42"}),              patch("app.api.v1.endpoints.auth.verify_password", return_value=True):
+            client = TestClient(app)
+            client.headers.update({"Authorization": "Bearer some_access_token"})
+            response = client.post(
+                "/api/v1/auth/change-password",
+                json={"current_password": "OldSecureP@ssword123", "new_password": "NewSecureP@ssword123"},
             )
             assert response.status_code == 200
-            assert response.json()["full_name"] == "Updated Name"
+            assert response.json()["status"] == "success"
     finally:
         app.dependency_overrides.clear()
 

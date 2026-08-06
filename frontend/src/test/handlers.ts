@@ -151,7 +151,10 @@ export const handlers = [
     }),
   ),
   http.put(`${apiBaseUrl}/auth/me`, async ({ request }) => {
-    const body = (await request.json()) as { full_name?: string; password?: string };
+    const body = (await request.json()) as { current_password?: string; full_name?: string; password?: string };
+    if (body.password && !body.current_password) {
+      return HttpResponse.json({ detail: "Current password is required to change password" }, { status: 400 });
+    }
     return HttpResponse.json({
       id: 1,
       email: "user@example.com",

@@ -18,6 +18,7 @@ import { usePathname } from "next/navigation";
 import { useState, useEffect, useRef, type ReactNode } from "react";
 import { Logo } from "@/components/app/logo";
 import { ThemeToggle } from "@/components/app/theme-toggle";
+import { UserMenu } from "@/components/auth/user-menu";
 import { Button } from "@/components/ui/button";
 import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -179,6 +180,8 @@ export function AppShell({ children }: { children: ReactNode }) {
                 id: userRes.id,
                 email: userRes.email,
                 full_name: userRes.full_name,
+                oauth_provider: userRes.oauth_provider,
+                picture: userRes.picture,
               },
             })
           );
@@ -294,28 +297,13 @@ export function AppShell({ children }: { children: ReactNode }) {
               </div>
             </div>
             
-            <div className="border-t border-border/70 pt-4 mt-auto">
-              <div className="flex items-center gap-3">
-                <div
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl font-mono text-xs font-bold uppercase tracking-wider text-white shadow-sm ring-2 ring-panel"
-                  style={{ backgroundColor: `hsl(${avatarHue}, 40%, 42%)` }}
-                >
-                  {userInitials}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-xs font-semibold text-foreground">{userName}</p>
-                  <p className="truncate text-[10px] font-medium text-muted">{user?.email || ""}</p>
-                </div>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="mt-3 w-full justify-start text-xs font-medium text-muted hover:text-danger hover:bg-danger/10"
-                onClick={handleLogout}
-              >
-                Logout
-              </Button>
-            </div>
+            <UserMenu
+              email={user?.email}
+              fullName={user?.full_name}
+              oauthProvider={user?.oauth_provider}
+              onLogout={handleLogout}
+              picture={user?.picture}
+            />
           </aside>
 
           <div className="min-w-0">
@@ -337,28 +325,13 @@ export function AppShell({ children }: { children: ReactNode }) {
                               <NavigationLinks />
                             </div>
                           </div>
-                          <div className="border-t border-border pt-4 mt-auto">
-                            <div className="flex items-center gap-3">
-                              <div
-                                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl font-mono text-xs font-bold uppercase tracking-wider text-white shadow-sm"
-                                style={{ backgroundColor: `hsl(${avatarHue}, 40%, 42%)` }}
-                              >
-                                {userInitials}
-                              </div>
-                              <div className="min-w-0 flex-1">
-                                <p className="truncate text-xs font-semibold text-foreground">{userName}</p>
-                                <p className="truncate text-[10px] text-muted">{user?.email || ""}</p>
-                              </div>
-                            </div>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="mt-3 w-full justify-start text-xs font-medium text-muted hover:text-danger hover:bg-danger/10"
-                              onClick={handleLogout}
-                            >
-                              Logout
-                            </Button>
-                          </div>
+                          <UserMenu
+                            email={user?.email}
+                            fullName={user?.full_name}
+                            oauthProvider={user?.oauth_provider}
+                            onLogout={handleLogout}
+                            picture={user?.picture}
+                          />
                         </div>
                       </DrawerContent>
                     </Drawer>

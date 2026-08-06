@@ -41,6 +41,7 @@ class UserResponse(UserBase):
 
     id: int
     full_name: str
+    picture: Optional[str] = None
     oauth_provider: Optional[str] = None
     is_active: bool
     created_at: datetime
@@ -71,8 +72,19 @@ class PasswordResetConfirm(BaseModel):
         return validate_password_complexity(v)
 
 
+class PasswordChange(BaseModel):
+    current_password: str
+    new_password: str = Field(..., description="Password must meet complexity rules")
+
+    @field_validator("new_password")
+    @classmethod
+    def validate_new_password(cls, v: str) -> str:
+        return validate_password_complexity(v)
+
+
 class UserUpdate(BaseModel):
     full_name: Optional[str] = None
+    current_password: Optional[str] = None
     password: Optional[str] = Field(
         None, description="Password must meet complexity rules"
     )

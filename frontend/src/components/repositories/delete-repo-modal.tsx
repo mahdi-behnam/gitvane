@@ -55,7 +55,7 @@ export function DeleteRepoModal({
         <form className="space-y-4" onSubmit={handleSubmit}>
           <p className="text-sm leading-6 text-muted">
             Delete <strong className="text-foreground">{repositoryName}</strong> from
-            RepoLens and ask the backend to remove its local clone.
+            RepoLens and remove its local cloned files.
           </p>
           <div className="space-y-2">
             <div className="flex items-center justify-between">

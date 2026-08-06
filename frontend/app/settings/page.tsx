@@ -12,6 +12,7 @@ import { useToast } from "@/components/ui/toast";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { useMeQuery, useUpdateMeMutation } from "@/store/api/repolensApi";
 import { setUser } from "@/store/slices/authSlice";
+import { PasswordStrengthIndicator, isPasswordValid } from "@/components/auth/password-strength";
 import {
   setDependencyDepth,
   setIncludeChangedFilesInImpact,
@@ -37,6 +38,7 @@ export default function SettingsPage() {
   const currentUser = authUser || meData;
 
   const [fullName, setFullName] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [profileError, setProfileError] = useState<string | null>(null);
@@ -58,23 +60,32 @@ export default function SettingsPage() {
       return;
     }
 
-    if (newPassword && newPassword.length < 8) {
-      setProfileError("New password must be at least 8 characters long.");
-      return;
-    }
+    if (newPassword) {
+      if (!currentPassword) {
+        setProfileError("Current Password is required when setting a new password.");
+        return;
+      }
 
-    if (newPassword && newPassword !== confirmPassword) {
-      setProfileError("Passwords do not match. Please check your entries.");
-      return;
+      if (!isPasswordValid(newPassword)) {
+        setProfileError("New password must meet all complexity requirements.");
+        return;
+      }
+
+      if (newPassword !== confirmPassword) {
+        setProfileError("Passwords do not match. Please check your entries.");
+        return;
+      }
     }
 
     try {
       const updatedUser = await updateMe({
         full_name: fullName.trim() ? fullName : undefined,
+        current_password: currentPassword || undefined,
         password: newPassword || undefined,
       }).unwrap();
 
       dispatch(setUser(updatedUser));
+      setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
       setProfileSuccess("Profile updated successfully!");
@@ -156,6 +167,20 @@ export default function SettingsPage() {
                 </div>
 
                 <div>
+                  <label className="block text-xs font-medium text-muted mb-1.5" htmlFor="profile-current-password">
+                    Current Password
+                  </label>
+                  <Input
+                    id="profile-current-password"
+                    type="password"
+                    placeholder="Required when setting a new password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    disabled={isLoadingMe || isUpdating}
+                  />
+                </div>
+
+                <div>
                   <label className="block text-xs font-medium text-muted mb-1.5" htmlFor="profile-new-password">
                     New Password
                   </label>
@@ -166,8 +191,8 @@ export default function SettingsPage() {
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     disabled={isLoadingMe || isUpdating}
-                    minLength={8}
                   />
+                  <PasswordStrengthIndicator password={newPassword} />
                 </div>
 
                 <div>
@@ -181,7 +206,6 @@ export default function SettingsPage() {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     disabled={isLoadingMe || isUpdating}
-                    minLength={8}
                   />
                 </div>
               </div>
