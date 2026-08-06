@@ -159,6 +159,96 @@ async def test_repository_risk_ranks_indexed_files() -> None:
     assert response.files[0].path == "src/core/payment.py"
     assert response.files[0].risk_score > 0
     assert all(not item.path.startswith("tests/") for item in response.files)
+    assert "mean_risk_score" in response.metadata
+    assert isinstance(response.metadata["mean_risk_score"], float)
+
+
+@pytest.mark.asyncio()
+async def test_repository_risk_path_search_and_mean_risk_score() -> None:
+    service = RiskService()
+    payment = CodeFile(
+        id=1,
+        repository_id=TEST_UUID,
+        path="src/core/payment.py",
+        language="python",
+        content_hash="abc",
+        loc=400,
+        is_test=False,
+    )
+    helpers = CodeFile(
+        id=2,
+        repository_id=TEST_UUID,
+        path="src/utils/helpers.py",
+        language="python",
+        content_hash="def",
+        loc=50,
+        is_test=False,
+    )
+    db = _FakeDb(
+        code_files=[payment, helpers],
+        edges=[],
+        commits=[],
+        chunks=[],
+    )
+
+    payment_risk = service.score_file(payment)
+    helpers_risk = service.score_file(helpers)
+    expected_mean = round((payment_risk.score + helpers_risk.score) / 2, 4)
+
+    response = await service.get_repository_file_risks(
+        db,
+        repository_id=TEST_UUID,
+        path_search="core",
+    )
+
+    assert len(response.files) == 1
+    assert response.files[0].path == "src/core/payment.py"
+    assert response.metadata["path_search"] == "core"
+    assert response.metadata["mean_risk_score"] == expected_mean
+
+
+@pytest.mark.asyncio()
+async def test_repository_risk_path_search_unmatched_reflects_true_repo_average() -> None:
+    service = RiskService()
+    payment = CodeFile(
+        id=1,
+        repository_id=TEST_UUID,
+        path="src/core/payment.py",
+        language="python",
+        content_hash="abc",
+        loc=400,
+        is_test=False,
+    )
+    helpers = CodeFile(
+        id=2,
+        repository_id=TEST_UUID,
+        path="src/utils/helpers.py",
+        language="python",
+        content_hash="def",
+        loc=50,
+        is_test=False,
+    )
+    db = _FakeDb(
+        code_files=[payment, helpers],
+        edges=[],
+        commits=[],
+        chunks=[],
+    )
+
+    payment_risk = service.score_file(payment)
+    helpers_risk = service.score_file(helpers)
+    expected_mean = round((payment_risk.score + helpers_risk.score) / 2, 4)
+
+    response = await service.get_repository_file_risks(
+        db,
+        repository_id=TEST_UUID,
+        path_search="nonexistent",
+    )
+
+    assert len(response.files) == 0
+    assert response.metadata["path_search"] == "nonexistent"
+    assert response.metadata["mean_risk_score"] == expected_mean
+    assert response.metadata["mean_risk_score"] > 0
 
 
 @pytest.mark.asyncio()
@@ -179,7 +269,7 @@ def test_risk_endpoint_success() -> None:
         return_value=RepositoryRiskResponse(
             repository_id=TEST_UUID,
             files=[],
-            metadata={"top_k": 20},
+            metadata={"top_k": 20, "mean_risk_score": 0.0},
         )
     )
 
@@ -187,10 +277,12 @@ def test_risk_endpoint_success() -> None:
     app.dependency_overrides[get_risk_service] = lambda: mock_svc
     try:
         client = TestClient(app)
-        response = client.get(f"/api/v1/risk/repositories/{TEST_UUID}/files?top_k=5")
+        response = client.get(f"/api/v1/risk/repositories/{TEST_UUID}/files?top_k=5&path_search=payment")
     finally:
         app.dependency_overrides.clear()
 
     assert response.status_code == 200
     assert response.json()["repository_id"] == str(TEST_UUID)
     mock_svc.get_repository_file_risks.assert_awaited_once()
+    _, kwargs = mock_svc.get_repository_file_risks.call_args
+    assert kwargs.get("path_search") == "payment"

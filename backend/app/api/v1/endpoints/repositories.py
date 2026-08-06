@@ -172,6 +172,7 @@ async def search_repository_files(
     current_user: Annotated[User, Depends(get_current_user)],
     query: str = Query("", description="Sub-path query to filter files"),
     limit: int = Query(50, ge=1, le=200, description="Max matching files to return"),
+    language: str | None = Query(None, description="Language filter"),
 ) -> list[FileSearchResult]:
     """Perform fast autocomplete file search in an indexed repository."""
     try:
@@ -183,6 +184,8 @@ async def search_repository_files(
         if query.trim() if hasattr(query, "trim") else query.strip():
             search_pattern = f"%{query.strip()}%"
             stmt = stmt.where(CodeFile.path.ilike(search_pattern))
+        if language:
+            stmt = stmt.where(CodeFile.language == language)
         stmt = stmt.order_by(CodeFile.path).limit(limit)
 
         res = await db.execute(stmt)

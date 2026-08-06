@@ -35,6 +35,7 @@ class RiskService:
         top_k: int = 20,
         language: str | None = None,
         include_tests: bool = False,
+        path_search: str | None = None,
     ) -> RepositoryRiskResponse:
         repo_obj = await db.get(Repository, repository_id)
         if repo_obj is None:
@@ -71,7 +72,19 @@ class RiskService:
                 )
             )
 
-        ranked = sorted(risks, key=lambda item: (-item.score, item.path))[:top_k]
+        mean_risk_score = (
+            round(sum(item.score for item in risks) / len(risks), 4)
+            if risks
+            else 0.0
+        )
+
+        filtered_risks = (
+            [item for item in risks if path_search.lower() in item.path.lower()]
+            if path_search
+            else risks
+        )
+
+        ranked = sorted(filtered_risks, key=lambda item: (-item.score, item.path))[:top_k]
         return RepositoryRiskResponse(
             repository_id=repository_id,
             files=[
@@ -87,6 +100,8 @@ class RiskService:
                 "top_k": top_k,
                 "language": language,
                 "include_tests": include_tests,
+                "path_search": path_search,
+                "mean_risk_score": mean_risk_score,
             },
         )
 

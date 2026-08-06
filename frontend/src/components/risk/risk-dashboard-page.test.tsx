@@ -81,8 +81,8 @@ describe("RiskDashboardPage", () => {
     ).toBeInTheDocument();
     expect(screen.getAllByText("87.0%").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Dependency").length).toBeGreaterThan(0);
-    expect(screen.getByText(/High dependency fan-in\./)).toBeInTheDocument();
-    expect(screen.getByText("Heuristic score")).toBeInTheDocument();
+    expect(screen.getByText("High Dependency Fan-In")).toBeInTheDocument();
+    expect(screen.getByText("Deterministic Heuristic Scoring")).toBeInTheDocument();
   });
 
   it("applies filter parameters to the risk request", async () => {
@@ -98,15 +98,14 @@ describe("RiskDashboardPage", () => {
     renderWithProviders(<RiskDashboardPage repositoryId="77777777-7777-7777-7777-777777777777" />);
 
     await waitFor(() => expect(requests.length).toBeGreaterThan(0));
-    fireEvent.change(screen.getByLabelText("Top files"), {
+    fireEvent.change(screen.getByLabelText("Top files", { selector: "input" }), {
       target: { value: "12" },
     });
     fireEvent.click(screen.getByLabelText("Language filter"));
     const pythonOption = await screen.findByRole("button", { name: "python" });
     fireEvent.click(pythonOption);
-    fireEvent.click(screen.getByLabelText("Include tests"));
+    fireEvent.click(screen.getByLabelText("Include tests", { selector: "input" }));
     fireEvent.click(screen.getByRole("button", { name: "Apply" }));
-
 
     await waitFor(() => expect(requests.length).toBeGreaterThan(1));
     const lastRequest = new URL(requests.at(-1) ?? "");
@@ -126,5 +125,126 @@ describe("RiskDashboardPage", () => {
     renderWithProviders(<RiskDashboardPage repositoryId="77777777-7777-7777-7777-777777777777" />);
 
     expect(await screen.findByText("No risk results")).toBeInTheDocument();
+  });
+
+  it("supports single-file inspection mode", async () => {
+    useRepositoryHandler();
+    server.use(
+      http.get(`${apiBaseUrl}/risk/repositories/77777777-7777-7777-7777-777777777777/files`, () =>
+        HttpResponse.json({
+          ...riskResponse,
+          metadata: {
+            ...riskResponse.metadata,
+            mean_risk_score: 0.45,
+          },
+        }),
+      ),
+    );
+
+    renderWithProviders(
+      <RiskDashboardPage
+        initialPath="backend/app/services/indexing_service.py"
+        repositoryId="77777777-7777-7777-7777-777777777777"
+      />,
+    );
+
+    expect(await screen.findByText("File risk summary")).toBeInTheDocument();
+    expect(screen.getByText("File signal breakdown")).toBeInTheDocument();
+    expect(screen.getByText("Inspected file")).toBeInTheDocument();
+    expect(screen.getByLabelText("Copy file path")).toBeInTheDocument();
+    const topFilesInput = screen.getByLabelText("Top files", { selector: "input" });
+    expect(topFilesInput).toBeDisabled();
+    expect(topFilesInput).toHaveAttribute(
+      "title",
+      "Bypassed/disabled during single-file inspection mode",
+    );
+    expect(screen.getByText("+42.0% above avg")).toBeInTheDocument();
+  });
+
+  it("shows active filter pills and resets filters on reset click", async () => {
+    useRepositoryHandler();
+    server.use(
+      http.get(`${apiBaseUrl}/risk/repositories/77777777-7777-7777-7777-777777777777/files`, () =>
+        HttpResponse.json(riskResponse),
+      ),
+    );
+
+    renderWithProviders(<RiskDashboardPage repositoryId="77777777-7777-7777-7777-777777777777" />);
+
+    await screen.findByText("Risk summary");
+
+    fireEvent.change(screen.getByLabelText("Top files", { selector: "input" }), {
+      target: { value: "15" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Apply" }));
+
+    expect(await screen.findByText("Active filters:")).toBeInTheDocument();
+    expect(screen.getByText("Top Files: 15")).toBeInTheDocument();
+
+    const resetButton = screen.getByRole("button", { name: "Reset filters" });
+    expect(resetButton).toHaveClass("border-danger/40");
+    fireEvent.click(resetButton);
+
+    await waitFor(() => {
+      expect(screen.queryByText("Active filters:")).not.toBeInTheDocument();
+    });
+    expect((screen.getByLabelText("Top files", { selector: "input" }) as HTMLInputElement).value).toBe("20");
+  });
+
+  it("renders new component descriptions and title-cased fallbacks", async () => {
+    useRepositoryHandler();
+    server.use(
+      http.get(`${apiBaseUrl}/risk/repositories/77777777-7777-7777-7777-777777777777/files`, () =>
+        HttpResponse.json({
+          ...riskResponse,
+          files: [
+            {
+              components: {
+                bugfix_frequency: 0.65,
+                custom_unknown_metric: 0.35,
+                file_size: 0.8,
+                test_coverage_proxy: 0.5,
+              },
+              path: "backend/app/services/indexing_service.py",
+              reasons: [],
+              risk_score: 0.7,
+            },
+          ],
+        }),
+      ),
+    );
+
+    renderWithProviders(<RiskDashboardPage repositoryId="77777777-7777-7777-7777-777777777777" />);
+
+    expect((await screen.findAllByText("File Size")).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText("Bugfix Frequency")).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText("Test Coverage Proxy")).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText("Custom Unknown Metric")).length).toBeGreaterThan(0);
+  });
+
+  it("renders clear filters button in empty state when filters are active", async () => {
+    useRepositoryHandler();
+    server.use(
+      http.get(`${apiBaseUrl}/risk/repositories/77777777-7777-7777-7777-777777777777/files`, () =>
+        HttpResponse.json({ ...riskResponse, files: [] }),
+      ),
+    );
+
+    renderWithProviders(
+      <RiskDashboardPage
+        initialPath="nonexistent_file.py"
+        repositoryId="77777777-7777-7777-7777-777777777777"
+      />,
+    );
+
+    expect(await screen.findByText("No risk results")).toBeInTheDocument();
+    const clearButton = screen.getByRole("button", { name: "Clear filters & search" });
+    expect(clearButton).toBeInTheDocument();
+
+    fireEvent.click(clearButton);
+
+    await waitFor(() => {
+      expect(screen.queryByText("Active filters:")).not.toBeInTheDocument();
+    });
   });
 });

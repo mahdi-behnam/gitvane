@@ -23,3 +23,18 @@ export function formatPercent(value: number | null | undefined, decimals = 1): s
   const pct = value * 100;
   return `${pct.toFixed(decimals)}%`;
 }
+
+export function formatTitleCase(value: string | null | undefined): string {
+  if (!value) return "";
+  return value
+    .trim()
+    .replace(/\.$/, "")
+    .split(" ")
+    .map((word) =>
+      word
+        .split("-")
+        .map((sub) => (sub ? sub.charAt(0).toUpperCase() + sub.slice(1) : ""))
+        .join("-")
+    )
+    .join(" ");
+}

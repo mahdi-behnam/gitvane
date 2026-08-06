@@ -12,27 +12,42 @@ class ComplexityCalculator:
         re.MULTILINE,
     )
 
+    def _normalize_language(self, language: Language | str) -> str:
+        if isinstance(language, Language):
+            lang_str = language.value
+        else:
+            lang_str = str(language)
+        lang_str = lang_str.lower().strip()
+        if lang_str.startswith("language."):
+            lang_str = lang_str[len("language."):]
+
+        if lang_str in {"python", "py"}:
+            return "python"
+        if lang_str in {"javascript", "js", "jsx"}:
+            return "javascript"
+        if lang_str in {"typescript", "ts", "tsx"}:
+            return "typescript"
+        return lang_str
+
     def score(self, content: str, language: Language | str) -> float:
-        branch_count = self.branch_count(content, language)
-        nesting = self.max_nesting_depth(content, language)
-        function_count = self.function_count(content, language)
+        lang = self._normalize_language(language)
+        branch_count = self.branch_count(content, lang)
+        nesting = self.max_nesting_depth(content, lang)
+        function_count = self.function_count(content, lang)
         raw = branch_count * 0.08 + nesting * 0.12 + function_count * 0.03
         return round(max(0.0, min(raw, 1.0)), 4)
 
     def branch_count(self, content: str, language: Language | str) -> int:
-        if str(language) in {Language.PYTHON.value, "Language.PYTHON"}:
+        lang = self._normalize_language(language)
+        if lang == "python":
             return self._python_branch_count(content)
-        if str(language) in {
-            Language.JAVASCRIPT.value,
-            Language.TYPESCRIPT.value,
-            "Language.JAVASCRIPT",
-            "Language.TYPESCRIPT",
-        }:
+        if lang in {"javascript", "typescript"}:
             return len(self.JS_BRANCH_PATTERN.findall(content))
         return 0
 
     def function_count(self, content: str, language: Language | str) -> int:
-        if str(language) in {Language.PYTHON.value, "Language.PYTHON"}:
+        lang = self._normalize_language(language)
+        if lang == "python":
             try:
                 tree = ast.parse(content)
             except SyntaxError:
@@ -44,7 +59,8 @@ class ComplexityCalculator:
         return len(re.findall(r"\bfunction\b|=>", content))
 
     def max_nesting_depth(self, content: str, language: Language | str) -> int:
-        if str(language) in {Language.PYTHON.value, "Language.PYTHON"}:
+        lang = self._normalize_language(language)
+        if lang == "python":
             try:
                 return _PythonNestingVisitor.from_source(content).max_depth
             except SyntaxError:

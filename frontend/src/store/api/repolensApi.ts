@@ -246,10 +246,11 @@ export const repolensApi = createApi({
       providesTags: (_result, _error, { repositoryId }) => [
         { id: repositoryId, type: "Risk" },
       ],
-      query: ({ include_tests = false, language, repositoryId, top_k = 20 }) => ({
+      query: ({ include_tests = false, language, path_search, repositoryId, top_k = 20 }) => ({
         params: {
           include_tests,
           language: language || undefined,
+          path_search: path_search || undefined,
           top_k,
         },
         url: `/risk/repositories/${repositoryId}/files`,
@@ -396,10 +397,15 @@ export const repolensApi = createApi({
     }),
     searchRepositoryFiles: builder.query<
       FileSearchResult[],
-      { limit?: number; query?: string; repositoryId: string }
+      { language?: string | null; limit?: number; query?: string; repositoryId: string }
     >({
-      query: ({ limit = 50, query = "", repositoryId }) =>
-        `/repositories/${repositoryId}/files/search?query=${encodeURIComponent(query)}&limit=${limit}`,
+      query: ({ language, limit = 50, query = "", repositoryId }) => {
+        let url = `/repositories/${repositoryId}/files/search?query=${encodeURIComponent(query)}&limit=${limit}`;
+        if (language) {
+          url += `&language=${encodeURIComponent(language)}`;
+        }
+        return url;
+      },
       providesTags: ["Repository"],
     }),
     searchRepositoryRefs: builder.query<

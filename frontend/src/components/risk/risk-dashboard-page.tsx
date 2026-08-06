@@ -1,7 +1,7 @@
 "use client";
 
 import { skipToken } from "@reduxjs/toolkit/query";
-import { AlertCircle, FlaskConical, GitGraph, Filter, RefreshCw, ShieldAlert, Zap } from "lucide-react";
+import { AlertCircle, Check, Copy, FlaskConical, GitGraph, Filter, RefreshCw, ShieldAlert, X, Zap } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { FormEvent, useEffect, useMemo, useState } from "react";
@@ -34,8 +34,9 @@ import {
 import { FileSelector } from "@/components/ui/file-selector";
 import { Selector, SelectorOption } from "@/components/ui/selector";
 import { normalizeApiError } from "@/lib/api/errors";
-import type { RiskFile } from "@/lib/api/types";
-import { formatSnakeCase } from "@/lib/format";
+import type { RepositoryRiskResponse, RiskFile } from "@/lib/api/types";
+import { formatSnakeCase, formatTitleCase } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import {
   useGetRepositoryLanguagesQuery,
   useGetRepositoryQuery,
@@ -67,22 +68,32 @@ export function RiskDashboardPage({
 }) {
   const validRepositoryId = typeof repositoryId === "string" && repositoryId.trim() !== "" ? repositoryId : null;
   const searchParams = useSearchParams();
-  const pathParam = initialPath ?? searchParams?.get("path") ?? searchParams?.get("search") ?? searchParams?.get("query") ?? "";
 
-  const [draftFilters, setDraftFilters] = useState<RiskFilters>(() => ({
-    ...defaultFilters,
-    search: pathParam,
-  }));
-  const [appliedFilters, setAppliedFilters] = useState<RiskFilters>(() => ({
-    ...defaultFilters,
-    search: pathParam,
-  }));
+  const [draftFilters, setDraftFilters] = useState<RiskFilters>(() => {
+    const search = initialPath ?? searchParams?.get("path") ?? searchParams?.get("search") ?? searchParams?.get("query") ?? "";
+    const includeTests = searchParams?.get("include_tests") === "true";
+    const language = searchParams?.get("language") ?? "";
+    const topKRaw = searchParams?.get("top_k");
+    const topK = topKRaw && !isNaN(Number(topKRaw)) ? Number(topKRaw) : 20;
+    return { includeTests, language, search, topK };
+  });
+
+  const [appliedFilters, setAppliedFilters] = useState<RiskFilters>(() => {
+    const search = initialPath ?? searchParams?.get("path") ?? searchParams?.get("search") ?? searchParams?.get("query") ?? "";
+    const includeTests = searchParams?.get("include_tests") === "true";
+    const language = searchParams?.get("language") ?? "";
+    const topKRaw = searchParams?.get("top_k");
+    const topK = topKRaw && !isNaN(Number(topKRaw)) ? Number(topKRaw) : 20;
+    return { includeTests, language, search, topK };
+  });
+
   const repository = useGetRepositoryQuery(validRepositoryId ?? skipToken);
   const languagesQuery = useGetRepositoryLanguagesQuery(validRepositoryId ?? skipToken);
   const riskQueryArgs = validRepositoryId
     ? {
         include_tests: appliedFilters.includeTests,
         language: appliedFilters.language.trim() || null,
+        path_search: appliedFilters.search.trim() || null,
         repositoryId: validRepositoryId,
         top_k: appliedFilters.topK,
       }
@@ -105,11 +116,11 @@ export function RiskDashboardPage({
   }, [dispatch, validRepositoryId]);
 
   useEffect(() => {
-    if (pathParam) {
-      setDraftFilters((curr) => ({ ...curr, search: pathParam }));
-      setAppliedFilters((curr) => ({ ...curr, search: pathParam }));
+    if (initialPath) {
+      setDraftFilters((curr) => ({ ...curr, search: initialPath }));
+      setAppliedFilters((curr) => ({ ...curr, search: initialPath }));
     }
-  }, [pathParam]);
+  }, [initialPath]);
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -121,12 +132,37 @@ export function RiskDashboardPage({
     });
   };
 
+  const handleFileSelect = (val: string | string[]) => {
+    const selected = String(val || "").trim();
+    setDraftFilters((current) => ({ ...current, search: selected }));
+    setAppliedFilters((current) => ({ ...current, search: selected }));
+  };
+
+  const handleResetFilters = () => {
+    setDraftFilters(defaultFilters);
+    setAppliedFilters(defaultFilters);
+  };
+
+  const handleRemoveFilter = (key: keyof RiskFilters) => {
+    const updated = { ...appliedFilters, [key]: defaultFilters[key] };
+    setDraftFilters(updated);
+    setAppliedFilters(updated);
+  };
+
   const files = useMemo(() => {
     const rawFiles = risk.data?.files ?? [];
     if (!appliedFilters.search) return rawFiles;
     const query = appliedFilters.search.toLowerCase();
     return rawFiles.filter((file) => file.path.toLowerCase().includes(query));
   }, [risk.data?.files, appliedFilters.search]);
+
+  const isSingleFileMode = Boolean(appliedFilters.search.trim());
+
+  const hasActiveFilters =
+    appliedFilters.includeTests !== defaultFilters.includeTests ||
+    appliedFilters.language !== defaultFilters.language ||
+    appliedFilters.search !== defaultFilters.search ||
+    appliedFilters.topK !== defaultFilters.topK;
 
   const error = risk.error ? normalizeApiError(risk.error).message : null;
   const chartData = useMemo(() => buildRiskBuckets(files), [files]);
@@ -161,14 +197,24 @@ export function RiskDashboardPage({
     <div className="mx-auto max-w-7xl space-y-6">
       <div className="flex flex-col gap-4 border-b border-border pb-6 md:flex-row md:items-end md:justify-between">
         <div>
-          <h1 className="mt-3 text-3xl font-semibold md:text-4xl">Risk ranking</h1>
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-3xl font-semibold md:text-4xl">Risk ranking</h1>
+            <Badge variant="outline">
+              <TermTooltip
+                description="Calculated deterministically using structural dependency analysis, cyclomatic complexity, and git change metrics without LLM non-determinism."
+                term="Deterministic Heuristic Scoring"
+              />
+            </Badge>
+          </div>
           <p className="mt-3 max-w-3xl text-sm leading-6 text-muted">
             Identify high-risk files in your codebase calculated from change frequency (churn),
             cyclomatic complexity, and structural dependency connections (fan-in / fan-out).
           </p>
         </div>
-        <div className="rounded-md border border-border bg-panel px-3 py-2 font-mono text-xs text-muted">
-          {repository.data?.name ?? `Repository ${validRepositoryId}`}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="rounded-md border border-border bg-panel px-3 py-2 font-mono text-xs text-muted">
+            {repository.data?.name ?? `Repository ${validRepositoryId}`}
+          </div>
         </div>
       </div>
 
@@ -181,19 +227,25 @@ export function RiskDashboardPage({
                 Filter repository files by risk threshold, path keywords, or result limits.
               </p>
             </div>
-            <span className="text-xs text-muted font-medium">Heuristic score</span>
           </div>
         </CardHeader>
         <CardContent>
           <form
-            className="grid gap-4 lg:grid-cols-[140px_1fr_1fr_auto_auto]"
+            className="grid gap-4 items-end lg:grid-cols-[140px_1fr_1fr_auto_auto]"
             onSubmit={handleSubmit}
           >
-            <div className="space-y-2">
-              <label className="block text-sm font-medium" htmlFor="risk-top-k">
-                Top files
+            <div
+              className="space-y-2"
+              title={draftFilters.search ? "Bypassed/disabled during single-file inspection mode" : undefined}
+            >
+              <label className="flex items-center gap-1 text-sm font-medium" htmlFor="risk-top-k">
+                <TermTooltip
+                  description="Maximum number of highest-risk repository files to evaluate and display."
+                  term="Top files"
+                />
               </label>
               <Input
+                disabled={Boolean(draftFilters.search)}
                 id="risk-top-k"
                 max={200}
                 min={1}
@@ -203,6 +255,7 @@ export function RiskDashboardPage({
                     topK: Number(event.target.value),
                   }))
                 }
+                title={draftFilters.search ? "Bypassed/disabled during single-file inspection mode" : undefined}
                 type="number"
                 value={draftFilters.topK}
               />
@@ -213,25 +266,24 @@ export function RiskDashboardPage({
               </span>
               <FileSelector
                 id="risk-search"
+                language={draftFilters.language}
                 mode="single"
-                onChange={(val) =>
-                  setDraftFilters((current) => ({
-                    ...current,
-                    search: String(val || ""),
-                  }))
-                }
+                onChange={handleFileSelect}
                 placeholder="All files (select path...)"
                 repositoryId={validRepositoryId ?? ""}
                 value={draftFilters.search}
               />
-
             </div>
-            <div className="space-y-2">
+            <div
+              className="space-y-2"
+              title={draftFilters.search ? "Bypassed/disabled during single-file inspection mode" : undefined}
+            >
               <span className="block text-sm font-medium" id="risk-language-label">
                 Language filter
               </span>
               <Selector
                 allowCustomValue
+                disabled={Boolean(draftFilters.search)}
                 id="risk-language"
                 loading={languagesQuery.isFetching}
                 mode="single"
@@ -246,7 +298,6 @@ export function RiskDashboardPage({
                 searchPlaceholder="Type language..."
                 value={draftFilters.language}
               />
-
             </div>
             <label className="flex h-9 items-center gap-2 self-end rounded-md border border-border bg-panel px-3 text-sm">
               <input
@@ -260,7 +311,10 @@ export function RiskDashboardPage({
                 }
                 type="checkbox"
               />
-              Include tests
+              <TermTooltip
+                description="Include test files (e.g. test_*.py, *.spec.ts) in the calculated risk ranking."
+                term="Include tests"
+              />
             </label>
             <div className="flex gap-2 self-end">
               <Button disabled={risk.isFetching} type="submit" variant="primary">
@@ -270,6 +324,74 @@ export function RiskDashboardPage({
             </div>
           </form>
 
+          {hasActiveFilters ? (
+            <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border pt-3 text-xs">
+              <span className="font-medium text-muted">Active filters:</span>
+              {appliedFilters.search ? (
+                <Badge className="normal-case font-medium flex items-center gap-1 font-mono" variant="outline">
+                  Search: {appliedFilters.search}
+                  <button
+                    aria-label="Remove search filter"
+                    className="ml-1 text-muted hover:text-foreground"
+                    onClick={() => handleRemoveFilter("search")}
+                    type="button"
+                  >
+                    <X className="size-3" />
+                  </button>
+                </Badge>
+              ) : null}
+              {appliedFilters.language ? (
+                <Badge className="normal-case font-medium flex items-center gap-1" variant="outline">
+                  Language: {appliedFilters.language}
+                  <button
+                    aria-label="Remove language filter"
+                    className="ml-1 text-muted hover:text-foreground"
+                    onClick={() => handleRemoveFilter("language")}
+                    type="button"
+                  >
+                    <X className="size-3" />
+                  </button>
+                </Badge>
+              ) : null}
+              {appliedFilters.topK !== defaultFilters.topK ? (
+                <Badge className="normal-case font-medium flex items-center gap-1 font-mono" variant="outline">
+                  Top Files: {appliedFilters.topK}
+                  <button
+                    aria-label="Remove top files filter"
+                    className="ml-1 text-muted hover:text-foreground"
+                    onClick={() => handleRemoveFilter("topK")}
+                    type="button"
+                  >
+                    <X className="size-3" />
+                  </button>
+                </Badge>
+              ) : null}
+              {appliedFilters.includeTests ? (
+                <Badge className="normal-case font-medium flex items-center gap-1" variant="outline">
+                  Include Tests: Yes
+                  <button
+                    aria-label="Remove include tests filter"
+                    className="ml-1 text-muted hover:text-foreground"
+                    onClick={() => handleRemoveFilter("includeTests")}
+                    type="button"
+                  >
+                    <X className="size-3" />
+                  </button>
+                </Badge>
+              ) : null}
+              <Button
+                className="h-6 px-2 text-xs border-danger/40 text-danger hover:bg-danger/10 hover:border-danger/60 hover:text-danger"
+                onClick={handleResetFilters}
+                size="sm"
+                type="button"
+                variant="outline"
+              >
+                <X className="mr-1 size-3" />
+                Reset filters
+              </Button>
+            </div>
+          ) : null}
+
           {error ? (
             <Notice className="mt-4" tone="danger">
               {error}
@@ -278,26 +400,41 @@ export function RiskDashboardPage({
         </CardContent>
       </Card>
 
-      {risk.isLoading ? (
-        <RiskLoadingState />
-      ) : files.length > 0 ? (
-        <>
-          <RiskSummary files={files} chartData={chartData} components={topComponents} />
-          <RiskTable files={files} repositoryId={validRepositoryId} />
-        </>
-      ) : risk.isSuccess ? (
-        <EmptyState
-          description="No risk-ranked files found for these filters."
-          icon={<ShieldAlert aria-hidden="true" className="size-5" />}
-          title="No risk results"
-        />
-      ) : (
-        <EmptyState
-          description="Risk data will load once the repository metadata has been processed."
-          icon={<ShieldAlert aria-hidden="true" className="size-5" />}
-          title="Risk ranking"
-        />
-      )}
+      <div className={cn("space-y-6 transition-opacity duration-200", risk.isFetching && !risk.isLoading && "opacity-60 pointer-events-none")}>
+        {risk.isLoading ? (
+          <RiskLoadingState />
+        ) : files.length > 0 ? (
+          <>
+            <RiskSummary
+              chartData={chartData}
+              components={topComponents}
+              files={files}
+              isSingleFileMode={isSingleFileMode}
+              metadata={risk.data?.metadata}
+            />
+            <RiskTable files={files} isSingleFileMode={isSingleFileMode} repositoryId={validRepositoryId} />
+          </>
+        ) : risk.isSuccess ? (
+          <EmptyState
+            action={
+              hasActiveFilters ? (
+                <Button onClick={handleResetFilters} type="button" variant="outline">
+                  Clear filters & search
+                </Button>
+              ) : undefined
+            }
+            description="No risk-ranked files found for these filters."
+            icon={<ShieldAlert aria-hidden="true" className="size-5" />}
+            title="No risk results"
+          />
+        ) : (
+          <EmptyState
+            description="Risk data will load once the repository metadata has been processed."
+            icon={<ShieldAlert aria-hidden="true" className="size-5" />}
+            title="Risk ranking"
+          />
+        )}
+      </div>
     </div>
   );
 }
@@ -317,6 +454,29 @@ function buildRiskBuckets(files: RiskFile[]) {
   });
 
   return buckets;
+}
+
+function buildSingleFileSignalBreakdown(file: RiskFile, metadata?: RepositoryRiskResponse["metadata"]) {
+  const breakdown = metadata?.single_file_breakdown;
+  const loc = breakdown?.loc ?? Math.round((file.components.file_size ?? 0) * 500);
+  const fanIn = breakdown?.fan_in ?? Math.round((file.components.fan_in ?? 0) * 10);
+  const fanOut = breakdown?.fan_out ?? Math.round((file.components.fan_out ?? 0) * 10);
+  const centrality = Math.round((file.components.centrality ?? 0) * 20);
+  const churn = breakdown?.churn_commit_count ?? Math.round((file.components.churn ?? 0) * 20);
+  const complexity = breakdown?.complexity_score ?? (file.components.complexity ?? 0);
+  const bugfixes = breakdown?.bugfix_count ?? Math.round((file.components.bugfix_frequency ?? 0) * 8);
+  const testCoverage = Math.round((file.components.test_coverage_proxy ?? 0) * 100);
+
+  return [
+    { label: "Lines of Code", raw: `${loc} LOC`, score: Math.round((file.components.file_size ?? 0) * 100) },
+    { label: "Fan In", raw: `${fanIn} incoming`, score: Math.round((file.components.fan_in ?? 0) * 100) },
+    { label: "Fan Out", raw: `${fanOut} outgoing`, score: Math.round((file.components.fan_out ?? 0) * 100) },
+    { label: "Centrality", raw: `${centrality} degree`, score: Math.round((file.components.centrality ?? 0) * 100) },
+    { label: "Churn", raw: `${churn} commits`, score: Math.round((file.components.churn ?? 0) * 100) },
+    { label: "Complexity", raw: `${complexity.toFixed(1)} score`, score: Math.round((file.components.complexity ?? 0) * 100) },
+    { label: "Bugfixes", raw: `${bugfixes} fixes`, score: Math.round((file.components.bugfix_frequency ?? 0) * 100) },
+    { label: "Test Proximity", raw: `${testCoverage}% proxy`, score: Math.round((file.components.test_coverage_proxy ?? 0) * 100) },
+  ];
 }
 
 function summarizeComponents(files: RiskFile[]) {
@@ -356,13 +516,176 @@ function RiskSummary({
   chartData,
   components,
   files,
+  isSingleFileMode,
+  metadata,
 }: {
   chartData: ReturnType<typeof buildRiskBuckets>;
   components: ReturnType<typeof summarizeComponents>;
   files: RiskFile[];
+  isSingleFileMode?: boolean;
+  metadata?: RepositoryRiskResponse["metadata"];
 }) {
   const averageRisk =
-    files.reduce((total, file) => total + file.risk_score, 0) / files.length;
+    typeof metadata?.mean_risk_score === "number"
+      ? metadata.mean_risk_score
+      : files.length > 0
+      ? files.reduce((total, file) => total + file.risk_score, 0) / files.length
+      : 0;
+
+  if (isSingleFileMode && files.length > 0) {
+    const file = files[0];
+    const score = file.risk_score;
+    const severityBadge =
+      score >= 0.75 ? (
+        <Badge variant="danger">Critical Risk</Badge>
+      ) : score >= 0.5 ? (
+        <Badge variant="warning">High Risk</Badge>
+      ) : score >= 0.25 ? (
+        <Badge variant="info">Moderate Risk</Badge>
+      ) : (
+        <Badge variant="outline">Low Risk</Badge>
+      );
+
+    const diffVal = (score - averageRisk) * 100;
+    const diffAbs = Math.abs(diffVal).toFixed(1);
+    const varianceLabel =
+      diffVal > 0.05
+        ? `+${diffAbs}% above avg`
+        : diffVal < -0.05
+        ? `-${diffAbs}% below avg`
+        : `0.0% (equal to avg)`;
+
+    const varianceColor =
+      diffVal > 0.05
+        ? "text-rose-500 font-semibold"
+        : diffVal < -0.05
+        ? "text-emerald-500 font-semibold"
+        : "text-muted font-normal";
+
+    const sortedComponents = Object.entries(file.components).sort((a, b) => b[1] - a[1]);
+    const topComp = sortedComponents[0];
+    const primaryDriver = topComp
+      ? `${COMPONENT_DESCRIPTIONS[topComp[0]]?.label || formatTitleCase(formatSnakeCase(topComp[0]))} (${(topComp[1] * 100).toFixed(1)}%)`
+      : "None";
+
+    const singleFileSignals = buildSingleFileSignalBreakdown(file, metadata);
+
+    return (
+      <section className="grid gap-4 xl:grid-cols-[0.8fr_1.2fr]">
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-semibold">File risk summary</h2>
+              {severityBadge}
+            </div>
+            <p className="mt-1 text-xs text-muted">
+              Heuristic risk metrics and comparative architectural analysis for selected file.
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <Metric
+                description="Calculated heuristic risk score percentage for this file."
+                label="File Risk Score"
+                value={`${(score * 100).toFixed(1)}%`}
+              />
+              <Metric
+                description="Risk score variance relative to average repository score."
+                label="Vs Repo Average"
+                value={<span className={varianceColor}>{varianceLabel}</span>}
+              />
+              <Metric
+                description="Highest component signal contributing to this file's risk calculation."
+                label="Primary Driver"
+                value={primaryDriver}
+              />
+            </div>
+            <div className="mt-5 space-y-3">
+              <h3 className="text-sm font-semibold">Component signals</h3>
+              {sortedComponents.map(([name, value]) => {
+                const info = COMPONENT_DESCRIPTIONS[name] || {
+                  label: formatTitleCase(formatSnakeCase(name)),
+                  desc: `Component signal weight for ${formatTitleCase(formatSnakeCase(name))}.`,
+                };
+                return (
+                  <div className="space-y-1" key={name}>
+                    <div className="flex justify-between gap-3 text-xs">
+                      <TermTooltip description={info.desc} term={info.label} />
+                      <span className="font-mono">{(value * 100).toFixed(1)}%</span>
+                    </div>
+                    <div className="h-2 w-full rounded-sm bg-background border border-border/80 dark:bg-slate-950 dark:border-slate-700/80 overflow-hidden shadow-inner">
+                      <div
+                        className="h-full bg-primary"
+                        style={{ width: `${Math.min(100, Math.max(0, value) * 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <h2 className="text-sm font-semibold">File signal breakdown</h2>
+            <p className="mt-1 text-xs text-muted">
+              Structural and change signals showing raw metric counts and percentage component weights.
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="h-64 min-w-0">
+              <ResponsiveContainer height="100%" minWidth={300} width="100%">
+                <BarChart
+                  data={singleFileSignals}
+                  layout="vertical"
+                  margin={{ bottom: 10, left: 30, right: 20, top: 10 }}
+                >
+                  <CartesianGrid horizontal={false} stroke="rgb(var(--color-border))" />
+                  <XAxis
+                    domain={[0, 100]}
+                    fontSize={11}
+                    stroke="rgb(var(--color-muted))"
+                    tickFormatter={(val) => `${val}%`}
+                    type="number"
+                  />
+                  <YAxis
+                    dataKey="label"
+                    fontSize={11}
+                    stroke="rgb(var(--color-muted))"
+                    type="category"
+                    width={90}
+                  />
+                  <Tooltip
+                    content={({ active, payload }) => {
+                      if (active && payload && payload.length) {
+                        const data = payload[0].payload;
+                        return (
+                          <div className="rounded-md border border-border bg-panel p-2 text-xs shadow-md">
+                            <p className="font-semibold">{data.label}</p>
+                            <p className="text-muted">Raw: {data.raw}</p>
+                            <p className="font-mono font-medium text-primary">Weight: {data.score}%</p>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
+                  />
+                  <Bar
+                    barSize={20}
+                    dataKey="score"
+                    fill="rgb(var(--color-chart-b))"
+                    radius={[0, 4, 4, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
+    );
+  }
+
   const highestRisk = files[0];
 
   return (
@@ -389,7 +712,7 @@ function RiskSummary({
             <Metric
               description="Risk percentage of the most critical file identified in the current index."
               label="Highest"
-              value={`${(highestRisk.risk_score * 100).toFixed(1)}%`}
+              value={`${((highestRisk?.risk_score ?? 0) * 100).toFixed(1)}%`}
             />
           </div>
           <div className="mt-5 space-y-3">
@@ -397,8 +720,8 @@ function RiskSummary({
             {components.length > 0 ? (
               components.map((component) => {
                 const info = COMPONENT_DESCRIPTIONS[component.name] || {
-                  label: formatSnakeCase(component.name),
-                  desc: `Average component signal weight for ${component.name}.`,
+                  label: formatTitleCase(formatSnakeCase(component.name)),
+                  desc: `Average component signal weight for ${formatTitleCase(formatSnakeCase(component.name))}.`,
                 };
 
                 return (
@@ -407,9 +730,9 @@ function RiskSummary({
                       <TermTooltip description={info.desc} term={info.label} />
                       <span className="font-mono">{(component.value * 100).toFixed(1)}%</span>
                     </div>
-                    <div className="h-2 rounded-sm bg-panel-muted">
+                    <div className="h-2 w-full rounded-sm bg-background border border-border/80 dark:bg-slate-950 dark:border-slate-700/80 overflow-hidden shadow-inner">
                       <div
-                        className="h-2 rounded-sm bg-primary"
+                        className="h-full bg-primary"
                         style={{ width: `${Math.min(100, component.value * 100)}%` }}
                       />
                     </div>
@@ -443,8 +766,8 @@ function RiskSummary({
                   dataKey="label"
                   fontSize={11}
                   stroke="rgb(var(--color-muted))"
-                  tickMargin={8}
                   tickLine={false}
+                  tickMargin={8}
                 >
                   <Label
                     fill="rgb(var(--color-muted))"
@@ -459,8 +782,8 @@ function RiskSummary({
                   axisLine={false}
                   fontSize={11}
                   stroke="rgb(var(--color-muted))"
-                  tickMargin={8}
                   tickLine={false}
+                  tickMargin={8}
                 >
                   <Label
                     angle={-90}
@@ -495,11 +818,37 @@ function RiskSummary({
   );
 }
 
+function CopyPathButton({ path }: { path: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    void navigator.clipboard.writeText(path);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <Button
+      aria-label="Copy file path"
+      className="size-7"
+      onClick={handleCopy}
+      size="icon"
+      title="Copy file path"
+      type="button"
+      variant="ghost"
+    >
+      {copied ? <Check className="size-3.5 text-emerald-500" /> : <Copy className="size-3.5" />}
+    </Button>
+  );
+}
+
 function RiskTable({
   files,
+  isSingleFileMode,
   repositoryId,
 }: {
   files: RiskFile[];
+  isSingleFileMode?: boolean;
   repositoryId: string;
 }) {
   return (
@@ -507,19 +856,21 @@ function RiskTable({
       <CardHeader>
         <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
           <div>
-            <h2 className="text-sm font-semibold">Ranked files</h2>
+            <h2 className="text-sm font-semibold">{isSingleFileMode ? "Inspected file" : "Ranked files"}</h2>
             <p className="mt-1 text-xs text-muted">
-              Source files ordered by calculated risk score with detailed component breakdowns.
+              {isSingleFileMode
+                ? "Detailed risk analysis and component breakdown for the selected file."
+                : "Source files ordered by calculated risk score with detailed component breakdowns."}
             </p>
           </div>
-          <span className="text-xs text-muted font-medium">{files.length} files</span>
+          <span className="text-xs text-muted font-medium">{files.length} {files.length === 1 ? "file" : "files"}</span>
         </div>
       </CardHeader>
       <CardContent className="p-0">
         <Table>
           <TableHead>
             <TableRow>
-              <TableHeaderCell className="w-16">Rank</TableHeaderCell>
+              {!isSingleFileMode ? <TableHeaderCell className="w-16">Rank</TableHeaderCell> : null}
               <TableHeaderCell>File</TableHeaderCell>
               <TableHeaderCell className="w-24 text-right">Risk</TableHeaderCell>
               <TableHeaderCell>Components</TableHeaderCell>
@@ -529,20 +880,27 @@ function RiskTable({
           <TableBody>
             {files.map((file, index) => (
               <TableRow key={file.path}>
-                <TableCell className="font-mono text-xs text-muted">
-                  #{index + 1}
-                </TableCell>
+                {!isSingleFileMode ? (
+                  <TableCell className="font-mono text-xs text-muted">
+                    #{index + 1}
+                  </TableCell>
+                ) : null}
                 <TableCell>
                   <div>
-                    <span className="break-all font-mono text-sm font-semibold">
-                      {file.path}
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="break-all font-mono text-sm font-semibold">
+                        {file.path}
+                      </span>
+                      <CopyPathButton path={file.path} />
+                    </div>
                     {file.reasons && file.reasons.length > 0 ? (
-                      <ul className="mt-1 space-y-0.5 text-xs text-muted">
+                      <div className="mt-1 flex flex-wrap gap-1">
                         {file.reasons.map((reason) => (
-                          <li key={reason}>• {reason}</li>
+                          <Badge className="normal-case font-medium text-[11px]" key={reason} tone="warning">
+                            {formatTitleCase(reason)}
+                          </Badge>
                         ))}
-                      </ul>
+                      </div>
                     ) : null}
                   </div>
                 </TableCell>
@@ -589,7 +947,7 @@ function RiskTable({
   );
 }
 
-const COMPONENT_DESCRIPTIONS: Record<string, { label: string; desc: string }> = {
+const COMPONENT_DESCRIPTIONS: Record<string, { desc: string; label: string }> = {
   fan_in: {
     label: "Fan In",
     desc: "Number of incoming dependencies (other modules that import this file). High fan-in indicates wide impact if modified.",
@@ -618,6 +976,18 @@ const COMPONENT_DESCRIPTIONS: Record<string, { label: string; desc: string }> = 
     label: "Risk",
     desc: "Overall heuristic risk score combining structural metrics and churn history.",
   },
+  file_size: {
+    label: "File Size",
+    desc: "Relative line count and volume of source code in this file.",
+  },
+  bugfix_frequency: {
+    label: "Bugfix Frequency",
+    desc: "Historical frequency of commit messages referencing bug fixes in this file.",
+  },
+  test_coverage_proxy: {
+    label: "Test Coverage Proxy",
+    desc: "Estimated structural test coverage derived from linked unit tests and spec files.",
+  },
 };
 
 function ComponentDetails({ components }: { components: Record<string, number> }) {
@@ -631,8 +1001,8 @@ function ComponentDetails({ components }: { components: Record<string, number> }
     <div className="min-w-44 space-y-2">
       {entries.map(([name, value]) => {
         const info = COMPONENT_DESCRIPTIONS[name] || {
-          label: formatSnakeCase(name),
-          desc: `Architectural signal weight for ${name}.`,
+          label: formatTitleCase(formatSnakeCase(name)),
+          desc: `Architectural signal weight for ${formatTitleCase(formatSnakeCase(name))}.`,
         };
 
         return (
@@ -641,9 +1011,9 @@ function ComponentDetails({ components }: { components: Record<string, number> }
               <TermTooltip description={info.desc} term={info.label} />
               <span className="font-mono">{(value * 100).toFixed(1)}%</span>
             </div>
-            <div className="h-1.5 rounded-sm bg-panel-muted">
+            <div className="h-1.5 w-full rounded-sm bg-background border border-border/80 dark:bg-slate-950 dark:border-slate-700/80 overflow-hidden shadow-inner">
               <div
-                className="h-1.5 rounded-sm bg-primary"
+                className="h-full bg-primary"
                 style={{ width: `${Math.min(100, Math.max(0, value) * 100)}%` }}
               />
             </div>
@@ -661,7 +1031,7 @@ function Metric({
 }: {
   description?: string;
   label: string;
-  value: string;
+  value: React.ReactNode;
 }) {
   return (
     <div className="rounded-md border border-border bg-panel-muted px-3 py-2">

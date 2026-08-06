@@ -374,6 +374,36 @@ def test_search_repository_files_success() -> None:
         app.dependency_overrides.clear()
 
 
+def test_search_repository_files_with_language_filter() -> None:
+    """GET /{id}/files/search filters by language parameter."""
+    mock_svc = MagicMock()
+    mock_svc.get_repository_or_raise = AsyncMock(return_value=_make_repo())
+    mock_db = MagicMock()
+    mock_file = MagicMock()
+    mock_file.id = 1
+    mock_file.path = "src/auth.py"
+    mock_file.language = "python"
+    mock_file.loc = 50
+    mock_file.is_test = False
+
+    mock_res = MagicMock()
+    mock_res.scalars.return_value.all.return_value = [mock_file]
+    mock_db.execute = AsyncMock(return_value=mock_res)
+
+    app.dependency_overrides[get_db] = lambda: mock_db
+    app.dependency_overrides[get_repository_service] = lambda: mock_svc
+    try:
+        client = TestClient(app)
+        response = client.get(f"/api/v1/repositories/{TEST_UUID}/files/search?query=auth&language=python")
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 1
+        assert data[0]["language"] == "python"
+        mock_db.execute.assert_awaited_once()
+    finally:
+        app.dependency_overrides.clear()
+
+
 def test_list_repository_refs_endpoint() -> None:
     mock_svc = MagicMock()
     mock_svc.list_repository_refs = AsyncMock(return_value=[

@@ -197,6 +197,7 @@ export type TestRecommendationResponse = {
 export type RepositoryRiskArgs = {
   include_tests?: boolean;
   language?: string | null;
+  path_search?: string | null;
   repositoryId: string;
   top_k?: number;
 };
@@ -210,7 +211,30 @@ export type RiskFile = {
 
 export type RepositoryRiskResponse = {
   files: RiskFile[];
-  metadata: Record<string, unknown>;
+  metadata: Record<string, unknown> & {
+    average_risk_score?: number;
+    distribution_buckets?: {
+      critical: number;
+      high: number;
+      low: number;
+      moderate: number;
+    };
+    file_count?: number;
+    filtered_by_path?: string | null;
+    highest_risk_score?: number;
+    include_tests?: boolean;
+    language?: string | null;
+    path_search?: string | null;
+    single_file_breakdown?: {
+      bugfix_count?: number;
+      churn_commit_count?: number;
+      complexity_score?: number;
+      fan_in?: number;
+      fan_out?: number;
+      loc?: number;
+    } | null;
+    top_k?: number;
+  };
   repository_id: string;
 };
 

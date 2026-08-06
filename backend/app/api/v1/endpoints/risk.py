@@ -27,6 +27,7 @@ async def get_repository_risk(
     top_k: int = Query(20, ge=1, le=100),
     language: str | None = Query(None),
     include_tests: bool = Query(False),
+    path_search: str | None = Query(None),
 ) -> RepositoryRiskResponse:
     try:
         await repo_svc.get_repository_or_raise(db, repository_id, owner_id=current_user.id)
@@ -36,6 +37,7 @@ async def get_repository_risk(
             top_k=top_k,
             language=language,
             include_tests=include_tests,
+            path_search=path_search,
         )
     except RepositoryNotFoundError as exc:
         raise HTTPException(

@@ -16,7 +16,7 @@ export function Input({ className, type, ...props }: InputHTMLAttributes<HTMLInp
         <input
           type={effectiveType}
           className={cn(
-            "h-9 w-full rounded-lg border border-border/80 bg-panel pl-3.5 pr-10 text-sm text-foreground placeholder:text-muted/70 transition-all duration-150 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25",
+            "h-9 w-full rounded-lg border border-border/80 bg-panel pl-3.5 pr-10 text-sm text-foreground placeholder:text-muted/70 transition-all duration-150 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25 disabled:opacity-50 disabled:bg-panel-muted/80 disabled:cursor-not-allowed",
             className,
           )}
           {...props}
@@ -42,7 +42,7 @@ export function Input({ className, type, ...props }: InputHTMLAttributes<HTMLInp
     <input
       type={type}
       className={cn(
-        "h-9 w-full rounded-lg border border-border/80 bg-panel px-3.5 text-sm text-foreground placeholder:text-muted/70 transition-all duration-150 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25",
+        "h-9 w-full rounded-lg border border-border/80 bg-panel px-3.5 text-sm text-foreground placeholder:text-muted/70 transition-all duration-150 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25 disabled:opacity-50 disabled:bg-panel-muted/80 disabled:cursor-not-allowed",
         className,
       )}
       {...props}
@@ -57,7 +57,7 @@ export function Textarea({
   return (
     <textarea
       className={cn(
-        "min-h-28 w-full rounded-lg border border-border/80 bg-panel px-3.5 py-2.5 text-sm leading-6 text-foreground placeholder:text-muted/70 transition-all duration-150 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25",
+        "min-h-28 w-full rounded-lg border border-border/80 bg-panel px-3.5 py-2.5 text-sm leading-6 text-foreground placeholder:text-muted/70 transition-all duration-150 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25 disabled:opacity-50 disabled:bg-panel-muted/80 disabled:cursor-not-allowed",
         className,
       )}
       {...props}

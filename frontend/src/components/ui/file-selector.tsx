@@ -5,11 +5,13 @@ import { useSearchRepositoryFilesQuery } from "@/store/api/repolensApi";
 import { Selector, SelectorOption, SelectorProps } from "./selector";
 
 export type FileSelectorProps = Omit<SelectorProps, "options"> & {
+  language?: string;
   repositoryId: string;
 };
 
 export function FileSelector({
   disabled,
+  language,
   placeholder = "Select or search file...",
   repositoryId,
   value,
@@ -28,6 +30,7 @@ export function FileSelector({
 
   const { data: files = [], isFetching } = useSearchRepositoryFilesQuery(
     {
+      language: language || undefined,
       limit: 50,
       query: debouncedQuery,
       repositoryId,
@@ -64,17 +67,27 @@ export function FileSelector({
   }, [files, value]);
 
   return (
-    <Selector
-      {...props}
-      allowCustomValue
-      disabled={disabled}
-      emptyText="No matching files found."
-      loading={isFetching}
-      onSearchChange={(q) => setSearchQuery(q)}
-      options={options}
-      placeholder={placeholder}
-      searchPlaceholder="Type file path..."
-      value={value}
-    />
+    <div className="space-y-1 w-full">
+      <Selector
+        {...props}
+        allowCustomValue
+        disabled={disabled}
+        emptyText="No matching files found."
+        loading={isFetching}
+        onSearchChange={(q) => setSearchQuery(q)}
+        options={options}
+        placeholder={placeholder}
+        searchPlaceholder="Type file path..."
+        value={value}
+      />
+      {language ? (
+        <div className="flex items-center gap-1.5 text-[11px] text-muted">
+          <span>Filtered by language:</span>
+          <span className="rounded bg-panel-muted border border-border px-1.5 py-0.5 font-mono font-medium text-foreground">
+            {language}
+          </span>
+        </div>
+      ) : null}
+    </div>
   );
 }
