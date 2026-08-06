@@ -150,7 +150,7 @@ export function DependencyTreeView({
         </div>
         <div className="flex items-center gap-2 shrink-0 font-mono text-[11px] text-muted">
           <span>{gNode.language || "unknown"}</span>
-          <span>·</span>
+          <span>Â·</span>
           <span>{gNode.loc} LOC</span>
           <div className="flex items-center gap-1 pl-1">
             <span className="rounded bg-panel-muted px-1.5 py-0.5 text-[10px]" title="Incoming dependencies">

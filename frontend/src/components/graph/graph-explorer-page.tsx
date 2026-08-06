@@ -748,7 +748,7 @@ function NodeDetailPanel({
                     {neighbor.path}
                   </p>
                   <p className="mt-1 text-xs text-muted">
-                    {neighbor.language || "unknown"} · {neighbor.loc} LOC
+                    {neighbor.language || "unknown"} Â· {neighbor.loc} LOC
                   </p>
                 </div>
               ))}

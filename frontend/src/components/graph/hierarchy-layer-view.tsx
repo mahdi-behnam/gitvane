@@ -193,7 +193,7 @@ export function HierarchyLayerView({
                         {node.is_test && <Badge tone="success" className="text-[9px] py-0">Test</Badge>}
                       </div>
                       <div className="mt-2 flex items-center justify-between text-[11px] font-mono text-muted">
-                        <span>{node.language || "unknown"} · {node.loc} LOC</span>
+                        <span>{node.language || "unknown"} Â· {node.loc} LOC</span>
                         <div className="flex items-center gap-1">
                           <span className="rounded bg-panel-muted px-1.5 py-0.5 text-[10px]">
                             ?{edgeCount.in}
