@@ -62,7 +62,8 @@ export function OverviewDashboard() {
             RepoLens Dashboard
           </h1>
           <p className="mt-2.5 max-w-3xl text-sm leading-relaxed text-muted font-medium text-balance">
-            Monitor repository indexing states, inspect high-risk modules, and quickly launch code architecture analysis workflows.
+            Monitor repository indexing states, inspect high-risk modules, and quickly
+            launch code architecture analysis workflows.
           </p>
         </div>
         <Button asChild variant="primary">
@@ -149,13 +150,20 @@ export function OverviewDashboard() {
         </h2>
         <div className="grid gap-3.5 md:grid-cols-2 xl:grid-cols-4">
           {quickActions.map((action) => (
-            <Card className="group relative overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-glow" key={action.href}>
+            <Card
+              className="group relative overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-glow"
+              key={action.href}
+            >
               <Link className="block p-5" href={action.href}>
                 <div className="flex size-9 items-center justify-center rounded-lg border border-border/60 bg-panel-muted/80 text-muted transition-colors group-hover:border-primary/30 group-hover:bg-primary/10 group-hover:text-primary">
                   <action.icon aria-hidden="true" className="size-4" />
                 </div>
-                <p className="mt-4 text-sm font-bold tracking-tight text-foreground group-hover:text-primary transition-colors">{action.label}</p>
-                <p className="mt-2 font-mono text-[11px] text-muted/80 truncate">{action.href}</p>
+                <p className="mt-4 text-sm font-bold tracking-tight text-foreground group-hover:text-primary transition-colors">
+                  {action.label}
+                </p>
+                <p className="mt-2 font-mono text-[11px] text-muted/80 truncate">
+                  {action.href}
+                </p>
               </Link>
             </Card>
           ))}
@@ -228,7 +236,9 @@ function MetricCard({ label, value }: { label: string; value: string }) {
       <div className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">
         {desc ? <TermTooltip description={desc} term={label} /> : label}
       </div>
-      <p className="mt-3 truncate font-mono text-2xl font-extrabold tracking-tight tabular-nums text-foreground">{value}</p>
+      <p className="mt-3 truncate font-mono text-2xl font-extrabold tracking-tight tabular-nums text-foreground">
+        {value}
+      </p>
     </Card>
   );
 }
@@ -244,7 +254,9 @@ function RecentRepositories({ repositories }: { repositories: Repository[] }) {
               Your registered codebases and their latest index processing states.
             </p>
           </div>
-          <span className="text-xs text-muted font-medium">{repositories.length} total</span>
+          <span className="text-xs text-muted font-medium">
+            {repositories.length} total
+          </span>
         </div>
       </CardHeader>
       <CardContent>
@@ -256,7 +268,9 @@ function RecentRepositories({ repositories }: { repositories: Repository[] }) {
               key={repository.id}
             >
               <span className="min-w-0">
-                <span className="block truncate font-bold text-foreground">{repository.name}</span>
+                <span className="block truncate font-bold text-foreground">
+                  {repository.name}
+                </span>
                 <span className="mt-1 block truncate font-mono text-xs text-muted">
                   {repository.last_indexed_commit ?? "No indexed commit"}
                 </span>
@@ -365,7 +379,7 @@ function EvaluationInsightCard({ repositoryId }: { repositoryId: string }) {
             start a run or refresh an existing report.
           </p>
           <div className="rounded-lg border border-border/70 bg-panel-muted/60 px-3.5 py-2.5">
-            <p className="mt-1.5 text-xs text-muted">
+            <p className="text-xs text-muted">
               Evaluation results will appear after running an evaluation pipeline.
             </p>
           </div>
@@ -380,4 +394,3 @@ function EvaluationInsightCard({ repositoryId }: { repositoryId: string }) {
     </Card>
   );
 }
-
