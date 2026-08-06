@@ -67,31 +67,35 @@ export default function LoginPage() {
   const googleLoginUrl = `${apiBaseUrl}/auth/oauth2/google`;
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-canvas px-4 py-12 sm:px-6 lg:px-8">
-      <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div className="relative flex min-h-screen items-center justify-center bg-canvas px-4 py-12 sm:px-6 lg:px-8 overflow-hidden">
+      {/* Subtle ambient backdrop radial glow */}
+      <div className="pointer-events-none absolute -top-40 -left-40 size-96 rounded-full bg-primary/10 blur-[100px]" />
+      <div className="pointer-events-none absolute -bottom-40 -right-40 size-96 rounded-full bg-primary/10 blur-[100px]" />
+
+      <div className="relative z-10 w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-6">
         
         {/* Left Bento: Editorial/Branding Card */}
-        <div className="flex flex-col justify-between rounded-lg border border-border bg-panel p-8 text-foreground min-h-[320px] md:min-h-[400px]">
+        <div className="flex flex-col justify-between rounded-2xl border border-border/80 bg-panel/90 p-8 text-foreground shadow-panel min-h-[340px] md:min-h-[420px] backdrop-blur-md">
           <div>
             <Logo />
-            <p className="mt-8 text-sm leading-6 text-muted max-w-sm">
+            <p className="mt-8 text-sm leading-relaxed text-muted font-medium max-w-sm text-balance">
               RepoLens is an advanced development tool that helps you analyze, query, and understand your repository&apos;s code structures, dependencies, risks, and test recommendations.
             </p>
           </div>
           
-          <div className="mt-8 pt-6 border-t border-border/60">
-            <h3 className="font-mono text-xs uppercase tracking-[0.12em] text-muted">Repository Intelligence</h3>
-            <p className="mt-2 text-xs leading-5 text-muted">
+          <div className="mt-8 pt-6 border-t border-border/70">
+            <h3 className="font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-muted">Repository Intelligence</h3>
+            <p className="mt-2 text-xs leading-normal text-muted/90 font-medium">
               Automated codebase indexer, architecture visualizer, impact risk scorer, and semantic analysis engine.
             </p>
           </div>
         </div>
 
         {/* Right Bento: Form Card */}
-        <div className="flex flex-col justify-between rounded-lg border border-border bg-panel p-8">
+        <div className="flex flex-col justify-between rounded-2xl border border-border/80 bg-panel/90 p-8 shadow-panel backdrop-blur-md">
           <div>
-            <h2 className="text-xl font-semibold tracking-tight text-foreground">Sign In</h2>
-            <p className="mt-1 text-xs text-muted">Enter your details to access your account</p>
+            <h2 className="text-2xl font-extrabold tracking-tight text-foreground">Sign In</h2>
+            <p className="mt-1 text-xs text-muted font-medium">Enter your credentials to access your account</p>
 
             <form onSubmit={handleLogin} className="mt-6 space-y-4">
               {errorMsg && (
@@ -101,7 +105,7 @@ export default function LoginPage() {
               )}
 
               <div>
-                <label className="block text-xs font-medium text-muted mb-1.5" htmlFor="email">
+                <label className="block text-xs font-semibold text-muted mb-1.5" htmlFor="email">
                   Email Address
                 </label>
                 <Input
@@ -116,7 +120,7 @@ export default function LoginPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-muted mb-1.5" htmlFor="password">
+                <label className="block text-xs font-semibold text-muted mb-1.5" htmlFor="password">
                   Password
                 </label>
                 <Input
@@ -131,7 +135,7 @@ export default function LoginPage() {
                 <div className="mt-1.5 text-right">
                   <Link
                     href="/forgot-password"
-                    className="text-xs text-muted hover:text-foreground underline"
+                    className="text-xs font-medium text-muted hover:text-foreground underline transition-colors"
                   >
                     Forgot password?
                   </Link>
@@ -150,10 +154,10 @@ export default function LoginPage() {
 
             <div className="relative my-6">
               <div className="absolute inset-0 flex items-center" aria-hidden="true">
-                <div className="w-full border-t border-border" />
+                <div className="w-full border-t border-border/70" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-panel px-2 text-muted font-mono text-[10px]">Or continue with</span>
+                <span className="bg-panel px-3 text-muted font-mono text-[10px] font-semibold">Or continue with</span>
               </div>
             </div>
 
@@ -187,9 +191,9 @@ export default function LoginPage() {
             </Button>
           </div>
 
-          <div className="mt-8 text-center text-xs text-muted">
+          <div className="mt-8 text-center text-xs text-muted font-medium">
             Don&apos;t have an account?{" "}
-            <Link href="/signup" className="underline hover:text-foreground">
+            <Link href="/signup" className="font-semibold text-foreground underline hover:text-primary transition-colors">
               Sign up
             </Link>
           </div>
@@ -199,3 +203,4 @@ export default function LoginPage() {
     </div>
   );
 }
+

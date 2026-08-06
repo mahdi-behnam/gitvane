@@ -25,8 +25,13 @@ const config: Config = {
         "chart-c": "rgb(var(--color-chart-c) / <alpha-value>)",
       },
       fontFamily: {
-        sans: ["SF Pro Display", "Geist Sans", "Helvetica Neue", "Arial", "sans-serif"],
-        mono: ["Geist Mono", "SF Mono", "JetBrains Mono", "monospace"],
+        sans: ["var(--font-sans)", "Plus Jakarta Sans", "-apple-system", "BlinkMacSystemFont", "sans-serif"],
+        mono: ["var(--font-mono)", "JetBrains Mono", "SF Mono", "monospace"],
+      },
+      boxShadow: {
+        panel: "0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.04)",
+        glow: "0 0 20px -5px rgb(var(--color-primary) / 0.15)",
+        "glow-lg": "0 0 35px -5px rgb(var(--color-primary) / 0.25)",
       },
     },
   },
@@ -34,3 +39,4 @@ const config: Config = {
 };
 
 export default config;
+

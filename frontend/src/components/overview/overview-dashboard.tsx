@@ -55,13 +55,15 @@ export function OverviewDashboard() {
   const quickActions = buildQuickActions(repositoryScopedHref);
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6">
-      <div className="flex flex-col gap-4 border-b border-border pb-6 md:flex-row md:items-end md:justify-between">
+    <div className="mx-auto max-w-7xl space-y-8">
+      <div className="flex flex-col gap-5 border-b border-border/70 pb-6 md:flex-row md:items-end md:justify-between">
         <div>
           <Badge tone="info">Overview</Badge>
-          <h1 className="mt-3 text-3xl font-semibold md:text-4xl">RepoLens dashboard</h1>
-          <p className="mt-3 max-w-3xl text-sm leading-6 text-muted">
-            Welcome to RepoLens. Monitor repository indexing states, inspect high-risk modules, and quickly launch code architecture analysis workflows.
+          <h1 className="mt-3 text-3xl font-extrabold tracking-tight md:text-4xl text-balance">
+            RepoLens Dashboard
+          </h1>
+          <p className="mt-2.5 max-w-3xl text-sm leading-relaxed text-muted font-medium text-balance">
+            Monitor repository indexing states, inspect high-risk modules, and quickly launch code architecture analysis workflows.
           </p>
         </div>
         <Button asChild variant="primary">
@@ -72,7 +74,7 @@ export function OverviewDashboard() {
         </Button>
       </div>
 
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard
           label="Repositories"
           value={String(repositories.data?.total ?? 0)}
@@ -101,7 +103,7 @@ export function OverviewDashboard() {
               <div className="space-y-3">
                 {Array.from({ length: 3 }).map((_, index) => (
                   <div
-                    className="grid gap-3 rounded-md border border-border bg-panel-muted px-3 py-3 md:grid-cols-[1fr_auto]"
+                    className="grid gap-3 rounded-lg border border-border/60 bg-panel-muted px-4 py-3 md:grid-cols-[1fr_auto]"
                     key={index}
                   >
                     <div className="space-y-2">
@@ -142,20 +144,27 @@ export function OverviewDashboard() {
         )}
       </div>
 
-      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        {quickActions.map((action) => (
-          <Card className="transition hover:bg-panel-muted" key={action.href}>
-            <Link className="block p-5" href={action.href}>
-              <action.icon aria-hidden="true" className="size-4 text-muted" />
-              <p className="mt-4 text-sm font-medium">{action.label}</p>
-              <p className="mt-3 font-mono text-xs text-muted">{action.href}</p>
-            </Link>
-          </Card>
-        ))}
+      <section>
+        <h2 className="text-xs font-bold uppercase tracking-[0.14em] text-muted mb-3.5">
+          Quick Workflows
+        </h2>
+        <div className="grid gap-3.5 md:grid-cols-2 xl:grid-cols-4">
+          {quickActions.map((action) => (
+            <Card className="group relative overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-glow" key={action.href}>
+              <Link className="block p-5" href={action.href}>
+                <div className="flex size-9 items-center justify-center rounded-lg border border-border/60 bg-panel-muted/80 text-muted transition-colors group-hover:border-primary/30 group-hover:bg-primary/10 group-hover:text-primary">
+                  <action.icon aria-hidden="true" className="size-4" />
+                </div>
+                <p className="mt-4 text-sm font-bold tracking-tight text-foreground group-hover:text-primary transition-colors">{action.label}</p>
+                <p className="mt-2 font-mono text-[11px] text-muted/80 truncate">{action.href}</p>
+              </Link>
+            </Card>
+          ))}
+        </div>
       </section>
 
       {firstRepository ? (
-        <section className="grid gap-4 xl:grid-cols-2">
+        <section className="grid gap-5 xl:grid-cols-2">
           <RiskInsightCard
             error={risk.error ? normalizeApiError(risk.error).message : null}
             files={risk.data?.files ?? []}
@@ -216,11 +225,11 @@ function MetricCard({ label, value }: { label: string; value: string }) {
   const desc = OVERVIEW_METRIC_DESCRIPTIONS[label];
 
   return (
-    <Card className="p-4">
-      <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">
+    <Card className="p-5 transition-all duration-200 hover:border-border hover:shadow-panel">
+      <div className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">
         {desc ? <TermTooltip description={desc} term={label} /> : label}
       </div>
-      <p className="mt-2 truncate font-mono text-lg font-semibold">{value}</p>
+      <p className="mt-3 truncate font-mono text-2xl font-extrabold tracking-tight tabular-nums text-foreground">{value}</p>
     </Card>
   );
 }
@@ -231,7 +240,7 @@ function RecentRepositories({ repositories }: { repositories: Repository[] }) {
       <CardHeader>
         <div className="flex items-center justify-between gap-3">
           <div>
-            <h2 className="text-sm font-semibold">Recent repositories</h2>
+            <h2 className="text-sm font-bold tracking-tight">Recent repositories</h2>
             <p className="mt-1 text-xs text-muted">
               Your registered codebases and their latest index processing states.
             </p>
@@ -240,24 +249,24 @@ function RecentRepositories({ repositories }: { repositories: Repository[] }) {
         </div>
       </CardHeader>
       <CardContent>
-        <div className="space-y-3">
+        <div className="space-y-2.5">
           {repositories.slice(0, 5).map((repository) => (
             <Link
-              className="grid gap-3 rounded-md border border-border bg-panel-muted px-3 py-3 text-sm md:grid-cols-[1fr_auto]"
+              className="grid gap-3 rounded-lg border border-border/60 bg-panel-muted/50 px-4 py-3.5 text-sm transition-all duration-150 hover:border-primary/40 hover:bg-panel-muted md:grid-cols-[1fr_auto]"
               href={`/repositories/${repository.id}`}
               key={repository.id}
             >
               <span className="min-w-0">
-                <span className="block truncate font-medium">{repository.name}</span>
+                <span className="block truncate font-bold text-foreground">{repository.name}</span>
                 <span className="mt-1 block truncate font-mono text-xs text-muted">
                   {repository.last_indexed_commit ?? "No indexed commit"}
                 </span>
               </span>
-              <span className="flex flex-wrap items-center gap-2 md:justify-end">
+              <span className="flex flex-wrap items-center gap-2.5 md:justify-end">
                 <Badge tone={repository.status === "indexed" ? "success" : "neutral"}>
                   {repository.status}
                 </Badge>
-                <span className="font-mono text-xs text-muted">
+                <span className="font-mono text-xs text-muted tabular-nums">
                   {formatDateTime(repository.indexed_at)}
                 </span>
               </span>
@@ -286,9 +295,9 @@ function RiskInsightCard({
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between gap-3">
-          <h2 className="text-sm font-semibold">Risk summary</h2>
+          <h2 className="text-sm font-bold tracking-tight">Risk summary</h2>
           <Link
-            className="text-xs text-primary hover:underline"
+            className="text-xs font-semibold text-primary hover:underline"
             href={`/repositories/${repositoryId}/risk`}
           >
             View details
@@ -312,7 +321,7 @@ function RiskInsightCard({
               <span className="font-mono text-xs text-muted truncate">
                 {highestRisk.path}
               </span>
-              <span className="font-mono text-xs font-semibold">
+              <span className="font-mono text-xs font-semibold tabular-nums">
                 {(highestRisk.risk_score * 100).toFixed(1)}%
               </span>
             </div>
@@ -325,7 +334,7 @@ function RiskInsightCard({
           </div>
         ) : (
           <div className="space-y-4">
-            <p className="text-sm leading-6 text-muted">
+            <p className="text-sm leading-relaxed text-muted">
               Risk data appears after the repository has indexed file metadata.
             </p>
             <Button asChild size="sm">
@@ -346,21 +355,21 @@ function EvaluationInsightCard({ repositoryId }: { repositoryId: string }) {
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between gap-3">
-          <h2 className="text-sm font-semibold">Evaluation summary</h2>
+          <h2 className="text-sm font-bold tracking-tight">Evaluation summary</h2>
           <Badge tone="neutral">Manual run</Badge>
         </div>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          <p className="text-sm leading-6 text-muted">
+          <p className="text-sm leading-relaxed text-muted">
             Evaluation summaries are loaded by run ID. Open the evaluation dashboard to
             start a run or refresh an existing report.
           </p>
-          <div className="rounded-md border border-border bg-panel-muted px-3 py-2">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">
+          <div className="rounded-lg border border-border/70 bg-panel-muted/60 px-3.5 py-2.5">
+            <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">
               Current backend surface
             </p>
-            <p className="mt-2 text-sm text-muted">
+            <p className="mt-1.5 text-xs text-muted">
               No latest-run endpoint is available, so this card does not invent
               evaluation results.
             </p>
@@ -376,3 +385,4 @@ function EvaluationInsightCard({ repositoryId }: { repositoryId: string }) {
     </Card>
   );
 }
+

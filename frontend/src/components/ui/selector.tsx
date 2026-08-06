@@ -146,6 +146,7 @@ export function Selector({
           disabled && "cursor-not-allowed opacity-50",
           open && "border-primary ring-2 ring-primary/20",
         )}
+        aria-controls={open ? `${id || "selector"}-listbox` : undefined}
         disabled={disabled}
         id={id}
         onClick={handleToggleOpen}

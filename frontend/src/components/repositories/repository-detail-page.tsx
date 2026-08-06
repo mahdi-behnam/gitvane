@@ -20,7 +20,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { DeleteRepoModal } from "@/components/repositories/delete-repo-modal";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Input } from "@/components/ui/input";
 import { Notice } from "@/components/ui/notice";
 import { RefSelector } from "@/components/ui/ref-selector";
 import { Skeleton } from "@/components/ui/skeleton";

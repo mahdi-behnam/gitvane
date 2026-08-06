@@ -269,7 +269,6 @@ export function GraphExplorerPage({
                 Language filter
               </span>
               <Selector
-                id="graph-language"
                 allowCustomValue
                 id="graph-language"
                 loading={languagesQuery.isFetching}

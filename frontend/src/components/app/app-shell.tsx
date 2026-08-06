@@ -20,15 +20,9 @@ import { Logo } from "@/components/app/logo";
 import { ThemeToggle } from "@/components/app/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
-  repolensApi,
   useListRepositoriesQuery,
   useRefreshMutation,
   useLazyMeQuery,
@@ -112,16 +106,19 @@ function NavigationLinks({ onNavigate }: { onNavigate?: () => void }) {
           <Link
             aria-current={active ? "page" : undefined}
             className={cn(
-              "flex h-9 items-center gap-3 rounded-md px-3 text-sm transition",
+              "relative flex h-9 items-center gap-3 rounded-lg px-3 text-xs font-medium transition-all duration-150",
               active
-                ? "bg-panel-muted text-foreground"
-                : "text-muted hover:bg-panel-muted hover:text-foreground",
+                ? "bg-primary/10 text-primary font-semibold shadow-sm"
+                : "text-muted hover:bg-panel-muted/80 hover:text-foreground",
             )}
             href={resolvedHref}
             key={item.href}
             onClick={onNavigate}
           >
-            <Icon aria-hidden="true" className="size-4" />
+            {active && (
+              <span className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-primary" />
+            )}
+            <Icon aria-hidden="true" className={cn("size-4 shrink-0", active ? "text-primary" : "text-muted/80")} />
             <span>{item.label}</span>
           </Link>
         );
@@ -265,8 +262,8 @@ export function AppShell({ children }: { children: ReactNode }) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-canvas text-foreground">
         <div className="flex flex-col items-center gap-4">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-          <p className="text-sm font-medium text-muted font-mono">Authenticating...</p>
+          <div className="h-9 w-9 animate-spin rounded-full border-3 border-primary border-t-transparent shadow-glow" />
+          <p className="text-xs font-semibold text-muted font-mono tracking-wider uppercase">Authenticating...</p>
         </div>
       </div>
     );
@@ -288,32 +285,32 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <TooltipProvider delayDuration={200}>
       <div className="min-h-screen bg-canvas text-foreground">
-        <div className="grid min-h-screen lg:grid-cols-[264px_1fr]">
-          <aside className="sticky top-0 hidden h-screen flex-col justify-between border-r border-border bg-panel px-5 py-5 lg:flex">
+        <div className="grid min-h-screen lg:grid-cols-[256px_1fr]">
+          <aside className="sticky top-0 hidden h-screen flex-col justify-between border-r border-border/80 bg-panel px-4 py-5 lg:flex">
             <div>
               <Logo />
-              <div className="mt-7">
+              <div className="mt-8">
                 <NavigationLinks />
               </div>
             </div>
             
-            <div className="border-t border-border pt-4 mt-auto">
+            <div className="border-t border-border/70 pt-4 mt-auto">
               <div className="flex items-center gap-3">
                 <div
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full font-mono text-sm font-semibold uppercase tracking-wider text-white"
-                  style={{ backgroundColor: `hsl(${avatarHue}, 35%, 45%)` }}
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl font-mono text-xs font-bold uppercase tracking-wider text-white shadow-sm ring-2 ring-panel"
+                  style={{ backgroundColor: `hsl(${avatarHue}, 40%, 42%)` }}
                 >
                   {userInitials}
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-xs font-semibold text-foreground">{userName}</p>
-                  <p className="truncate text-[10px] text-muted">{user?.email || ""}</p>
+                  <p className="truncate text-[10px] font-medium text-muted">{user?.email || ""}</p>
                 </div>
               </div>
               <Button
                 variant="ghost"
                 size="sm"
-                className="mt-3 w-full justify-start text-xs font-medium text-muted hover:text-danger hover:bg-danger/5"
+                className="mt-3 w-full justify-start text-xs font-medium text-muted hover:text-danger hover:bg-danger/10"
                 onClick={handleLogout}
               >
                 Logout
@@ -322,13 +319,13 @@ export function AppShell({ children }: { children: ReactNode }) {
           </aside>
 
           <div className="min-w-0">
-            <header className="sticky top-0 z-40 border-b border-border bg-canvas/95 px-4 py-3 backdrop-blur-sm sm:px-6 lg:px-8">
+            <header className="sticky top-0 z-40 border-b border-border/80 bg-canvas/80 px-4 py-3 backdrop-blur-md sm:px-6 lg:px-8">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex min-w-0 items-center gap-3">
                   <div className="lg:hidden">
                     <Drawer>
                       <DrawerTrigger asChild>
-                        <Button aria-label="Open navigation" size="icon">
+                        <Button aria-label="Open navigation" size="icon" variant="secondary">
                           <Menu aria-hidden="true" className="size-4" />
                         </Button>
                       </DrawerTrigger>
@@ -343,8 +340,8 @@ export function AppShell({ children }: { children: ReactNode }) {
                           <div className="border-t border-border pt-4 mt-auto">
                             <div className="flex items-center gap-3">
                               <div
-                                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full font-mono text-sm font-semibold uppercase tracking-wider text-white"
-                                style={{ backgroundColor: `hsl(${avatarHue}, 35%, 45%)` }}
+                                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl font-mono text-xs font-bold uppercase tracking-wider text-white shadow-sm"
+                                style={{ backgroundColor: `hsl(${avatarHue}, 40%, 42%)` }}
                               >
                                 {userInitials}
                               </div>
@@ -356,7 +353,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="mt-3 w-full justify-start text-xs font-medium text-muted hover:text-danger hover:bg-danger/5"
+                              className="mt-3 w-full justify-start text-xs font-medium text-muted hover:text-danger hover:bg-danger/10"
                               onClick={handleLogout}
                             >
                               Logout
@@ -368,13 +365,13 @@ export function AppShell({ children }: { children: ReactNode }) {
                   </div>
                   <div className="min-w-0">
                     <label
-                      className="block truncate font-mono text-xs uppercase tracking-[0.12em] text-muted"
+                      className="block truncate font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-muted/80"
                       htmlFor="header-active-repo-select"
                     >
                       Active repository
                     </label>
                     <select
-                      className="mt-1 block h-8 w-full max-w-[200px] truncate rounded-md border border-border bg-panel px-2 text-xs font-medium text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/20"
+                      className="mt-1 block h-8 w-full max-w-[210px] truncate rounded-lg border border-border/80 bg-panel px-2.5 text-xs font-semibold text-foreground shadow-panel transition-colors hover:border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                       id="header-active-repo-select"
                       onChange={(event) => {
                         const val = event.target.value;
@@ -398,7 +395,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               </div>
             </header>
 
-            <div className="border-b border-border bg-panel px-4 py-2 sm:px-6 lg:hidden">
+            <div className="border-b border-border/70 bg-panel px-4 py-2 sm:px-6 lg:hidden">
               <nav
                 aria-label="Primary shortcuts"
                 className="flex gap-1 overflow-x-auto"
@@ -419,8 +416,8 @@ export function AppShell({ children }: { children: ReactNode }) {
                     <Link
                       aria-current={active ? "page" : undefined}
                       className={cn(
-                        "flex min-w-16 flex-col items-center gap-1 rounded-md px-2 py-1.5 text-[11px] hover:bg-panel-muted hover:text-foreground",
-                        active ? "text-foreground" : "text-muted",
+                        "flex min-w-16 flex-col items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-medium transition-colors hover:bg-panel-muted hover:text-foreground",
+                        active ? "text-primary font-semibold bg-primary/10" : "text-muted",
                       )}
                       href={resolvedHref}
                       key={item.href}
@@ -433,7 +430,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               </nav>
             </div>
 
-            <main className="px-4 py-6 sm:px-6 lg:px-8">{children}</main>
+            <main className="px-4 py-6 sm:px-6 lg:px-8 max-w-7xl mx-auto">{children}</main>
 
           </div>
         </div>
@@ -441,3 +438,4 @@ export function AppShell({ children }: { children: ReactNode }) {
     </TooltipProvider>
   );
 }
+

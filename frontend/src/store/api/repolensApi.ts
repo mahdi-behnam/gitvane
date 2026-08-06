@@ -31,10 +31,6 @@ import type {
   LoginRequest,
   TokenResponse,
   UserResponse,
-  ForgotPasswordRequest,
-  ForgotPasswordResponse,
-  ResetPasswordRequest,
-  UserUpdateRequest,
 } from "@/lib/api/types";
 
 type ListRepositoriesArgs = {

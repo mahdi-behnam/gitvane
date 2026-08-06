@@ -231,7 +231,6 @@ export function RiskDashboardPage({
                 Language filter
               </span>
               <Selector
-                id="risk-language"
                 allowCustomValue
                 id="risk-language"
                 loading={languagesQuery.isFetching}

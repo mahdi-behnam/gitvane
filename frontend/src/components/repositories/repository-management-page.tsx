@@ -166,7 +166,7 @@ export function RepositoryManagementPage() {
     void repositories.refetch();
   };
 
-  const allItems = repositories.data?.items ?? [];
+  const allItems = useMemo(() => repositories.data?.items ?? [], [repositories.data?.items]);
 
   const filteredRepositories = useMemo(() => {
     return allItems.filter((repository) => {
