@@ -466,10 +466,10 @@ function ImpactLoadingState() {
         </CardHeader>
         <CardContent>
           <div className="grid gap-3 md:grid-cols-3">
-            {Array.from({ length: 3 }).map((_, index) => (
+            {[1, 2, 3].map((id) => (
               <div
                 className="rounded-lg border border-border bg-panel-muted p-4 space-y-2"
-                key={index}
+                key={`impact-summary-skeleton-${id}`}
               >
                 <Skeleton className="h-3 w-24" />
                 <Skeleton className="h-6 w-12" />
@@ -485,8 +485,8 @@ function ImpactLoadingState() {
           <Skeleton className="h-4 w-40" />
           <Skeleton className="h-5 w-16" />
         </div>
-        {Array.from({ length: 2 }).map((_, index) => (
-          <Card key={index}>
+        {[1, 2].map((id) => (
+          <Card key={`impact-card-skeleton-${id}`}>
             <CardHeader>
               <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                 <Skeleton className="h-4 w-64" />
@@ -495,8 +495,8 @@ function ImpactLoadingState() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-2 md:grid-cols-4">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <div className="rounded-lg border border-border bg-panel-muted p-4 space-y-2" key={i}>
+                {[1, 2, 3, 4].map((id) => (
+                  <div className="rounded-lg border border-border bg-panel-muted p-4 space-y-2" key={`impact-metric-skeleton-${id}`}>
                     <Skeleton className="h-3 w-20" />
                     <Skeleton className="h-6 w-12" />
                   </div>
@@ -802,13 +802,13 @@ function RiskSummary({
       <CardContent>
         <div className="space-y-2">
           {files.map((file, index) => {
-            const pathStr = String(file.path ?? file.file_path ?? "Unknown file");
+            const pathStr = String(file.path ?? file.file_path ?? `unknown-file-${index}`);
             const rawScore = typeof file.risk_score === "number" ? file.risk_score : typeof file.score === "number" ? file.score : null;
 
             return (
               <div
                 className="flex items-center justify-between rounded-md border border-warning/20 bg-warning/10 px-3 py-2 text-sm text-warning"
-                key={index}
+                key={`risk-summary-${pathStr}`}
               >
                 <div className="flex items-center gap-2 font-mono text-xs truncate max-w-lg">
                   <span className="truncate">{pathStr}</span>

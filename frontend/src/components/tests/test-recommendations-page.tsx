@@ -268,8 +268,8 @@ export function TestRecommendationsPage({
 function RecommendationLoadingState() {
   return (
     <div className="space-y-3">
-      {Array.from({ length: 3 }, (_, index) => (
-        <Card className="p-5" key={index}>
+      {[1, 2, 3].map((id) => (
+        <Card className="p-5" key={`test-rec-skeleton-${id}`}>
           <Skeleton className="h-4 w-2/3" />
           <Skeleton className="mt-4 h-4 w-32" />
           <Skeleton className="mt-4 h-16 w-full" />
@@ -302,7 +302,7 @@ function RecommendationResults({
         {recommendations.map((recommendation, index) => (
           <RecommendationCard
             index={index}
-            key={`${recommendation.path}:${index}`}
+            key={recommendation.path}
             recommendation={recommendation}
             repositoryId={repositoryId}
           />

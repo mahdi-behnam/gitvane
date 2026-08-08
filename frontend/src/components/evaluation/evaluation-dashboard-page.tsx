@@ -362,10 +362,10 @@ function EvaluationLoadingState() {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid gap-3 md:grid-cols-3">
-          {Array.from({ length: 3 }).map((_, index) => (
+          {[1, 2, 3].map((id) => (
             <div
               className="rounded-md border border-border bg-panel-muted p-3 space-y-2"
-              key={index}
+              key={`eval-skeleton-${id}`}
             >
               <Skeleton className="h-3 w-20" />
               <Skeleton className="h-5 w-16" />

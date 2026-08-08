@@ -38,8 +38,8 @@ function RepositorySkeletonRows() {
           Loading repositories
         </TableCell>
       </TableRow>
-      {Array.from({ length: 3 }, (_, index) => (
-        <TableRow key={index}>
+      {[1, 2, 3].map((id) => (
+        <TableRow key={`repo-skeleton-row-${id}`}>
           <TableCell>
             <Skeleton className="h-4 w-32" />
           </TableCell>

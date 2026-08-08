@@ -625,8 +625,8 @@ function GraphLoadingState() {
         </CardHeader>
         <CardContent className="space-y-5">
           <div className="grid grid-cols-2 gap-3">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div className="space-y-1 rounded-md border border-border bg-panel-muted p-2" key={i}>
+            {[1, 2, 3, 4].map((id) => (
+              <div className="space-y-1 rounded-md border border-border bg-panel-muted p-2" key={`graph-skeleton-metric-${id}`}>
                 <Skeleton className="h-3 w-14" />
                 <Skeleton className="h-4 w-20" />
               </div>
@@ -725,10 +725,10 @@ function NodeDetailPanel({
           </div>
           {neighborsLoading ? (
             <div className="space-y-2">
-              {Array.from({ length: 2 }).map((_, index) => (
+              {[1, 2].map((id) => (
                 <div
                   className="space-y-1.5 rounded-md border border-border bg-panel-muted px-3 py-2"
-                  key={index}
+                  key={`graph-neighbor-skeleton-${id}`}
                 >
                   <Skeleton className="h-3.5 w-3/4" />
                   <Skeleton className="h-3 w-1/2" />

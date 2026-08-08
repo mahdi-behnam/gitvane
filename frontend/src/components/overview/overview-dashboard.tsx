@@ -101,10 +101,10 @@ export function OverviewDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {Array.from({ length: 3 }).map((_, index) => (
+                {[1, 2, 3].map((id) => (
                   <div
                     className="grid gap-3 rounded-lg border border-border/60 bg-panel-muted px-4 py-3 md:grid-cols-[1fr_auto]"
-                    key={index}
+                    key={`overview-repo-skeleton-${id}`}
                   >
                     <div className="space-y-2">
                       <Skeleton className="h-4 w-40" />

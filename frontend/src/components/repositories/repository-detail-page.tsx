@@ -248,8 +248,8 @@ export function RepositoryDetailPage({ repositoryId }: { repositoryId: string })
           <CardContent>
             {indexStatus.isLoading ? (
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                {Array.from({ length: 4 }, (_, index) => (
-                  <Skeleton className="h-16" key={index} />
+                {[1, 2, 3, 4].map((id) => (
+                  <Skeleton className="h-16" key={`index-status-skeleton-${id}`} />
                 ))}
               </div>
             ) : indexStatus.error ? (

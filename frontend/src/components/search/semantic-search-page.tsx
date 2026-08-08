@@ -209,8 +209,8 @@ export function SemanticSearchPage({
 function SearchLoadingState() {
   return (
     <div className="space-y-3">
-      {Array.from({ length: 3 }, (_, index) => (
-        <Card className="p-5" key={`search-skeleton-${index}`}>
+      {[1, 2, 3].map((id) => (
+        <Card className="p-5" key={`search-skeleton-${id}`}>
           <Skeleton className="h-4 w-2/3" />
           <Skeleton className="mt-4 h-20 w-full" />
           <Skeleton className="mt-4 h-4 w-40" />
