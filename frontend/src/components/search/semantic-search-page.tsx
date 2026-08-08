@@ -187,9 +187,9 @@ export function SemanticSearchPage({
             <h2 className="text-sm font-semibold">Results</h2>
             <span className="text-xs text-muted font-medium">{results.length} returned</span>
           </div>
-          {results.map((result, index) => (
+          {results.map((result) => (
             <SearchResultCard
-              key={`${result.path}:${result.start_line}:${index}`}
+              key={`${result.path}:${result.start_line}:${result.end_line}`}
               repositoryId={validRepositoryId}
               result={result}
             />
@@ -210,7 +210,7 @@ function SearchLoadingState() {
   return (
     <div className="space-y-3">
       {Array.from({ length: 3 }, (_, index) => (
-        <Card className="p-5" key={index}>
+        <Card className="p-5" key={`search-skeleton-${index}`}>
           <Skeleton className="h-4 w-2/3" />
           <Skeleton className="mt-4 h-20 w-full" />
           <Skeleton className="mt-4 h-4 w-40" />
