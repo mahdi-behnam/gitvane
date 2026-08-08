@@ -59,6 +59,7 @@ export function useIndexingSSE({
   const [connectionState, setConnectionState] = useState<ConnectionState>("idle");
   const [error, setError] = useState<string | null>(null);
 
+  const notifyRef = useRef(notify);
   const retryCountRef = useRef(0);
   const eventSourceRef = useRef<EventSource | null>(null);
   const reconnectTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -67,6 +68,10 @@ export function useIndexingSSE({
   const prevEnabledRef = useRef(enabled);
   const isCompletedRef = useRef(false);
   const toastFiredRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    notifyRef.current = notify;
+  }, [notify]);
 
   useEffect(() => {
     onCompleteRef.current = onComplete;
@@ -150,7 +155,7 @@ export function useIndexingSSE({
 
             if (toastFiredRef.current !== "indexed") {
               toastFiredRef.current = "indexed";
-              notify({
+              notifyRef.current({
                 title: "Indexing Complete",
                 description: "Repository indexing completed successfully.",
                 variant: "success",
@@ -169,7 +174,7 @@ export function useIndexingSSE({
 
             if (toastFiredRef.current !== "index_failed") {
               toastFiredRef.current = "index_failed";
-              notify({
+              notifyRef.current({
                 title: "Indexing Failed",
                 description: errDetail,
                 variant: "destructive",
@@ -200,7 +205,7 @@ export function useIndexingSSE({
           setError(msg);
           if (toastFiredRef.current !== "stream_error") {
             toastFiredRef.current = "stream_error";
-            notify({
+            notifyRef.current({
               title: "Connection Lost",
               description: msg,
               variant: "destructive",
@@ -241,7 +246,7 @@ export function useIndexingSSE({
         reconnectTimerRef.current = null;
       }
     };
-  }, [enabled, repositoryId, token, notify]);
+  }, [enabled, repositoryId, token]);
 
   return {
     connectionState,

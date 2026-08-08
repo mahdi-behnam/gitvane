@@ -199,7 +199,7 @@ export function RiskDashboardPage({
         <div>
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-3xl font-semibold md:text-4xl">Risk ranking</h1>
-            <Badge variant="outline">
+            <Badge tone="neutral">
               <TermTooltip
                 description="Calculated deterministically using structural dependency analysis, cyclomatic complexity, and git change metrics without LLM non-determinism."
                 term="Deterministic Heuristic Scoring"
@@ -328,7 +328,7 @@ export function RiskDashboardPage({
             <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border pt-3 text-xs">
               <span className="font-medium text-muted">Active filters:</span>
               {appliedFilters.search ? (
-                <Badge className="normal-case font-medium flex items-center gap-1 font-mono" variant="outline">
+                <Badge className="normal-case font-medium flex items-center gap-1 font-mono" tone="neutral">
                   Search: {appliedFilters.search}
                   <button
                     aria-label="Remove search filter"
@@ -341,7 +341,7 @@ export function RiskDashboardPage({
                 </Badge>
               ) : null}
               {appliedFilters.language ? (
-                <Badge className="normal-case font-medium flex items-center gap-1" variant="outline">
+                <Badge className="normal-case font-medium flex items-center gap-1" tone="neutral">
                   Language: {appliedFilters.language}
                   <button
                     aria-label="Remove language filter"
@@ -354,7 +354,7 @@ export function RiskDashboardPage({
                 </Badge>
               ) : null}
               {appliedFilters.topK !== defaultFilters.topK ? (
-                <Badge className="normal-case font-medium flex items-center gap-1 font-mono" variant="outline">
+                <Badge className="normal-case font-medium flex items-center gap-1 font-mono" tone="neutral">
                   Top Files: {appliedFilters.topK}
                   <button
                     aria-label="Remove top files filter"
@@ -367,7 +367,7 @@ export function RiskDashboardPage({
                 </Badge>
               ) : null}
               {appliedFilters.includeTests ? (
-                <Badge className="normal-case font-medium flex items-center gap-1" variant="outline">
+                <Badge className="normal-case font-medium flex items-center gap-1" tone="neutral">
                   Include Tests: Yes
                   <button
                     aria-label="Remove include tests filter"
@@ -384,7 +384,7 @@ export function RiskDashboardPage({
                 onClick={handleResetFilters}
                 size="sm"
                 type="button"
-                variant="outline"
+                variant="secondary"
               >
                 <X className="mr-1 size-3" />
                 Reset filters
@@ -418,7 +418,7 @@ export function RiskDashboardPage({
           <EmptyState
             action={
               hasActiveFilters ? (
-                <Button onClick={handleResetFilters} type="button" variant="outline">
+                <Button onClick={handleResetFilters} type="button" variant="secondary">
                   Clear filters & search
                 </Button>
               ) : undefined
@@ -537,13 +537,13 @@ function RiskSummary({
     const score = file.risk_score;
     const severityBadge =
       score >= 0.75 ? (
-        <Badge variant="danger">Critical Risk</Badge>
+        <Badge tone="danger">Critical Risk</Badge>
       ) : score >= 0.5 ? (
-        <Badge variant="warning">High Risk</Badge>
+        <Badge tone="warning">High Risk</Badge>
       ) : score >= 0.25 ? (
-        <Badge variant="info">Moderate Risk</Badge>
+        <Badge tone="info">Moderate Risk</Badge>
       ) : (
-        <Badge variant="outline">Low Risk</Badge>
+        <Badge tone="neutral">Low Risk</Badge>
       );
 
     const diffVal = (score - averageRisk) * 100;

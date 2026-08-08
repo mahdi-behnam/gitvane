@@ -15,14 +15,14 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { usePathname } from "next/navigation";
-import { useState, useEffect, useRef, type ReactNode } from "react";
+import React, { useState, useEffect, useRef, type ReactNode } from "react";
 import { Logo } from "@/components/app/logo";
 import { ThemeToggle } from "@/components/app/theme-toggle";
 import { UserMenu } from "@/components/auth/user-menu";
 import { Button } from "@/components/ui/button";
 import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { Selector, type SelectorOption } from "@/components/ui/selector";
+import { Selector } from "@/components/ui/selector";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
   useListRepositoriesQuery,
@@ -100,7 +100,7 @@ function NavigationLinks({ onNavigate }: { onNavigate?: () => void }) {
     (state) => state.repositorySelection.activeRepositoryId,
   );
 
-  const renderItem = (item: { href: string; icon: any; label: string }, isSubItem = false) => {
+  const renderItem = (item: { href: string; icon: React.ComponentType<{ className?: string }>; label: string }, isSubItem = false) => {
     const Icon = item.icon;
     let resolvedHref = item.href;
     if (item.href.startsWith("/repositories/current/")) {
@@ -298,18 +298,6 @@ export function AppShell({ children }: { children: ReactNode }) {
     );
   }
 
-  const userName = user?.full_name || "Guest User";
-  const userInitials = userName
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-  let userHue = 0;
-  for (let i = 0; i < userName.length; i++) {
-    userHue = userName.charCodeAt(i) + ((userHue << 5) - userHue);
-  }
-  const avatarHue = Math.abs(userHue % 360);
 
   return (
     <TooltipProvider delayDuration={200}>

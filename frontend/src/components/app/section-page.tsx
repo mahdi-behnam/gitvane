@@ -5,11 +5,11 @@ import { EmptyState } from "@/components/ui/empty-state";
 type SectionPageProps = {
   action?: ReactNode;
   description: string;
-  label: string;
+  label?: string;
   title: string;
 };
 
-export function SectionPage({ action, description, label, title }: SectionPageProps) {
+export function SectionPage({ action, description, title }: SectionPageProps) {
   return (
     <div className="mx-auto max-w-7xl space-y-6">
       <div className="border-b border-border pb-6">

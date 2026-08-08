@@ -22,6 +22,7 @@ export function Avatar({
 
   if (src && !imageError) {
     return (
+      // eslint-disable-next-line @next/next/no-img-element -- Dynamic external avatar URLs with error fallback require native img element
       <img
         alt={alt}
         className={cn(

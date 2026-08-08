@@ -71,15 +71,17 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
+const fallbackToastContext: ToastContextValue = {
+  notify: (message: Omit<ToastMessage, "id">) => {
+    console.warn("useToast notify called outside of ToastProvider:", message);
+  },
+};
+
 export function useToast() {
   const context = useContext(ToastContext);
 
   if (!context) {
-    return {
-      notify: (message: Omit<ToastMessage, "id">) => {
-        console.warn("useToast notify called outside of ToastProvider:", message);
-      },
-    };
+    return fallbackToastContext;
   }
 
   return context;
