@@ -302,7 +302,7 @@ function RecommendationResults({
         {recommendations.map((recommendation, index) => (
           <RecommendationCard
             index={index}
-            key={recommendation.path}
+            key={`${recommendation.path}:${index}`}
             recommendation={recommendation}
             repositoryId={repositoryId}
           />

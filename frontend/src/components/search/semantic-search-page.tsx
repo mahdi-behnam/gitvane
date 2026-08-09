@@ -187,9 +187,9 @@ export function SemanticSearchPage({
             <h2 className="text-sm font-semibold">Results</h2>
             <span className="text-xs text-muted font-medium">{results.length} returned</span>
           </div>
-          {results.map((result) => (
+          {results.map((result, index) => (
             <SearchResultCard
-              key={`${result.path}:${result.start_line}:${result.end_line}`}
+              key={`${result.path}:${result.start_line}:${result.end_line}:${index}`}
               repositoryId={validRepositoryId}
               result={result}
             />
