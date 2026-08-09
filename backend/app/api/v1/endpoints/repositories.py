@@ -1,3 +1,4 @@
+import logging
 from typing import Annotated
 from uuid import UUID
 
@@ -16,6 +17,8 @@ from app.schemas.repository import (
 )
 from app.services.repository_service import RepositoryService
 
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -66,7 +69,12 @@ async def create_repository(
                             ref=body.branch,  # Index the specified branch
                         )
                     except Exception:
-                        pass
+                        logger.exception("Background indexing failed for repo %s", repo.id)
+                        async with SessionLocal() as fail_db:
+                            repo_to_update = await fail_db.get(Repository, repo.id)
+                            if repo_to_update:
+                                repo_to_update.status = "index_failed"
+                                await fail_db.commit()
 
             background_tasks.add_task(run_indexing_task)
 
@@ -146,18 +154,9 @@ async def list_repository_languages(
 ) -> list[str]:
     """Return distinct indexed programming languages for a repository."""
     try:
-        await svc.get_repository_or_raise(db=db, repository_id=repository_id, owner_id=current_user.id)
-        from sqlalchemy import select
-        from app.db.models import CodeFile
-
-        stmt = (
-            select(CodeFile.language)
-            .where(CodeFile.repository_id == repository_id, CodeFile.language != "")
-            .distinct()
-            .order_by(CodeFile.language)
+        return await svc.list_repository_languages(
+            db=db, repository_id=repository_id, owner_id=current_user.id
         )
-        res = await db.execute(stmt)
-        return list(res.scalars().all())
     except RepositoryNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)
@@ -181,7 +180,7 @@ async def search_repository_files(
         from app.db.models import CodeFile
 
         stmt = select(CodeFile).where(CodeFile.repository_id == repository_id)
-        if query.trim() if hasattr(query, "trim") else query.strip():
+        if query.strip():
             search_pattern = f"%{query.strip()}%"
             stmt = stmt.where(CodeFile.path.ilike(search_pattern))
         if language:

@@ -74,6 +74,17 @@ class EvaluationService:
             summary=summary,
         )
 
+    async def get_evaluation_run_repository_id(
+        self, db: AsyncSession, evaluation_run_id: int
+    ) -> UUID:
+        """Get the repository_id for an evaluation run, raising RepositoryNotFoundError if missing."""
+        stmt = select(EvaluationRun.repository_id).where(EvaluationRun.id == evaluation_run_id)
+        result = await db.execute(stmt)
+        repository_id = result.scalar_one_or_none()
+        if repository_id is None:
+            raise RepositoryNotFoundError(f"Evaluation run with id={evaluation_run_id} does not exist")
+        return repository_id
+
     async def execute_evaluation(
         self,
         db: AsyncSession,

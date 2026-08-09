@@ -328,11 +328,8 @@ def test_delete_repository_not_found() -> None:
 def test_list_repository_languages_success() -> None:
     """GET /{id}/languages returns list of distinct languages."""
     mock_svc = MagicMock()
-    mock_svc.get_repository_or_raise = AsyncMock(return_value=_make_repo())
+    mock_svc.list_repository_languages = AsyncMock(return_value=["python", "typescript"])
     mock_db = MagicMock()
-    mock_res = MagicMock()
-    mock_res.scalars.return_value.all.return_value = ["python", "typescript"]
-    mock_db.execute = AsyncMock(return_value=mock_res)
 
     app.dependency_overrides[get_db] = lambda: mock_db
     app.dependency_overrides[get_repository_service] = lambda: mock_svc

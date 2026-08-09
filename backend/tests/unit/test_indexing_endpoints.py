@@ -1,4 +1,4 @@
-﻿from datetime import datetime, timezone
+from datetime import datetime, timezone
 from typing import Any, AsyncGenerator
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import UUID
@@ -100,6 +100,8 @@ def test_index_repository_endpoint_git_error(
     app.dependency_overrides[get_db] = mock_get_db
 
     mock_async_db = MagicMock()
+    mock_async_db.get = AsyncMock(return_value=mock_repo)
+    mock_async_db.commit = AsyncMock()
     mock_session_local_cls.return_value.__aenter__.return_value = mock_async_db
 
     mock_svc_instance = mock_indexing_service_cls.return_value
@@ -166,8 +168,16 @@ def test_index_events_authenticated_valid_token() -> None:
     mock_repo.repo_metadata = {}
     mock_svc.get_repository_or_raise = AsyncMock(return_value=mock_repo)
 
+    mock_db = MagicMock()
+    mock_user = MagicMock()
+    mock_user.id = 1
+    mock_user.is_active = True
+    mock_res = MagicMock()
+    mock_res.scalars.return_value.first.return_value = mock_user
+    mock_db.execute = AsyncMock(return_value=mock_res)
+
     from app.api.deps import get_repository_service
-    app.dependency_overrides[get_db] = _noop_db
+    app.dependency_overrides[get_db] = lambda: mock_db
     app.dependency_overrides[get_repository_service] = lambda: mock_svc
 
     try:

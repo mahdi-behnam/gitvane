@@ -73,6 +73,7 @@ def test_run_evaluation_endpoint_success(
 
 def test_get_evaluation_endpoint_success() -> None:
     mock_svc = MagicMock()
+    mock_svc.get_evaluation_run_repository_id = AsyncMock(return_value=TEST_UUID)
     mock_svc.get_evaluation = AsyncMock(
         return_value=EvaluationStatusResponse(
             evaluation_run_id=1,
@@ -99,6 +100,7 @@ def test_get_evaluation_endpoint_success() -> None:
 
 def test_get_evaluation_report_endpoint_success() -> None:
     mock_svc = MagicMock()
+    mock_svc.get_evaluation_run_repository_id = AsyncMock(return_value=TEST_UUID)
     mock_svc.get_report = AsyncMock(
         return_value=EvaluationReportResponse(
             evaluation_run_id=1,
@@ -123,6 +125,9 @@ def test_get_evaluation_report_endpoint_success() -> None:
 
 def test_evaluation_endpoint_not_found() -> None:
     mock_svc = MagicMock()
+    mock_svc.get_evaluation_run_repository_id = AsyncMock(
+        side_effect=RepositoryNotFoundError("Evaluation run with id=99 does not exist")
+    )
     mock_svc.get_evaluation = AsyncMock(
         side_effect=RepositoryNotFoundError("Evaluation run with id=99 does not exist")
     )

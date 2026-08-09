@@ -1,4 +1,4 @@
-﻿from fastapi import APIRouter, Depends, Response, status
+from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 import redis.asyncio as redis

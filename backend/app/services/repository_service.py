@@ -10,7 +10,7 @@ from app.core.config import settings
 from app.core.errors import RepositoryNotFoundError
 from app.core.security import validate_and_resolve_path
 from app.core.security_utils import encrypt_pat, decrypt_pat
-from app.db.models import Repository
+from app.db.models import CodeFile, Repository
 from app.services.git_service import GitService
 
 
@@ -189,6 +189,20 @@ class RepositoryService:
         await db.delete(repo_obj)
         await db.commit()
         return repo_obj
+
+    async def list_repository_languages(
+        self, db: AsyncSession, repository_id: UUID | str, owner_id: int
+    ) -> List[str]:
+        """Return distinct indexed programming languages for a repository."""
+        await self.get_repository_or_raise(db=db, repository_id=repository_id, owner_id=owner_id)
+        stmt = (
+            select(CodeFile.language)
+            .where(CodeFile.repository_id == repository_id, CodeFile.language != "")
+            .distinct()
+            .order_by(CodeFile.language)
+        )
+        res = await db.execute(stmt)
+        return list(res.scalars().all())
 
     async def list_repository_refs(
         self,

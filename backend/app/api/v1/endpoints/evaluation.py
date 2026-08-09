@@ -1,3 +1,4 @@
+import logging
 from typing import Annotated
 from uuid import UUID
 
@@ -19,6 +20,8 @@ from app.schemas.evaluation import (
 )
 from app.services.evaluation_service import EvaluationService
 from app.services.repository_service import RepositoryService
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -71,7 +74,12 @@ async def run_evaluation(
                     k_values=body.k_values,
                 )
             except Exception:
-                pass
+                logger.exception("Background evaluation task failed for run %s", run.id)
+                async with SessionLocal() as fail_db:
+                    run_to_update = await fail_db.get(EvaluationRun, run.id)
+                    if run_to_update:
+                        run_to_update.status = "failed"
+                        await fail_db.commit()
 
     background_tasks.add_task(async_evaluation_task)
 
@@ -91,11 +99,7 @@ async def get_evaluation_status(
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> EvaluationStatusResponse:
     try:
-        stmt = select(EvaluationRun.repository_id).where(EvaluationRun.id == evaluation_run_id)
-        result = await db.execute(stmt)
-        repository_id = result.scalar_one_or_none()
-        if repository_id is None:
-            raise RepositoryNotFoundError(f"Evaluation run with id={evaluation_run_id} does not exist")
+        repository_id = await svc.get_evaluation_run_repository_id(db, evaluation_run_id)
         
         await repo_svc.get_repository_or_raise(db, repository_id, owner_id=current_user.id)
         return await svc.get_evaluation(db=db, evaluation_run_id=evaluation_run_id)
@@ -115,11 +119,7 @@ async def get_evaluation_report(
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> EvaluationReportResponse:
     try:
-        stmt = select(EvaluationRun.repository_id).where(EvaluationRun.id == evaluation_run_id)
-        result = await db.execute(stmt)
-        repository_id = result.scalar_one_or_none()
-        if repository_id is None:
-            raise RepositoryNotFoundError(f"Evaluation run with id={evaluation_run_id} does not exist")
+        repository_id = await svc.get_evaluation_run_repository_id(db, evaluation_run_id)
         
         await repo_svc.get_repository_or_raise(db, repository_id, owner_id=current_user.id)
         return await svc.get_report(db=db, evaluation_run_id=evaluation_run_id)
@@ -136,11 +136,7 @@ async def get_evaluation_report_markdown(
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> str:
     try:
-        stmt = select(EvaluationRun.repository_id).where(EvaluationRun.id == evaluation_run_id)
-        result = await db.execute(stmt)
-        repository_id = result.scalar_one_or_none()
-        if repository_id is None:
-            raise RepositoryNotFoundError(f"Evaluation run with id={evaluation_run_id} does not exist")
+        repository_id = await svc.get_evaluation_run_repository_id(db, evaluation_run_id)
         
         await repo_svc.get_repository_or_raise(db, repository_id, owner_id=current_user.id)
         report = await svc.get_report(db=db, evaluation_run_id=evaluation_run_id)

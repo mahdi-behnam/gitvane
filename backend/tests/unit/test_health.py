@@ -1,4 +1,4 @@
-﻿from typing import Any, AsyncGenerator
+from typing import Any, AsyncGenerator
 from unittest.mock import AsyncMock, patch
 
 from fastapi.testclient import TestClient

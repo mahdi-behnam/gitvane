@@ -1,4 +1,5 @@
-﻿import asyncio
+import logging
+import asyncio
 import json
 from typing import Annotated
 from uuid import UUID
@@ -13,12 +14,13 @@ from fastapi import (
     status,
 )
 from fastapi.responses import StreamingResponse
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_db, get_indexing_service, get_repository_service
 from app.core.errors import AuthenticationError, RepositoryNotFoundError
 from app.core.security_utils import decode_access_token
-from app.db.models import User
+from app.db.models import Repository, User
 from app.db.session import SessionLocal
 from app.schemas.indexing import (
     IndexRepositoryRequest,
@@ -29,6 +31,8 @@ from app.services.git_service import GitService
 from app.services.indexing_service import IndexingService
 from app.services.progress_tracker import IndexingProgressTracker
 from app.services.repository_service import RepositoryService
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -69,7 +73,12 @@ async def index_repository(
                     ref=body.ref,
                 )
             except Exception:
-                pass
+                logger.exception("Background indexing failed for repo %s", repository_id)
+                async with SessionLocal() as fail_db:
+                    repo_to_update = await fail_db.get(Repository, repository_id)
+                    if repo_to_update:
+                        repo_to_update.status = "index_failed"
+                        await fail_db.commit()
 
     background_tasks.add_task(async_indexing_task)
 
@@ -130,9 +139,14 @@ async def index_events(
     except Exception as exc:
         raise AuthenticationError("Invalid or expired token") from exc
 
+    result = await db.execute(select(User).where(User.id == user_id, User.is_active == True))
+    user = result.scalars().first()
+    if not user:
+        raise AuthenticationError("User not found or inactive")
+
     try:
         repo_obj = await repo_svc.get_repository_or_raise(
-            db, repository_id, owner_id=user_id
+            db, repository_id, owner_id=user.id
         )
     except RepositoryNotFoundError as exc:
         raise HTTPException(
