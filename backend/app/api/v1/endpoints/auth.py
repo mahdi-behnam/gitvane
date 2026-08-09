@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime, timedelta, timezone
 from urllib.parse import urlencode
 
@@ -482,7 +483,7 @@ async def forgot_password(
         }
 
     try:
-        send_reset_email(user.email, reset_url)
+        await asyncio.to_thread(send_reset_email, user.email, reset_url)
         logger.info(f"Dispatched password reset email to {user.email}")
     except Exception as e:
         logger.error(f"Failed to dispatch password reset email: {e}")

@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 import logging
 import os
@@ -30,7 +31,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         logger.info("Running database migrations...")
         try:
             # We run 'alembic upgrade head' as a subprocess inside the virtual env
-            subprocess.run(
+            await asyncio.to_thread(
+                subprocess.run,
                 [sys.executable, "-m", "alembic", "upgrade", "head"],
                 cwd=backend_dir,
                 check=True,
@@ -47,13 +49,12 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             try:
                 from app.embeddings.service import EmbeddingService
                 service = EmbeddingService()
-                service.provider._load_model()
+                await asyncio.to_thread(service.provider._load_model)
                 logger.info("Local embedding model warmed up successfully.")
             except Exception as e:
                 logger.error(f"Failed to warm up local embedding model: {e}")
         # Recovery: Resume indexing for any repositories that were interrupted by server restart
         try:
-            import asyncio
             from sqlalchemy import select
             from app.db.session import SessionLocal
             from app.db.models import Repository
@@ -61,23 +62,33 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             from app.services.indexing_service import IndexingService
 
             async def recover_indexing_jobs():
-                async with SessionLocal() as async_db:
-                    result = await async_db.execute(
+                async with SessionLocal() as initial_db:
+                    result = await initial_db.execute(
                         select(Repository).where(Repository.status == "indexing")
                     )
                     interrupted_repos = result.scalars().all()
-                    for repo in interrupted_repos:
-                        logger.info(f"Recovering interrupted indexing for repository ID={repo.id} ({repo.name})...")
-                        try:
+                    repo_info = [
+                        (repo.id, repo.name, repo.current_ref)
+                        for repo in interrupted_repos
+                    ]
+
+                for repo_id, repo_name, current_ref in repo_info:
+                    logger.info(
+                        f"Recovering interrupted indexing for repository ID={repo_id} ({repo_name})..."
+                    )
+                    try:
+                        async with SessionLocal() as async_db:
                             git_service = GitService()
                             indexing_service = IndexingService(git_service=git_service)
                             await indexing_service.index_repository(
                                 db=async_db,
-                                repository_id=repo.id,
-                                ref=repo.current_ref,
+                                repository_id=repo_id,
+                                ref=current_ref,
                             )
-                        except Exception as recovery_err:
-                            logger.error(f"Failed recovery indexing for repo {repo.id}: {recovery_err}")
+                    except Exception as recovery_err:
+                        logger.error(
+                            f"Failed recovery indexing for repo {repo_id}: {recovery_err}"
+                        )
 
             asyncio.create_task(recover_indexing_jobs())
         except Exception as recovery_setup_err:
@@ -97,7 +108,8 @@ app = FastAPI(
 )
 
 # Apply secure CORS rules. No wildcard origins.
-origins = [
+origins = settings.CORS_ORIGINS or [
+    settings.FRONTEND_BASE_URL,
     "http://localhost:3000",
     "http://127.0.0.1:3000",
 ]

@@ -60,6 +60,7 @@ class Settings(BaseSettings):
 
     FRONTEND_URL: str = "http://localhost:3000/auth/callback"
     FRONTEND_BASE_URL: str = "http://localhost:3000"
+    CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
     PASSWORD_RESET_URL: str = "http://localhost:3000/reset-password"
     JWT_SECRET_KEY: str = ""
     JWT_ALGORITHM: str = "HS256"
