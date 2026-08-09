@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 SPECIAL_CHARACTERS_SET = set("!@#$%^&*()_+-=[]{}|;:,.<>?")
 
@@ -23,7 +23,7 @@ def validate_password_complexity(password: str) -> str:
 
 
 class UserBase(BaseModel):
-    email: str
+    email: EmailStr
 
 
 class UserCreate(UserBase):
@@ -59,7 +59,7 @@ class TokenResponse(BaseModel):
 
 
 class PasswordResetRequest(BaseModel):
-    email: str
+    email: EmailStr
 
 
 class PasswordResetConfirm(BaseModel):

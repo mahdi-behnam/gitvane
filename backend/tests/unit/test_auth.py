@@ -635,3 +635,21 @@ def test_change_password_endpoint_success() -> None:
     finally:
         app.dependency_overrides.clear()
 
+
+
+def test_email_validation_schemas() -> None:
+    import pytest
+    from pydantic import ValidationError
+    from app.schemas.user import UserCreate, PasswordResetRequest
+
+    valid_user = UserCreate(email="valid@example.com", password="SecureP@ssword123", full_name="Valid User")
+    assert valid_user.email == "valid@example.com"
+
+    reset_req = PasswordResetRequest(email="valid@example.com")
+    assert reset_req.email == "valid@example.com"
+
+    with pytest.raises(ValidationError):
+        UserCreate(email="not-an-email", password="SecureP@ssword123", full_name="Invalid User")
+
+    with pytest.raises(ValidationError):
+        PasswordResetRequest(email="invalid-email")

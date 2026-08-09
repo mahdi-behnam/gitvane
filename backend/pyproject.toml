@@ -30,6 +30,7 @@ dependencies = [
     "bcrypt",
     "pyjwt",
     "cryptography",
+    "email-validator>=2.3.0",
 ]
 
 [project.optional-dependencies]
