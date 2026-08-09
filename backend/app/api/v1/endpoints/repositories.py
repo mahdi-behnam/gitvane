@@ -68,8 +68,10 @@ async def create_repository(
                             repository_id=repo.id,
                             ref=body.branch,  # Index the specified branch
                         )
-                    except Exception:
+                    except Exception as exc:
                         logger.exception("Background indexing failed for repo %s", repo.id)
+                        from app.services.progress_tracker import IndexingProgressTracker
+                        IndexingProgressTracker.get_instance().set_failed(repo.id, str(exc))
                         async with SessionLocal() as fail_db:
                             repo_to_update = await fail_db.get(Repository, repo.id)
                             if repo_to_update:

@@ -72,8 +72,9 @@ async def index_repository(
                     repository_id=repository_id,
                     ref=body.ref,
                 )
-            except Exception:
+            except Exception as exc:
                 logger.exception("Background indexing failed for repo %s", repository_id)
+                IndexingProgressTracker.get_instance().set_failed(repository_id, str(exc))
                 async with SessionLocal() as fail_db:
                     repo_to_update = await fail_db.get(Repository, repository_id)
                     if repo_to_update:
@@ -139,7 +140,7 @@ async def index_events(
     except Exception as exc:
         raise AuthenticationError("Invalid or expired token") from exc
 
-    result = await db.execute(select(User).where(User.id == user_id, User.is_active == True))
+    result = await db.execute(select(User).where(User.id == user_id, User.is_active.is_(True)))
     user = result.scalars().first()
     if not user:
         raise AuthenticationError("User not found or inactive")
