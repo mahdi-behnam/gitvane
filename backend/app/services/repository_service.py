@@ -59,8 +59,8 @@ class RepositoryService:
             # Validate user provided path is within workspace
             target_path = validate_and_resolve_path(local_path)
         else:
-            # Default path is in REPOLENS_WORKSPACE/repo_{id}
-            workspace_dir = Path(settings.REPOLENS_WORKSPACE).resolve()
+            # Default path is in GITVANE_WORKSPACE/repo_{id}
+            workspace_dir = Path(settings.GITVANE_WORKSPACE).resolve()
             target_path = workspace_dir / f"repo_{repo_obj.id}"
             validate_and_resolve_path(target_path)  # Security double-check
 

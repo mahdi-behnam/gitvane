@@ -16,7 +16,7 @@ async function mockOverviewApis(page: Page) {
       json: {
         items: [
           {
-            clone_url: "https://github.com/mahdi-behnam/repolens.git",
+            clone_url: "https://github.com/mahdi-behnam/gitvane.git",
             created_at: "2026-06-21T10:00:00Z",
             current_ref: "main",
             default_branch: "main",
@@ -24,7 +24,7 @@ async function mockOverviewApis(page: Page) {
             indexed_at: "2026-06-21T10:30:00Z",
             last_indexed_commit: "abc123",
             local_path: null,
-            name: "repolens",
+            name: "gitvane",
             repo_metadata: null,
             status: "indexed",
             updated_at: "2026-06-21T10:30:00Z",
@@ -80,7 +80,7 @@ test.describe("overview smoke", () => {
     await page.goto("/");
 
     await expect(
-      page.getByRole("heading", { name: "RepoLens dashboard" }),
+      page.getByRole("heading", { name: "GitVane dashboard" }),
     ).toBeVisible();
     await expect(page.getByText("Recent repositories")).toBeVisible();
     await expect(page.getByText("Risk summary")).toBeVisible();
@@ -113,7 +113,7 @@ test.describe("overview smoke", () => {
     await page.goto("/");
 
     await page.getByRole("button", { name: "Open navigation" }).click();
-    const dialog = page.getByRole("dialog", { name: "RepoLens" });
+    const dialog = page.getByRole("dialog", { name: "GitVane" });
     await expect(dialog).toBeVisible();
     await expect(dialog.getByRole("link", { name: "Repositories" })).toBeVisible();
     await page.keyboard.press("Escape");

@@ -3,7 +3,7 @@
 import React, { useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAppDispatch } from "@/store/hooks";
-import { useLazyMeQuery } from "@/store/api/repolensApi";
+import { useLazyMeQuery } from "@/store/api/gitvaneApi";
 import { setCredentials } from "@/store/slices/authSlice";
 
 function AuthCallbackHandler() {
@@ -43,7 +43,7 @@ function AuthCallbackHandler() {
         );
 
         // Set cookie
-        document.cookie = "repolens_logged_in=true; path=/; max-age=31536000; SameSite=Lax";
+        document.cookie = "gitvane_logged_in=true; path=/; max-age=31536000; SameSite=Lax";
 
         // Redirect
         router.replace("/repositories");

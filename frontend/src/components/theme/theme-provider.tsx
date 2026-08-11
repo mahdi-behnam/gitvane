@@ -18,7 +18,7 @@ type ThemeContextValue = {
   toggleMode: () => void;
 };
 
-const storageKey = "repolens-theme";
+const storageKey = "gitvane-theme";
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 function getSystemMode() {

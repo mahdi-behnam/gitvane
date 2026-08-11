@@ -10,7 +10,7 @@ from sqlalchemy.future import select
 
 from app.api.deps import get_db, get_current_user
 from app.core.config import settings
-from app.core.errors import AuthenticationError, RepoLensError
+from app.core.errors import AuthenticationError, GitVaneError
 from app.core.security_utils import (
     hash_password,
     verify_password,
@@ -37,11 +37,11 @@ from typing import Any
 
 def send_reset_email(to_email: str, reset_url: str) -> None:
     msg = EmailMessage()
-    msg["Subject"] = "Password Reset Request - RepoLens"
+    msg["Subject"] = "Password Reset Request - GitVane"
     msg["From"] = settings.EMAILS_FROM_EMAIL
     msg["To"] = to_email
     msg.set_content(
-        f"Hello,\n\nYou requested a password reset for your RepoLens account.\n"
+        f"Hello,\n\nYou requested a password reset for your GitVane account.\n"
         f"Please click the following link to reset your password:\n\n{reset_url}\n\n"
         f"If you did not request this, please ignore this email.\n"
     )
@@ -70,7 +70,7 @@ async def signup(
     # Check for unique email
     result = await db.execute(select(User).where(User.email == user_in.email))
     if result.scalars().first():
-        raise RepoLensError("Email already registered")
+        raise GitVaneError("Email already registered")
 
     # Create user
     hashed = hash_password(user_in.password)
@@ -109,7 +109,7 @@ async def signup(
         path="/",
     )
     response.set_cookie(
-        key="repolens_logged_in",
+        key="gitvane_logged_in",
         value="true",
         httponly=False,
         samesite="lax",
@@ -166,7 +166,7 @@ async def login(
         path="/",
     )
     response.set_cookie(
-        key="repolens_logged_in",
+        key="gitvane_logged_in",
         value="true",
         httponly=False,
         samesite="lax",
@@ -237,7 +237,7 @@ async def refresh(
         path="/",
     )
     response.set_cookie(
-        key="repolens_logged_in",
+        key="gitvane_logged_in",
         value="true",
         httponly=False,
         samesite="lax",
@@ -274,7 +274,7 @@ async def logout(
         secure=secure,
     )
     response.delete_cookie(
-        key="repolens_logged_in",
+        key="gitvane_logged_in",
         path="/",
         samesite="lax",
         secure=secure,
@@ -441,7 +441,7 @@ async def oauth2_callback_google(
         path="/",
     )
     redirect_res.set_cookie(
-        key="repolens_logged_in",
+        key="gitvane_logged_in",
         value="true",
         httponly=False,
         samesite="lax",
@@ -473,7 +473,7 @@ async def forgot_password(
     reset_url = f"{settings.PASSWORD_RESET_URL}?token={token}"
 
     import logging
-    logger = logging.getLogger("repolens")
+    logger = logging.getLogger("gitvane")
 
     if (settings.ENVIRONMENT in ("local", "development")) and settings.DEBUG:
         logger.info(f"[DEV MODE] Password reset URL for {user.email}: {reset_url}")

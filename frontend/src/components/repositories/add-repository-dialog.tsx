@@ -4,7 +4,7 @@ import { Plus } from "lucide-react";
 import { FormEvent, useId, useState } from "react";
 import { normalizeApiError } from "@/lib/api/errors";
 import type { RepositoryCreate } from "@/lib/api/types";
-import { useCreateRepositoryMutation } from "@/store/api/repolensApi";
+import { useCreateRepositoryMutation } from "@/store/api/gitvaneApi";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";

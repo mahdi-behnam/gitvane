@@ -138,7 +138,7 @@ def _commit_all(repo: git.Repo, message: str) -> None:
 def _init_repo(path: Path) -> git.Repo:
     repo = git.Repo.init(path)
     with repo.config_writer() as config:
-        config.set_value("user", "name", "RepoLens Tests")
+        config.set_value("user", "name", "GitVane Tests")
         config.set_value("user", "email", "tests@example.com")
     return repo
 
@@ -148,7 +148,7 @@ async def _index_and_analyze(
     changed_path: str,
     monkeypatch: pytest.MonkeyPatch,
 ) -> tuple[_IntegrationDb, Any]:
-    monkeypatch.setattr(settings, "REPOLENS_WORKSPACE", str(repo_path.parent))
+    monkeypatch.setattr(settings, "GITVANE_WORKSPACE", str(repo_path.parent))
     repo_model = Repository(
         id=TEST_UUID,
         name=repo_path.name,

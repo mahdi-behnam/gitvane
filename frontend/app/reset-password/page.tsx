@@ -4,7 +4,7 @@ import React, { useState, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { ArrowLeft, CheckCircle2, ShieldCheck } from "lucide-react";
-import { useResetPasswordMutation } from "@/store/api/repolensApi";
+import { useResetPasswordMutation } from "@/store/api/gitvaneApi";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Notice } from "@/components/ui/notice";

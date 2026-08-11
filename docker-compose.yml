@@ -1,24 +1,24 @@
 services:
   postgres:
     image: pgvector/pgvector:pg16
-    container_name: repolens-postgres
+    container_name: gitvane-postgres
     environment:
-      POSTGRES_USER: repolens
-      POSTGRES_PASSWORD: repolens
-      POSTGRES_DB: repolens
+      POSTGRES_USER: gitvane
+      POSTGRES_PASSWORD: gitvane
+      POSTGRES_DB: gitvane
     ports:
       - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U repolens"]
+      test: ["CMD-SHELL", "pg_isready -U gitvane"]
       interval: 5s
       timeout: 5s
       retries: 5
 
   redis:
     image: redis:7-alpine
-    container_name: repolens-redis
+    container_name: gitvane-redis
     ports:
       - "6379:6379"
     volumes:
@@ -33,15 +33,15 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: repolens-backend
+    container_name: gitvane-backend
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=postgresql+asyncpg://repolens:repolens@postgres:5432/repolens
-      - SYNC_DATABASE_URL=postgresql+psycopg://repolens:repolens@postgres:5432/repolens
+      - DATABASE_URL=postgresql+asyncpg://gitvane:gitvane@postgres:5432/gitvane
+      - SYNC_DATABASE_URL=postgresql+psycopg://gitvane:gitvane@postgres:5432/gitvane
       - REDIS_URL=redis://redis:6379/0
-      - REPOLENS_WORKSPACE=/workspace/repos
-      - APP_NAME=RepoLens
+      - GITVANE_WORKSPACE=/workspace/repos
+      - APP_NAME=GitVane
       - ENVIRONMENT=docker
       - DEBUG=true
     volumes:
@@ -60,7 +60,7 @@ services:
       dockerfile: Dockerfile
       args:
         NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8000/api/v1}
-    container_name: repolens-frontend
+    container_name: gitvane-frontend
     ports:
       - "3000:3000"
     environment:

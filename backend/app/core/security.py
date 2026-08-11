@@ -11,10 +11,10 @@ def validate_and_resolve_path(
     """
     Resolve user_path fully and verify it is strictly inside the sandbox directory.
 
-    Default sandbox directory is settings.REPOLENS_WORKSPACE.
+    Default sandbox directory is settings.GITVANE_WORKSPACE.
     """
     if sandbox_dir is None:
-        sandbox_dir = settings.REPOLENS_WORKSPACE
+        sandbox_dir = settings.GITVANE_WORKSPACE
 
     resolved_sandbox = Path(sandbox_dir).resolve()
     resolved_user = Path(user_path).resolve()

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useSearchRepositoryFilesQuery } from "@/store/api/repolensApi";
+import { useSearchRepositoryFilesQuery } from "@/store/api/gitvaneApi";
 import { Selector, SelectorOption, SelectorProps } from "./selector";
 
 export type FileSelectorProps = Omit<SelectorProps, "options"> & {

@@ -28,11 +28,12 @@ import type { EvaluationMethod, EvaluationStatusResponse } from "@/lib/api/types
 import { formatPercent, formatSnakeCase } from "@/lib/format";
 import {
   useGetEvaluationReportMarkdownQuery,
+  useGetEvaluationReportQuery,
   useGetEvaluationStatusQuery,
   useGetRepositoryQuery,
   useListEvaluationRunsQuery,
   useRunEvaluationMutation,
-} from "@/store/api/repolensApi";
+} from "@/store/api/gitvaneApi";
 import { useAppDispatch } from "@/store/hooks";
 import { setActiveRepositoryId } from "@/store/slices/repositorySelectionSlice";
 

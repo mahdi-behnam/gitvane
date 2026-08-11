@@ -92,7 +92,7 @@ def repo_workspace(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     workspace = tmp_path / "workspace"
     repo_path = workspace / f"repo_{TEST_UUID}"
     repo_path.mkdir(parents=True)
-    monkeypatch.setattr(settings, "REPOLENS_WORKSPACE", str(workspace))
+    monkeypatch.setattr(settings, "GITVANE_WORKSPACE", str(workspace))
     return repo_path
 
 

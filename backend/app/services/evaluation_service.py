@@ -26,7 +26,7 @@ from app.services.semantic_search_service import SemanticSearchService
 
 
 class EvaluationService:
-    """Run historical commit evaluation against indexed RepoLens evidence."""
+    """Run historical commit evaluation against indexed GitVane evidence."""
 
     def __init__(
         self,

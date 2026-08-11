@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAppSelector } from "@/store/hooks";
-import { useListRepositoriesQuery } from "@/store/api/repolensApi";
+import { useListRepositoriesQuery } from "@/store/api/gitvaneApi";
 
 export default function CurrentRepositoryIndexPage() {
   const router = useRouter();

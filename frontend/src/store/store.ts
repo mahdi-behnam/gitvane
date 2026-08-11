@@ -1,5 +1,5 @@
 import { configureStore } from "@reduxjs/toolkit";
-import { repolensApi } from "@/store/api/repolensApi";
+import { gitvaneApi } from "@/store/api/gitvaneApi";
 import { appPreferencesReducer } from "@/store/slices/appPreferencesSlice";
 import { repositorySelectionReducer } from "@/store/slices/repositorySelectionSlice";
 import { authReducer } from "@/store/slices/authSlice";
@@ -9,11 +9,11 @@ export function makeStore() {
     reducer: {
       appPreferences: appPreferencesReducer,
       auth: authReducer,
-      [repolensApi.reducerPath]: repolensApi.reducer,
+      [gitvaneApi.reducerPath]: gitvaneApi.reducer,
       repositorySelection: repositorySelectionReducer,
     },
     middleware: (getDefaultMiddleware) =>
-      getDefaultMiddleware().concat(repolensApi.middleware),
+      getDefaultMiddleware().concat(gitvaneApi.middleware),
   });
 }
 

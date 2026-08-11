@@ -4,8 +4,8 @@ from fastapi.responses import JSONResponse
 from app.core.logging import logger
 
 
-class RepoLensError(Exception):
-    """Base exception for all RepoLens errors"""
+class GitVaneError(Exception):
+    """Base exception for all GitVane errors"""
 
     message: str = "An unexpected error occurred"
 
@@ -15,49 +15,49 @@ class RepoLensError(Exception):
         super().__init__(self.message)
 
 
-class RepositoryNotFoundError(RepoLensError):
+class RepositoryNotFoundError(GitVaneError):
     message = "Repository not found"
 
 
-class InvalidPathError(RepoLensError):
+class InvalidPathError(GitVaneError):
     message = "Invalid or insecure path path traversal detected"
 
 
-class EmbeddingDimensionMismatchError(RepoLensError):
+class EmbeddingDimensionMismatchError(GitVaneError):
     message = "Embedding dimensions mismatch"
 
 
-class ParserError(RepoLensError):
+class ParserError(GitVaneError):
     message = "Failed to parse source file"
 
 
-class GitOperationError(RepoLensError):
+class GitOperationError(GitVaneError):
     message = "Git operation failed"
 
 
-class PrivateRepositoryNotSupportedError(RepoLensError):
+class PrivateRepositoryNotSupportedError(GitVaneError):
     message = "Private repositories are not yet supported. Please use a public repository URL."
 
 
-class AuthenticationError(RepoLensError):
+class AuthenticationError(GitVaneError):
     message = "Invalid or expired credentials"
 
 
-class AuthorizationError(RepoLensError):
+class AuthorizationError(GitVaneError):
     message = "Access denied: insufficient permissions"
 
 
-class CSRFError(RepoLensError):
+class CSRFError(GitVaneError):
     message = "CSRF token validation failed"
 
 
 def setup_error_handlers(app: FastAPI) -> None:
-    @app.exception_handler(RepoLensError)
-    async def repolens_exception_handler(
-        request: Request, exc: RepoLensError
+    @app.exception_handler(GitVaneError)
+    async def gitvane_exception_handler(
+        request: Request, exc: GitVaneError
     ) -> JSONResponse:
         logger.error(
-            f"RepoLens error occurred during request {request.url.path}: {exc.message}",
+            f"GitVane error occurred during request {request.url.path}: {exc.message}",
             exc_info=True,
         )
         status_code = status.HTTP_400_BAD_REQUEST

@@ -27,7 +27,7 @@ import {
   useGetIndexStatusQuery,
   useGetRepositoryRiskQuery,
   useListRepositoriesQuery,
-} from "@/store/api/repolensApi";
+} from "@/store/api/gitvaneApi";
 
 export function OverviewDashboard() {
   const repositories = useListRepositoriesQuery();
@@ -59,11 +59,10 @@ export function OverviewDashboard() {
       <div className="flex flex-col gap-5 border-b border-border/70 pb-6 md:flex-row md:items-end md:justify-between">
         <div>
           <h1 className="mt-3 text-3xl font-extrabold tracking-tight md:text-4xl text-balance">
-            RepoLens Dashboard
+            GitVane Dashboard
           </h1>
           <p className="mt-2.5 max-w-3xl text-sm leading-relaxed text-muted font-medium text-balance">
-            Monitor repository indexing states, inspect high-risk modules, and quickly
-            launch code architecture analysis workflows.
+            Just as a weather vane shows which way the wind blows, GitVane shows developers which way their Git changes and dependency impacts propagate.
           </p>
         </div>
         <Button asChild variant="primary">
@@ -222,7 +221,7 @@ function buildQuickActions(repositoryScopedHref: string) {
 }
 
 const OVERVIEW_METRIC_DESCRIPTIONS: Record<string, string> = {
-  Repositories: "Total number of codebases registered in your RepoLens account.",
+  Repositories: "Total number of codebases registered in your GitVane account.",
   Indexed: "Number of repositories with fully processed architectural index databases.",
   Files: "Total source code files parsed across indexed repositories.",
   "Last indexed": "Timestamp of the most recently processed repository indexing run.",

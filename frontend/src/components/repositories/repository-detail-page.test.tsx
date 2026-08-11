@@ -29,7 +29,7 @@ function mockRouter(push = vi.fn()) {
 }
 
 const repository: Repository = {
-  clone_url: "https://github.com/mahdi-behnam/repolens.git",
+  clone_url: "https://github.com/mahdi-behnam/gitvane.git",
   created_at: "2026-06-21T10:00:00Z",
   current_ref: "main",
   default_branch: "main",
@@ -37,7 +37,7 @@ const repository: Repository = {
   indexed_at: "2026-06-21T10:30:00Z",
   last_indexed_commit: "abc123",
   local_path: null,
-  name: "repolens",
+  name: "gitvane",
   repo_metadata: null,
   status: "indexed",
   updated_at: "2026-06-21T10:30:00Z",
@@ -92,7 +92,7 @@ describe("RepositoryDetailPage", () => {
     renderWithProviders(<RepositoryDetailPage repositoryId="77777777-7777-7777-7777-777777777777" />);
 
     expect(
-      await screen.findByRole("heading", { name: "repolens" }),
+      await screen.findByRole("heading", { name: "gitvane" }),
     ).toBeInTheDocument();
     expect(screen.getByText("abc123")).toBeInTheDocument();
     expect(screen.getByText("Files")).toBeInTheDocument();
@@ -112,7 +112,7 @@ describe("RepositoryDetailPage", () => {
 
     renderWithProviders(<RepositoryDetailPage repositoryId="77777777-7777-7777-7777-777777777777" />);
 
-    await screen.findByRole("heading", { name: "repolens" });
+    await screen.findByRole("heading", { name: "gitvane" });
     fireEvent.click(screen.getByRole("combobox", { name: "Ref" }));
     fireEvent.change(screen.getByPlaceholderText("Type branch, tag, or commit..."), {
       target: { value: "development" },
@@ -139,10 +139,10 @@ describe("RepositoryDetailPage", () => {
 
     renderWithProviders(<RepositoryDetailPage repositoryId="77777777-7777-7777-7777-777777777777" />);
 
-    await screen.findByRole("heading", { name: "repolens" });
+    await screen.findByRole("heading", { name: "gitvane" });
     fireEvent.click(screen.getByRole("button", { name: "Delete" }));
-    const confirmInput = screen.getByPlaceholderText("repolens");
-    fireEvent.change(confirmInput, { target: { value: "repolens" } });
+    const confirmInput = screen.getByPlaceholderText("gitvane");
+    fireEvent.change(confirmInput, { target: { value: "gitvane" } });
     fireEvent.click(
       within(screen.getByRole("dialog", { name: "Delete repository" })).getByRole(
         "button",

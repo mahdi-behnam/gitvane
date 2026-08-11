@@ -19,4 +19,4 @@ def setup_logging() -> None:
     logging.getLogger("asyncio").setLevel(logging.WARNING)
 
 
-logger = logging.getLogger("repolens")
+logger = logging.getLogger("gitvane")

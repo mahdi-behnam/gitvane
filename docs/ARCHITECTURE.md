@@ -1,6 +1,6 @@
 # Architecture
 
-RepoLens is a backend-first system for explainable change impact analysis. It
+GitVane is a backend-first system for explainable change impact analysis. It
 uses deterministic repository analysis as the source of truth, with optional LLM
 summaries layered on top.
 
@@ -43,7 +43,7 @@ flowchart TD
 ## Data Flow
 
 1. A repository is registered from a clone URL or a local path inside
-   `REPOLENS_WORKSPACE`.
+   `GITVANE_WORKSPACE`.
 2. GitPython lists tracked files and recent commits.
 3. File filters remove ignored, generated, binary, oversized, and unsupported
    files.
@@ -81,7 +81,7 @@ These are the only sources used for impact scores.
 
 The LLM layer receives structured JSON evidence after predictions are computed.
 Its prompt explicitly forbids inventing files, tests, dependencies, or certainty.
-If NVIDIA NIM is disabled, missing a key, or unavailable, RepoLens returns a
+If NVIDIA NIM is disabled, missing a key, or unavailable, GitVane returns a
 deterministic fallback explanation.
 
 LLM output is never fed back into scoring or ranking.
@@ -106,9 +106,9 @@ Embeddings use a pgvector column with the configured dimension.
 
 ## Security Boundaries
 
-- Repository paths must stay inside `REPOLENS_WORKSPACE`.
-- RepoLens does not execute repository code.
-- RepoLens recommends tests but does not run them.
+- Repository paths must stay inside `GITVANE_WORKSPACE`.
+- GitVane does not execute repository code.
+- GitVane recommends tests but does not run them.
 - Secrets are read from environment variables and are not logged intentionally.
 - Parser failures are captured as metadata instead of crashing the whole index.
 

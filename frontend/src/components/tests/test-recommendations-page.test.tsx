@@ -8,7 +8,7 @@ import { renderWithProviders } from "@/test/render";
 import { server } from "@/test/server";
 
 const repository: Repository = {
-  clone_url: "https://github.com/mahdi-behnam/repolens.git",
+  clone_url: "https://github.com/mahdi-behnam/gitvane.git",
   created_at: "2026-06-21T10:00:00Z",
   current_ref: "main",
   default_branch: "main",
@@ -16,7 +16,7 @@ const repository: Repository = {
   indexed_at: "2026-06-21T10:30:00Z",
   last_indexed_commit: "abc123",
   local_path: null,
-  name: "repolens",
+  name: "gitvane",
   repo_metadata: null,
   status: "indexed",
   updated_at: "2026-06-21T10:30:00Z",

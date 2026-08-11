@@ -29,7 +29,7 @@ import {
   useRefreshMutation,
   useLazyMeQuery,
   useLogoutMutation,
-} from "@/store/api/repolensApi";
+} from "@/store/api/gitvaneApi";
 import { setCredentials, clearCredentials } from "@/store/slices/authSlice";
 import { setActiveRepositoryId } from "@/store/slices/repositorySelectionSlice";
 import { cn } from "@/lib/utils";
@@ -214,7 +214,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         } catch (error) {
           console.error("Silent refresh failed:", error);
           dispatch(clearCredentials());
-          document.cookie = "repolens_logged_in=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+          document.cookie = "gitvane_logged_in=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
           router.replace("/login");
         } finally {
           setIsInitializing(false);
@@ -264,7 +264,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       console.error("Logout failed on server:", err);
     } finally {
       dispatch(clearCredentials());
-      document.cookie = "repolens_logged_in=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+      document.cookie = "gitvane_logged_in=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
       router.replace("/login");
     }
   };
@@ -331,7 +331,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                           <Menu aria-hidden="true" className="size-4" />
                         </Button>
                       </DrawerTrigger>
-                      <DrawerContent title="RepoLens">
+                      <DrawerContent title="GitVane">
                         <div className="flex h-[calc(100%-40px)] flex-col justify-between">
                           <div>
                             <Logo />

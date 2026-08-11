@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAppDispatch } from "@/store/hooks";
-import { useLoginMutation, useLazyMeQuery } from "@/store/api/repolensApi";
+import { useLoginMutation, useLazyMeQuery } from "@/store/api/gitvaneApi";
 import { setCredentials } from "@/store/slices/authSlice";
 import { apiBaseUrl } from "@/lib/api/client";
 import { Input } from "@/components/ui/input";
@@ -54,7 +54,7 @@ export default function LoginPage() {
         })
       );
 
-      document.cookie = "repolens_logged_in=true; path=/; max-age=31536000; SameSite=Lax";
+      document.cookie = "gitvane_logged_in=true; path=/; max-age=31536000; SameSite=Lax";
       router.push("/repositories");
     } catch (err: unknown) {
       console.error("Login failed:", err);
@@ -79,7 +79,7 @@ export default function LoginPage() {
           <div>
             <Logo />
             <p className="mt-8 text-sm leading-relaxed text-muted font-medium max-w-sm text-balance">
-              RepoLens is an advanced development tool that helps you analyze, query, and understand your repository&apos;s code structures, dependencies, risks, and test recommendations.
+              GitVane is an advanced development tool that helps you analyze, query, and understand your repository&apos;s code structures, dependencies, risks, and test recommendations.
             </p>
           </div>
           

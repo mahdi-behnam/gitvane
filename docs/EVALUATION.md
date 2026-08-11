@@ -1,6 +1,6 @@
 # Historical Evaluation
 
-RepoLens includes an evaluation harness to measure whether its prediction
+GitVane includes an evaluation harness to measure whether its prediction
 methods can recover files that actually changed together in historical commits.
 
 The goal is not to manufacture high scores. Low scores are useful because they
@@ -22,7 +22,7 @@ likely affected?"
 
 ## Compared Methods
 
-RepoLens compares four methods:
+GitVane compares four methods:
 
 - `dependency_only`: reverse dependency relationships from indexed imports.
 - `semantic_only`: vector search over indexed chunks.
@@ -36,7 +36,7 @@ comparison.
 
 ## Metrics
 
-RepoLens computes:
+GitVane computes:
 
 - `precision_at_k`
 - `recall_at_k`

@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Notice } from "@/components/ui/notice";
 import { useToast } from "@/components/ui/toast";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { useMeQuery, useUpdateMeMutation } from "@/store/api/repolensApi";
+import { useMeQuery, useUpdateMeMutation } from "@/store/api/gitvaneApi";
 import { setUser } from "@/store/slices/authSlice";
 import { PasswordStrengthIndicator, isPasswordValid } from "@/components/auth/password-strength";
 import {

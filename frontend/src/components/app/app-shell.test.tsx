@@ -42,8 +42,8 @@ describe("AppShell", () => {
       </ThemeProvider>,
     );
 
-    expect(await screen.findByText("Repo")).toBeInTheDocument();
-    expect(screen.getByText("Lens")).toBeInTheDocument();
+    expect(await screen.findByText("Git")).toBeInTheDocument();
+    expect(screen.getByText("Vane")).toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: /overview/i }).length).toBeGreaterThan(
       0,
     );

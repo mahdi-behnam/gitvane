@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, CheckCircle2, KeyRound, Link as LinkIcon } from "lucide-react";
-import { useForgotPasswordMutation } from "@/store/api/repolensApi";
+import { useForgotPasswordMutation } from "@/store/api/gitvaneApi";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Notice } from "@/components/ui/notice";

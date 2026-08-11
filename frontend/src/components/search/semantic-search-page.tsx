@@ -17,7 +17,7 @@ import { formatPercent } from "@/lib/format";
 import {
   useGetRepositoryQuery,
   useSemanticSearchMutation,
-} from "@/store/api/repolensApi";
+} from "@/store/api/gitvaneApi";
 import { useAppDispatch } from "@/store/hooks";
 import { setActiveRepositoryId } from "@/store/slices/repositorySelectionSlice";
 

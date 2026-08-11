@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAppDispatch } from "@/store/hooks";
-import { useSignupMutation, useLazyMeQuery } from "@/store/api/repolensApi";
+import { useSignupMutation, useLazyMeQuery } from "@/store/api/gitvaneApi";
 import { setCredentials } from "@/store/slices/authSlice";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -73,7 +73,7 @@ export default function SignupPage() {
         })
       );
 
-      document.cookie = "repolens_logged_in=true; path=/; max-age=31536000; SameSite=Lax";
+      document.cookie = "gitvane_logged_in=true; path=/; max-age=31536000; SameSite=Lax";
       router.push("/repositories");
     } catch (err: unknown) {
       console.error("Signup failed:", err);
@@ -116,7 +116,7 @@ export default function SignupPage() {
         <div className="flex flex-col justify-between rounded-lg border border-border bg-panel p-8">
           <div>
             <h2 className="text-xl font-semibold tracking-tight text-foreground">Create Account</h2>
-            <p className="mt-1 text-xs text-muted">Get started by creating your RepoLens profile</p>
+            <p className="mt-1 text-xs text-muted">Get started by creating your GitVane profile</p>
 
             <form onSubmit={handleSignup} className="mt-6 space-y-4">
               {errorMsg && (

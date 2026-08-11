@@ -46,7 +46,7 @@ import {
   useGetRepositoryLanguagesQuery,
   useGetRepositoryQuery,
   useGetRepositorySubgraphQuery,
-} from "@/store/api/repolensApi";
+} from "@/store/api/gitvaneApi";
 import { useAppDispatch } from "@/store/hooks";
 import { setActiveRepositoryId } from "@/store/slices/repositorySelectionSlice";
 import { DependencyTreeView } from "./dependency-tree-view";

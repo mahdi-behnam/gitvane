@@ -19,12 +19,12 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "RepoLens",
-  description: "Trace change before it spreads.",
+  title: "GitVane",
+  description: "Just as a weather vane shows which way the wind blows, GitVane shows developers which way their Git changes and dependency impacts propagate.",
   icons: {
     icon: [
-      { url: "/repolens-light-logo.png", media: "(prefers-color-scheme: light)" },
-      { url: "/repolens-dark-logo.png", media: "(prefers-color-scheme: dark)" },
+      { url: "/gitvane-light-logo.png", media: "(prefers-color-scheme: light)" },
+      { url: "/gitvane-dark-logo.png", media: "(prefers-color-scheme: dark)" },
     ],
   },
 };

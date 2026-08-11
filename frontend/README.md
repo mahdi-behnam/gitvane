@@ -1,6 +1,6 @@
-# RepoLens Frontend
+# GitVane Frontend
 
-RepoLens frontend is a Next.js App Router application for the existing
+GitVane frontend is a Next.js App Router application for the existing
 FastAPI backend.
 
 It includes the repository overview, repository management and indexing,

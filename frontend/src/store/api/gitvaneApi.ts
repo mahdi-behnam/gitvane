@@ -152,7 +152,7 @@ const baseQueryWithReauth: typeof rawBaseQuery = async (args, api, extraOptions)
             api.dispatch(clearCredentials());
             if (typeof document !== "undefined") {
               document.cookie =
-                "repolens_logged_in=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+                "gitvane_logged_in=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
             }
             return null;
           }
@@ -175,7 +175,7 @@ const baseQueryWithReauth: typeof rawBaseQuery = async (args, api, extraOptions)
   return result;
 };
 
-export const repolensApi = createApi({
+export const gitvaneApi = createApi({
   baseQuery: baseQueryWithReauth,
   endpoints: (builder) => ({
     createRepository: builder.mutation<Repository, RepositoryCreate>({
@@ -430,7 +430,7 @@ export const repolensApi = createApi({
       providesTags: ["Impact"],
     }),
   }),
-  reducerPath: "repolensApi",
+  reducerPath: "gitvaneApi",
   tagTypes: ["Evaluation", "Graph", "Impact", "IndexStatus", "Repository", "Risk", "User"],
 });
 
@@ -470,5 +470,5 @@ export const {
   useLazySearchRepositoryRefsQuery,
   useListEvaluationRunsQuery,
   useListImpactRunsQuery,
-} = repolensApi;
+} = gitvaneApi;
 

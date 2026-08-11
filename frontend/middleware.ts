@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 export function middleware(request: NextRequest) {
-  const isLoggedInCookie = request.cookies.get("repolens_logged_in");
+  const isLoggedInCookie = request.cookies.get("gitvane_logged_in");
   const isLoggedIn = isLoggedInCookie?.value === "true";
   const { pathname } = request.nextUrl;
 

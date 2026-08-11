@@ -22,7 +22,7 @@ describe("OverviewDashboard", () => {
     const response: RepositoryList = {
       items: [
         {
-          clone_url: "https://github.com/mahdi-behnam/repolens.git",
+          clone_url: "https://github.com/mahdi-behnam/gitvane.git",
           created_at: "2026-06-21T10:00:00Z",
           current_ref: "main",
           default_branch: "main",
@@ -30,7 +30,7 @@ describe("OverviewDashboard", () => {
           indexed_at: "2026-06-21T10:30:00Z",
           last_indexed_commit: "abc123",
           local_path: null,
-          name: "repolens",
+          name: "gitvane",
           repo_metadata: null,
           status: "indexed",
           updated_at: "2026-06-21T10:30:00Z",
@@ -78,7 +78,7 @@ describe("OverviewDashboard", () => {
     renderWithProviders(<OverviewDashboard />);
 
     expect(await screen.findByText("Recent repositories")).toBeInTheDocument();
-    expect(screen.getByText("repolens")).toBeInTheDocument();
+    expect(screen.getByText("gitvane")).toBeInTheDocument();
     await waitFor(() => expect(screen.getAllByText("18").length).toBeGreaterThan(0));
     expect(screen.getByText("Review risk")).toBeInTheDocument();
     expect(screen.getAllByText("Open evaluation").length).toBeGreaterThan(0);

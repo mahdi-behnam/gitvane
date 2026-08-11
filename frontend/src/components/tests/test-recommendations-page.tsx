@@ -20,7 +20,7 @@ import { formatPercent } from "@/lib/format";
 import {
   useGetRepositoryQuery,
   useRecommendTestsMutation,
-} from "@/store/api/repolensApi";
+} from "@/store/api/gitvaneApi";
 import { useAppDispatch } from "@/store/hooks";
 import { setActiveRepositoryId } from "@/store/slices/repositorySelectionSlice";
 
@@ -256,7 +256,7 @@ export function TestRecommendationsPage({
         />
       ) : (
         <EmptyState
-          description="Enter changed files to ask RepoLens which tests are likely relevant."
+          description="Enter changed files to ask GitVane which tests are likely relevant."
           icon={<ClipboardList aria-hidden="true" className="size-5" />}
           title="Ready to recommend tests"
         />

@@ -2,7 +2,7 @@ import json
 from typing import Any
 
 SYSTEM_EXPLANATION_PROMPT = """
-You are RepoLens' explanation layer.
+You are GitVane's explanation layer.
 Explain change impact predictions using only the structured evidence provided.
 Do not invent dependencies, changed symbols, files, tests, or certainty.
 Never change scores or introduce new rankings.
@@ -18,7 +18,7 @@ def build_impact_explanation_messages(evidence: dict[str, Any]) -> list[dict[str
         {
             "role": "user",
             "content": (
-                "Summarize this RepoLens impact analysis evidence.\n\n"
+                "Summarize this GitVane impact analysis evidence.\n\n"
                 "Return:\n"
                 "1. Short summary.\n"
                 "2. Top impacted files with reasons.\n"

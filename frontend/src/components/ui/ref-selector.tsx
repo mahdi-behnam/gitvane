@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useSearchRepositoryRefsQuery } from "@/store/api/repolensApi";
+import { useSearchRepositoryRefsQuery } from "@/store/api/gitvaneApi";
 import { Selector, SelectorOption, SelectorProps } from "./selector";
 
 export type RefSelectorProps = Omit<SelectorProps, "options"> & {

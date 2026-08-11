@@ -1,6 +1,6 @@
 # REST API Documentation
 
-RepoLens exposes a FastAPI REST API under `/api/v1`.
+GitVane exposes a FastAPI REST API under `/api/v1`.
 
 Interactive documentation is available when the backend is running:
 
@@ -70,7 +70,7 @@ Predictions include component scores and evidence-backed reasons.
 }
 ```
 
-RepoLens recommends tests but does not execute them.
+GitVane recommends tests but does not execute them.
 
 ### Risk
 

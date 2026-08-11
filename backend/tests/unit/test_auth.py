@@ -54,7 +54,7 @@ def test_signup_success() -> None:
             assert response.status_code == 201
             assert "access_token" in response.json()
             assert "refresh_token" in response.cookies
-            assert "repolens_logged_in" in response.cookies
+            assert "gitvane_logged_in" in response.cookies
     finally:
         app.dependency_overrides.clear()
 
@@ -79,7 +79,7 @@ def test_signup_duplicate_email() -> None:
             json={"email": "existing@example.com", "password": "SecureP@ssword123", "full_name": "Existing User"},
         )
         assert response.status_code == 400
-        assert response.json()["error_type"] == "RepoLensError"
+        assert response.json()["error_type"] == "GitVaneError"
     finally:
         app.dependency_overrides.clear()
 
@@ -325,13 +325,13 @@ def test_logout() -> None:
         csrf_token = bootstrap_res.cookies.get("csrf_token")
         
         client.cookies.set("refresh_token", "some_refresh_token")
-        client.cookies.set("repolens_logged_in", "true")
+        client.cookies.set("gitvane_logged_in", "true")
         client.headers.update({"X-CSRF-Token": csrf_token})
         
         response = client.post("/api/v1/auth/logout")
         assert response.status_code == 200
         assert response.cookies.get("refresh_token") == "" or "refresh_token" not in response.cookies
-        assert response.cookies.get("repolens_logged_in") == "" or "repolens_logged_in" not in response.cookies
+        assert response.cookies.get("gitvane_logged_in") == "" or "gitvane_logged_in" not in response.cookies
     finally:
         app.dependency_overrides.clear()
 

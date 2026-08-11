@@ -27,7 +27,7 @@ import {
   useDeleteRepositoryMutation,
   useIndexRepositoryMutation,
   useListRepositoriesQuery,
-} from "@/store/api/repolensApi";
+} from "@/store/api/gitvaneApi";
 import { useAppSelector } from "@/store/hooks";
 
 function RepositorySkeletonRows() {

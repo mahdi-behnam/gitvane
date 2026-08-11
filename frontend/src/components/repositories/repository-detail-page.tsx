@@ -31,7 +31,7 @@ import {
   useGetIndexStatusQuery,
   useGetRepositoryQuery,
   useIndexRepositoryMutation,
-} from "@/store/api/repolensApi";
+} from "@/store/api/gitvaneApi";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { setActiveRepositoryId } from "@/store/slices/repositorySelectionSlice";
 import { useIndexingSSE } from "@/lib/hooks/useIndexingSSE";

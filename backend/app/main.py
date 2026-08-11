@@ -15,7 +15,7 @@ from app.core.csrf_middleware import CSRFMiddleware
 from app.core.errors import setup_error_handlers
 from app.core.logging import setup_logging
 
-logger = logging.getLogger("repolens")
+logger = logging.getLogger("gitvane")
 
 # Locate backend directory containing alembic.ini relative to this file
 backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -101,7 +101,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 app = FastAPI(
     title=settings.APP_NAME,
-    description="Intelligent Predictive Code Change Analysis Engine",
+    description="Just as a weather vane shows which way the wind blows, GitVane shows developers which way their Git changes and dependency impacts propagate.",
     version="0.1.0",
     lifespan=lifespan,
     debug=settings.DEBUG,

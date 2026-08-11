@@ -16,14 +16,14 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    APP_NAME: str = "RepoLens"
+    APP_NAME: str = "GitVane"
     ENVIRONMENT: str = "local"
     DEBUG: bool = True
     API_V1_PREFIX: str = "/api/v1"
 
-    DATABASE_URL: str = "postgresql+asyncpg://repolens:repolens@localhost:5432/repolens"
+    DATABASE_URL: str = "postgresql+asyncpg://gitvane:gitvane@localhost:5432/gitvane"
     SYNC_DATABASE_URL: str = (
-        "postgresql+psycopg://repolens:repolens@localhost:5432/repolens"
+        "postgresql+psycopg://gitvane:gitvane@localhost:5432/gitvane"
     )
 
     DATABASE_POOL_SIZE: int = 20
@@ -32,7 +32,7 @@ class Settings(BaseSettings):
 
     REDIS_URL: str = "redis://localhost:6379/0"
 
-    REPOLENS_WORKSPACE: str = "./workspace/repos"
+    GITVANE_WORKSPACE: str = "./workspace/repos"
     MAX_INDEX_FILE_SIZE_KB: int = 512
     MAX_COMMITS_TO_MINE: int = 500
     MAX_EVAL_COMMITS: int = 100
@@ -75,7 +75,7 @@ class Settings(BaseSettings):
     SMTP_PORT: int = 587
     SMTP_USER: Optional[str] = None
     SMTP_PASSWORD: Optional[str] = None
-    EMAILS_FROM_EMAIL: str = "noreply@repolens.dev" 
+    EMAILS_FROM_EMAIL: str = "noreply@gitvane.dev" 
 
     def model_post_init(self, __context: Any) -> None:
         if not self.JWT_SECRET_KEY:
@@ -86,7 +86,7 @@ class Settings(BaseSettings):
             import logging
             import secrets
             self.JWT_SECRET_KEY = secrets.token_hex(32)
-            logging.getLogger("repolens").warning(
+            logging.getLogger("gitvane").warning(
                 "JWT_SECRET_KEY is not set in environment or env file. "
                 "Generating a random ephemeral secret key. This is not suitable for horizontal scaling."
             )
@@ -95,7 +95,7 @@ class Settings(BaseSettings):
 
             from cryptography.fernet import Fernet
             self.ENCRYPTION_KEY = Fernet.generate_key().decode()
-            logging.getLogger("repolens").warning(
+            logging.getLogger("gitvane").warning(
                 "ENCRYPTION_KEY is not set in environment or env file. "
                 "Generating a random ephemeral Fernet key. This is not suitable for horizontal scaling."
             )

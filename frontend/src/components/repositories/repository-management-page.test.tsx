@@ -8,7 +8,7 @@ import { renderWithProviders } from "@/test/render";
 import { server } from "@/test/server";
 
 const repository: Repository = {
-  clone_url: "https://github.com/mahdi-behnam/repolens.git",
+  clone_url: "https://github.com/mahdi-behnam/gitvane.git",
   created_at: "2026-06-21T10:00:00Z",
   current_ref: "main",
   default_branch: "main",
@@ -16,7 +16,7 @@ const repository: Repository = {
   indexed_at: "2026-06-21T10:30:00Z",
   last_indexed_commit: "abc123",
   local_path: null,
-  name: "repolens",
+  name: "gitvane",
   repo_metadata: null,
   status: "indexed",
   updated_at: "2026-06-21T10:30:00Z",
@@ -60,7 +60,7 @@ describe("RepositoryManagementPage", () => {
 
     renderWithProviders(<RepositoryManagementPage />);
 
-    expect(await screen.findByText("repolens")).toBeInTheDocument();
+    expect(await screen.findByText("gitvane")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "View" })).toHaveAttribute(
       "href",
       "/repositories/7",
@@ -101,13 +101,13 @@ describe("RepositoryManagementPage", () => {
 
     renderWithProviders(<RepositoryManagementPage />);
 
-    await screen.findByText("repolens");
+    await screen.findByText("gitvane");
     fireEvent.click(screen.getByRole("button", { name: "Index" }));
     await waitFor(() => expect(indexBodies).toEqual([{}]));
 
     fireEvent.click(screen.getByRole("button", { name: "Delete" }));
-    const confirmInput = screen.getByPlaceholderText("repolens");
-    fireEvent.change(confirmInput, { target: { value: "repolens" } });
+    const confirmInput = screen.getByPlaceholderText("gitvane");
+    fireEvent.change(confirmInput, { target: { value: "gitvane" } });
     fireEvent.click(
       within(screen.getByRole("dialog", { name: "Delete repository" })).getByRole(
         "button",
@@ -146,10 +146,10 @@ describe("RepositoryManagementPage", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Add repository" }));
     fireEvent.change(screen.getByLabelText("Name"), {
-      target: { value: "repolens" },
+      target: { value: "gitvane" },
     });
     fireEvent.change(screen.getByLabelText("Clone URL"), {
-      target: { value: "https://github.com/mahdi-behnam/repolens.git" },
+      target: { value: "https://github.com/mahdi-behnam/gitvane.git" },
     });
     fireEvent.click(
       within(screen.getByRole("dialog", { name: "Add repository" })).getByRole(
@@ -161,15 +161,15 @@ describe("RepositoryManagementPage", () => {
     await waitFor(() => expect(bodies).toHaveLength(1));
     expect(bodies[0]).toMatchObject({
       branch: null,
-      clone_url: "https://github.com/mahdi-behnam/repolens.git",
+      clone_url: "https://github.com/mahdi-behnam/gitvane.git",
       index_now: false,
-      name: "repolens",
+      name: "gitvane",
     });
   });
 
   it("filters repositories by search query and updates stats", async () => {
     const repos: Repository[] = [
-      { ...repository, id: "1", name: "repolens-backend", status: "indexed" },
+      { ...repository, id: "1", name: "gitvane-backend", status: "indexed" },
       { ...repository, id: "2", name: "frontend-app", status: "indexed" },
       { ...repository, id: "3", name: "analytics-service", status: "indexing" },
     ];
@@ -182,7 +182,7 @@ describe("RepositoryManagementPage", () => {
 
     renderWithProviders(<RepositoryManagementPage />);
 
-    expect(await screen.findByText("repolens-backend")).toBeInTheDocument();
+    expect(await screen.findByText("gitvane-backend")).toBeInTheDocument();
     expect(screen.getByText("frontend-app")).toBeInTheDocument();
     expect(screen.getByText("analytics-service")).toBeInTheDocument();
 
@@ -192,7 +192,7 @@ describe("RepositoryManagementPage", () => {
     await waitFor(() => {
       expect(screen.getByText("Showing 1 of 3 repositories")).toBeInTheDocument();
     });
-    expect(screen.queryByText("repolens-backend")).not.toBeInTheDocument();
+    expect(screen.queryByText("gitvane-backend")).not.toBeInTheDocument();
     expect(screen.getByText("frontend-app")).toBeInTheDocument();
     expect(screen.queryByText("analytics-service")).not.toBeInTheDocument();
   });
@@ -238,7 +238,7 @@ describe("RepositoryManagementPage", () => {
 
     renderWithProviders(<RepositoryManagementPage />);
 
-    expect(await screen.findByText("repolens")).toBeInTheDocument();
+    expect(await screen.findByText("gitvane")).toBeInTheDocument();
 
     const searchInput = screen.getByLabelText("Search repositories");
     fireEvent.change(searchInput, { target: { value: "nonexistent-query" } });

@@ -2,15 +2,15 @@ import { describe, expect, it } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/test/server";
 import { apiBaseUrl } from "@/lib/api/client";
-import { repolensApi } from "@/store/api/repolensApi";
+import { gitvaneApi } from "@/store/api/gitvaneApi";
 import { makeStore } from "@/store/store";
 import { setCredentials } from "@/store/slices/authSlice";
 
-describe("repolensApi MSW integration", () => {
-  it("reads health through the configured API base URL", async () => {
+describe("gitvaneApi MSW integration", () => {
+  it("fetches health status successfully", async () => {
     const store = makeStore();
 
-    const result = await store.dispatch(repolensApi.endpoints.getHealth.initiate());
+    const result = await store.dispatch(gitvaneApi.endpoints.getHealth.initiate());
 
     expect(result.data).toMatchObject({
       database: "connected",
@@ -22,7 +22,7 @@ describe("repolensApi MSW integration", () => {
     const store = makeStore();
 
     const result = await store.dispatch(
-      repolensApi.endpoints.listRepositories.initiate(),
+      gitvaneApi.endpoints.listRepositories.initiate(),
     );
 
     expect(result.data).toMatchObject({
@@ -35,24 +35,24 @@ describe("repolensApi MSW integration", () => {
     const store = makeStore();
 
     const repository = await store.dispatch(
-      repolensApi.endpoints.getRepository.initiate("77777777-7777-7777-7777-777777777777"),
+      gitvaneApi.endpoints.getRepository.initiate("77777777-7777-7777-7777-777777777777"),
     );
     const risk = await store.dispatch(
-      repolensApi.endpoints.getRepositoryRisk.initiate({
+      gitvaneApi.endpoints.getRepositoryRisk.initiate({
         repositoryId: "77777777-7777-7777-7777-777777777777",
         top_k: 3,
       }),
     );
     const graph = await store.dispatch(
-      repolensApi.endpoints.getRepositorySubgraph.initiate({
+      gitvaneApi.endpoints.getRepositorySubgraph.initiate({
         repositoryId: "77777777-7777-7777-7777-777777777777",
       }),
     );
     const evaluation = await store.dispatch(
-      repolensApi.endpoints.getEvaluationStatus.initiate(42),
+      gitvaneApi.endpoints.getEvaluationStatus.initiate(42),
     );
 
-    expect(repository.data).toMatchObject({ id: "77777777-7777-7777-7777-777777777777", name: "repolens" });
+    expect(repository.data).toMatchObject({ id: "77777777-7777-7777-7777-777777777777", name: "gitvane" });
     expect(risk.data?.files[0]).toMatchObject({
       path: "backend/app/services/indexing_service.py",
     });
@@ -86,7 +86,7 @@ describe("repolensApi MSW integration", () => {
     );
 
     const result = await store.dispatch(
-      repolensApi.endpoints.listRepositories.initiate(),
+      gitvaneApi.endpoints.listRepositories.initiate(),
     );
 
     expect(attempts).toBe(2);
@@ -108,7 +108,7 @@ describe("repolensApi MSW integration", () => {
     );
 
     const result = await store.dispatch(
-      repolensApi.endpoints.listRepositories.initiate(),
+      gitvaneApi.endpoints.listRepositories.initiate(),
     );
 
     expect(result.error).toBeDefined();

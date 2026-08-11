@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { repolensApi } from "@/store/api/repolensApi";
+import { gitvaneApi } from "@/store/api/gitvaneApi";
 import { makeStore } from "@/store/store";
 
-describe("repolensApi", () => {
+describe("gitvaneApi", () => {
   it("registers backend endpoint hooks", () => {
-    const endpointNames = Object.keys(repolensApi.endpoints);
+    const endpointNames = Object.keys(gitvaneApi.endpoints);
 
     expect(endpointNames).toEqual(
       expect.arrayContaining([
@@ -36,6 +36,6 @@ describe("repolensApi", () => {
   it("mounts the RTK Query reducer in the store", () => {
     const store = makeStore();
 
-    expect(store.getState()).toHaveProperty(repolensApi.reducerPath);
+    expect(store.getState()).toHaveProperty(gitvaneApi.reducerPath);
   });
 });

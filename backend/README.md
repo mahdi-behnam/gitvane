@@ -1,4 +1,4 @@
-# RepoLens Backend
+# GitVane Backend
 
 FastAPI backend for repository indexing, semantic search, impact prediction,
 test recommendation, risk scoring, LLM explanations, and historical evaluation.
