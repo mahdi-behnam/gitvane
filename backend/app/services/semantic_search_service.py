@@ -29,6 +29,9 @@ class SemanticSearchService:
                 f"Repository with id={repository_id} does not exist"
             )
 
+        if repo_obj.active_generation_id is None:
+            return SemanticSearchResponse(results=[])
+
         query_embedding = await self.embedding_service.embed_query(query)
         distance = CodeEmbedding.embedding.cosine_distance(query_embedding).label(
             "distance"
@@ -38,7 +41,12 @@ class SemanticSearchService:
             .join(CodeFile, CodeChunk.file_id == CodeFile.id)
             .join(CodeEmbedding, CodeEmbedding.chunk_id == CodeChunk.id)
             .outerjoin(Symbol, CodeChunk.symbol_id == Symbol.id)
-            .where(CodeChunk.repository_id == repository_id)
+            .where(
+                CodeChunk.repository_id == repository_id,
+                CodeChunk.generation_id == repo_obj.active_generation_id,
+                CodeEmbedding.generation_id == repo_obj.active_generation_id,
+                CodeFile.generation_id == repo_obj.active_generation_id,
+            )
             .order_by(distance)
             .limit(top_k)
         )

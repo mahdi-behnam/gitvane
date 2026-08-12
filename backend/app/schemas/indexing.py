@@ -14,22 +14,29 @@ class IndexRepositoryRequest(BaseModel):
         None,
         description="Optional branch, tag, or commit to checkout before indexing.",
     )
+    pipeline_version: str | None = Field(None, description="Optional pipeline version override.")
+    parser_version: str | None = Field(None, description="Optional parser version override.")
+    chunker_version: str | None = Field(None, description="Optional chunker version override.")
+    embedding_backend: str | None = Field(None, description="Optional embedding backend override.")
+    embedding_model: str | None = Field(None, description="Optional embedding model override.")
+    embedding_dimension: int | None = Field(None, description="Optional embedding dimension override.")
 
 
 class IndexRepositoryResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     repository_id: UUID
+    generation_id: UUID
     status: str
     current_ref: str | None = None
     indexed_at: datetime | None = None
-    files_indexed: int
-    files_skipped: int
-    symbols_indexed: int
-    chunks_indexed: int
+    files_indexed: int = 0
+    files_skipped: int = 0
+    symbols_indexed: int = 0
+    chunks_indexed: int = 0
     embeddings_indexed: int = 0
-    dependency_edges_indexed: int
-    commits_indexed: int
+    dependency_edges_indexed: int = 0
+    commits_indexed: int = 0
     parser_errors: list[dict[str, Any]] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
 

@@ -28,6 +28,9 @@ class _ExecuteResult:
         return self.rows
 
 
+GEN_UUID = UUID("22222222-2222-2222-2222-222222222222")
+
+
 class _FakeDb:
     def __init__(self, rows: list[tuple[Any, ...]], repo_exists: bool = True) -> None:
         self.rows = rows
@@ -35,7 +38,7 @@ class _FakeDb:
 
     async def get(self, model: type[Any], object_id: Any) -> Any:
         if model is Repository and self.repo_exists:
-            return Repository(id=object_id, name="repo", clone_url="", status="indexed")
+            return Repository(id=object_id, name="repo", clone_url="", status="indexed", active_generation_id=GEN_UUID)
         return None
 
     async def execute(self, statement: object) -> _ExecuteResult:
@@ -51,6 +54,7 @@ async def test_semantic_search_returns_ranked_results() -> None:
     chunk = CodeChunk(
         id=1,
         repository_id=TEST_UUID,
+        generation_id=GEN_UUID,
         file_id=1,
         text="path: src/auth/token.py\nsymbol: validate\n\nvalidate token expiry",
         start_line=10,
@@ -61,6 +65,7 @@ async def test_semantic_search_returns_ranked_results() -> None:
     code_file = CodeFile(
         id=1,
         repository_id=TEST_UUID,
+        generation_id=GEN_UUID,
         path="src/auth/token.py",
         language="python",
         content_hash="abc",
@@ -68,6 +73,7 @@ async def test_semantic_search_returns_ranked_results() -> None:
     symbol = Symbol(
         id=1,
         repository_id=TEST_UUID,
+        generation_id=GEN_UUID,
         file_id=1,
         qualified_name="validate",
         simple_name="validate",

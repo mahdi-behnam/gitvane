@@ -44,6 +44,7 @@ def _make_repo(
     name: str = "test-repo",
     clone_url: str = "https://github.com/example/test-repo.git",
     status: str = "ready",
+    active_generation_id: UUID | None = UUID("22222222-2222-2222-2222-222222222222"),
 ) -> Repository:
     """Build a minimal Repository ORM stub for use in tests."""
     repo = MagicMock(spec=Repository)
@@ -54,6 +55,8 @@ def _make_repo(
     repo.default_branch = "main"
     repo.current_ref = "abc123def456"
     repo.status = status
+    repo.active_generation_id = active_generation_id
+    repo.desired_generation_id = None
     repo.last_indexed_commit = None
     repo.created_at = datetime(2024, 1, 1, tzinfo=UTC)
     repo.updated_at = datetime(2024, 1, 1, tzinfo=UTC)
@@ -64,7 +67,10 @@ def _make_repo(
 
 async def _noop_db() -> AsyncGenerator[Any, None]:
     """No-op DB dependency override — service is fully mocked anyway."""
-    yield MagicMock()
+    db = MagicMock()
+    db.commit = AsyncMock()
+    db.refresh = AsyncMock()
+    yield db
 
 
 # ---------------------------------------------------------------------------
@@ -95,33 +101,15 @@ def test_create_repository_success() -> None:
         app.dependency_overrides.clear()
 
 
-@patch("app.db.session.SessionLocal")
-@patch("app.api.deps.get_indexing_service")
-def test_create_repository_with_index_now(
-    mock_get_indexing_service: MagicMock, mock_session_local_cls: MagicMock
-) -> None:
-    """POST with index_now=True sets status to indexing and runs indexing task in background."""
+def test_create_repository_with_index_now() -> None:
+    """POST with index_now=True sets status to indexing_queued via Outbox kickoff transaction."""
     repo = _make_repo(status="indexing_queued")
-
-    mock_db = MagicMock()
-    mock_db.commit = AsyncMock()
-    mock_db.refresh = AsyncMock()
-
-    async def mock_get_db() -> AsyncGenerator[Any, None]:
-        yield mock_db
 
     mock_svc = MagicMock()
     mock_svc.create_repository = AsyncMock(return_value=repo)
 
-    app.dependency_overrides[get_db] = mock_get_db
+    app.dependency_overrides[get_db] = _noop_db
     app.dependency_overrides[get_repository_service] = lambda: mock_svc
-
-    mock_async_db = MagicMock()
-    mock_session_local_cls.return_value.__aenter__.return_value = mock_async_db
-
-    mock_indexing_svc = MagicMock()
-    mock_indexing_svc.index_repository = AsyncMock()
-    mock_get_indexing_service.return_value = mock_indexing_svc
 
     try:
         client = TestClient(app)
@@ -136,20 +124,9 @@ def test_create_repository_with_index_now(
         )
         assert response.status_code == 201
         data = response.json()
-        assert data["status"] == "indexing"
-        assert repo.status == "indexing"
-        mock_db.commit.assert_awaited_once()
-        mock_db.refresh.assert_awaited_once_with(repo)
+        assert data["status"] == "indexing_queued"
     finally:
         app.dependency_overrides.clear()
-
-    mock_session_local_cls.assert_called_once()
-    mock_get_indexing_service.assert_called_once()
-    mock_indexing_svc.index_repository.assert_awaited_once_with(
-        db=mock_async_db,
-        repository_id=repo.id,
-        ref="main",
-    )
 
 
 def test_create_repository_missing_url_and_path() -> None:

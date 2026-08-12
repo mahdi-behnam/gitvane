@@ -1,3 +1,5 @@
+import hashlib
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -20,6 +22,7 @@ from app.db.models import (
     CodeFile,
     Commit,
     DependencyEdge,
+    IndexGeneration,
     Repository,
     Symbol,
 )
@@ -58,6 +61,35 @@ class IndexingService:
         repo_obj = await self._get_repository_or_raise(db, repository_id)
         repo_path = self._validated_repo_path(repo_obj)
 
+        gen_obj = None
+        if repo_obj.desired_generation_id:
+            gen_res = await db.execute(
+                select(IndexGeneration).where(IndexGeneration.id == repo_obj.desired_generation_id)
+            )
+            gen_obj = gen_res.scalars().first()
+
+        if gen_obj is None:
+            config_str = f"{settings.EMBEDDING_PROVIDER}:{settings.LOCAL_EMBEDDING_MODEL}:{settings.EMBEDDING_DIM}"
+            config_hash = hashlib.sha256(config_str.encode("utf-8")).hexdigest()[:16]
+            gen_obj = IndexGeneration(
+                id=uuid.uuid4(),
+                repository_id=repository_id,
+                requested_ref=ref or repo_obj.default_branch or repo_obj.current_ref or "main",
+                commit_sha=None,
+                pipeline_version="v1",
+                parser_version="v1",
+                chunker_version="v1",
+                embedding_backend=settings.EMBEDDING_PROVIDER,
+                embedding_model=settings.LOCAL_EMBEDDING_MODEL,
+                embedding_dimension=settings.EMBEDDING_DIM,
+                embedding_config_hash=config_hash,
+                status="parsing",
+            )
+            db.add(gen_obj)
+            await db.flush()
+
+        generation_id = gen_obj.id
+        repo_obj.desired_generation_id = generation_id
         repo_obj.status = "indexing"
         await db.flush()
 
@@ -74,6 +106,7 @@ class IndexingService:
             if ref:
                 self.git_service.checkout_ref(git_repo, ref)
             current_sha = self.git_service.get_current_sha(git_repo)
+            gen_obj.commit_sha = current_sha
             tracked_files = self.git_service.list_tracked_files(git_repo)
             total_files = len(tracked_files)
 
@@ -135,6 +168,7 @@ class IndexingService:
 
                 code_file = CodeFile(
                     repository_id=repository_id,
+                    generation_id=generation_id,
                     path=Path(tracked_path).as_posix(),
                     language=str(
                         classification["language"].value
@@ -166,7 +200,7 @@ class IndexingService:
             await self.tracker.sync_to_db(db, repository_id)
 
             symbols_indexed = await self._save_symbols(
-                db, repository_id, parsed_files, code_files_by_path, symbol_records_by_key
+                db, repository_id, parsed_files, code_files_by_path, symbol_records_by_key, generation_id=generation_id
             )
             chunks_indexed, chunks = await self._save_chunks(
                 db,
@@ -175,6 +209,7 @@ class IndexingService:
                 code_files_by_path,
                 symbol_records_by_key,
                 file_contents,
+                generation_id=generation_id,
             )
 
             self.tracker.update_progress(
@@ -215,6 +250,7 @@ class IndexingService:
                 repository_id,
                 edges,
                 code_files_by_path,
+                generation_id=generation_id,
             )
             commits_indexed = await self._save_commit_metadata(
                 db,
@@ -223,6 +259,11 @@ class IndexingService:
                 max_commits or settings.MAX_COMMITS_TO_MINE,
             )
 
+            gen_obj.status = "completed"
+            gen_obj.completed_at = datetime.now(timezone.utc)
+            gen_obj.terminal_at = datetime.now(timezone.utc)
+
+            repo_obj.active_generation_id = generation_id
             repo_obj.current_ref = current_sha
             repo_obj.last_indexed_commit = current_sha
             repo_obj.indexed_at = datetime.now(timezone.utc)
@@ -236,6 +277,7 @@ class IndexingService:
 
             return IndexRepositoryResponse(
                 repository_id=repository_id,
+                generation_id=generation_id,
                 status=repo_obj.status,
                 current_ref=repo_obj.current_ref,
                 indexed_at=repo_obj.indexed_at,
@@ -275,19 +317,33 @@ class IndexingService:
                 repository_id, repo_obj.repo_metadata, repo_obj.status
             )
 
+        active_gen_id = repo_obj.active_generation_id
         return IndexStatusResponse(
             repository_id=repository_id,
             status=repo_obj.status,
             current_ref=repo_obj.current_ref,
             last_indexed_commit=repo_obj.last_indexed_commit,
             indexed_at=repo_obj.indexed_at,
-            file_count=await self._count(db, CodeFile, repository_id),
-            symbol_count=await self._count(db, Symbol, repository_id),
-            chunk_count=await self._count(db, CodeChunk, repository_id),
-            dependency_edge_count=await self._count(db, DependencyEdge, repository_id),
+            file_count=await self._count_active(db, CodeFile, repository_id, active_gen_id),
+            symbol_count=await self._count_active(db, Symbol, repository_id, active_gen_id),
+            chunk_count=await self._count_active(db, CodeChunk, repository_id, active_gen_id),
+            dependency_edge_count=await self._count_active(db, DependencyEdge, repository_id, active_gen_id),
             commit_count=await self._count(db, Commit, repository_id),
             progress=progress,
         )
+
+    async def _count_active(
+        self, db: AsyncSession, model: type[Any], repository_id: UUID | Any, active_gen_id: UUID | None
+    ) -> int:
+        if active_gen_id is None:
+            return 0
+        result = await db.execute(
+            select(func.count()).select_from(model).where(
+                model.repository_id == repository_id,
+                model.generation_id == active_gen_id,
+            )
+        )
+        return int(result.scalar_one())
 
     async def _get_repository_or_raise(
         self, db: AsyncSession, repository_id: UUID | Any
@@ -360,6 +416,7 @@ class IndexingService:
         parsed_files: list[ParsedFile],
         code_files_by_path: dict[str, CodeFile],
         symbol_records_by_key: dict[tuple[str, str, int], Symbol],
+        generation_id: UUID | None = None,
     ) -> int:
         symbols_to_add: list[Symbol] = []
         for parsed in parsed_files:
@@ -369,6 +426,7 @@ class IndexingService:
             for parsed_symbol in parsed.symbols:
                 symbol = Symbol(
                     repository_id=repository_id,
+                    generation_id=generation_id,
                     file_id=code_file.id,
                     qualified_name=parsed_symbol.qualified_name,
                     simple_name=parsed_symbol.simple_name,
@@ -404,6 +462,7 @@ class IndexingService:
         code_files_by_path: dict[str, CodeFile],
         symbol_records_by_key: dict[tuple[str, str, int], Symbol],
         file_contents: dict[str, str],
+        generation_id: UUID | None = None,
     ) -> tuple[int, list[CodeChunk]]:
         chunks: list[CodeChunk] = []
         for parsed in parsed_files:
@@ -427,6 +486,7 @@ class IndexingService:
                 text = self._chunk_text(parsed, parsed_symbol, content)
                 chunk = CodeChunk(
                     repository_id=repository_id,
+                    generation_id=generation_id,
                     file_id=code_file.id,
                     symbol_id=symbol.id if symbol else None,
                     chunk_type=self._chunk_type(parsed_symbol),
@@ -448,6 +508,7 @@ class IndexingService:
         repository_id: UUID | Any,
         edges: list[DependencyEdgeData],
         code_files_by_path: dict[str, CodeFile],
+        generation_id: UUID | None = None,
     ) -> int:
         edges_to_add: list[DependencyEdge] = []
         for edge in edges:
@@ -458,6 +519,7 @@ class IndexingService:
             edges_to_add.append(
                 DependencyEdge(
                     repository_id=repository_id,
+                    generation_id=generation_id,
                     source_file_id=source.id,
                     target_file_id=target.id,
                     edge_type=edge.edge_type,

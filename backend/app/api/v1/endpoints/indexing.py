@@ -1,12 +1,14 @@
-import logging
 import asyncio
+import hashlib
 import json
+import logging
+from datetime import datetime, timezone
 from typing import Annotated
+import uuid
 from uuid import UUID
 
 from fastapi import (
     APIRouter,
-    BackgroundTasks,
     Depends,
     HTTPException,
     Query,
@@ -18,9 +20,10 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_db, get_indexing_service, get_repository_service
+from app.core.config import settings
 from app.core.errors import AuthenticationError, RepositoryNotFoundError
 from app.core.security_utils import decode_access_token
-from app.db.models import Repository, User
+from app.db.models import IndexGeneration, OutboxEvent, Repository, User
 from app.db.session import SessionLocal
 from app.schemas.indexing import (
     IndexRepositoryRequest,
@@ -45,47 +48,105 @@ router = APIRouter()
 async def index_repository(
     repository_id: UUID,
     body: IndexRepositoryRequest,
-    background_tasks: BackgroundTasks,
     db: Annotated[AsyncSession, Depends(get_db)],
     repo_svc: Annotated[RepositoryService, Depends(get_repository_service)],
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> IndexRepositoryResponse:
-    try:
-        repo_obj = await repo_svc.get_repository_or_raise(
-            db, repository_id, owner_id=current_user.id
-        )
-    except RepositoryNotFoundError as exc:
+    # 1. Lock Repository row (SELECT ... FOR UPDATE)
+    stmt = (
+        select(Repository)
+        .where(Repository.id == repository_id, Repository.owner_id == current_user.id)
+        .with_for_update()
+    )
+    res = await db.execute(stmt)
+    repo_obj = res.scalars().first()
+    if repo_obj is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)
-        ) from exc
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Repository with id={repository_id} does not exist",
+        )
 
-    repo_obj.status = "indexing"
+    # 2. Capture previous desired_generation_id
+    prev_desired_id = repo_obj.desired_generation_id
+
+    # 3. Create a new IndexGeneration
+    requested_ref = body.ref or repo_obj.default_branch or repo_obj.current_ref or "main"
+    pipeline_version = body.pipeline_version or "v1"
+    parser_version = body.parser_version or "v1"
+    chunker_version = body.chunker_version or "v1"
+    embedding_backend = body.embedding_backend or settings.EMBEDDING_PROVIDER
+    embedding_model = body.embedding_model or settings.LOCAL_EMBEDDING_MODEL
+    embedding_dimension = body.embedding_dimension or settings.EMBEDDING_DIM
+
+    config_str = f"{embedding_backend}:{embedding_model}:{embedding_dimension}"
+    config_hash = hashlib.sha256(config_str.encode("utf-8")).hexdigest()[:16]
+
+    new_gen = IndexGeneration(
+        id=uuid.uuid4(),
+        repository_id=repo_obj.id,
+        requested_ref=requested_ref,
+        commit_sha=None,
+        pipeline_version=pipeline_version,
+        parser_version=parser_version,
+        chunker_version=chunker_version,
+        embedding_backend=embedding_backend,
+        embedding_model=embedding_model,
+        embedding_dimension=embedding_dimension,
+        embedding_config_hash=config_hash,
+        status="queued",
+        stage_lease_owner=None,
+        stage_lease_expires_at=None,
+        stage_attempt=0,
+    )
+    db.add(new_gen)
+
+    # 4. Set Repository.desired_generation_id = new_generation.id
+    repo_obj.desired_generation_id = new_gen.id
+    repo_obj.status = "indexing_queued"
+
+    # 5. If the previous desired generation is a different non-active, non-terminal generation, mark it superseded and set terminal_at = now()
+    if (
+        prev_desired_id
+        and prev_desired_id != repo_obj.active_generation_id
+        and prev_desired_id != new_gen.id
+    ):
+        prev_gen_stmt = (
+            select(IndexGeneration)
+            .where(IndexGeneration.id == prev_desired_id)
+            .with_for_update()
+        )
+        prev_gen_res = await db.execute(prev_gen_stmt)
+        prev_gen = prev_gen_res.scalars().first()
+        if prev_gen and prev_gen.status not in (
+            "completed",
+            "failed",
+            "cancelled",
+            "superseded",
+        ):
+            prev_gen.status = "superseded"
+            prev_gen.terminal_at = datetime.now(timezone.utc)
+
+    # 6. Insert OutboxEvent
+    outbox_event = OutboxEvent(
+        id=uuid.uuid4(),
+        aggregate_id=new_gen.id,
+        event_type="prepare_requested",
+        payload={"generation_id": str(new_gen.id)},
+        status="pending",
+        attempt_count=0,
+        next_attempt_at=datetime.now(timezone.utc),
+    )
+    db.add(outbox_event)
+
+    # 7. Commit transaction
     await db.commit()
 
-    async def async_indexing_task() -> None:
-        async with SessionLocal() as async_db:
-            try:
-                git_service = GitService()
-                indexing_service = IndexingService(git_service=git_service)
-                await indexing_service.index_repository(
-                    db=async_db,
-                    repository_id=repository_id,
-                    ref=body.ref,
-                )
-            except Exception as exc:
-                logger.exception("Background indexing failed for repo %s", repository_id)
-                IndexingProgressTracker.get_instance().set_failed(repository_id, str(exc))
-                async with SessionLocal() as fail_db:
-                    repo_to_update = await fail_db.get(Repository, repository_id)
-                    if repo_to_update:
-                        repo_to_update.status = "index_failed"
-                        await fail_db.commit()
-
-    background_tasks.add_task(async_indexing_task)
-
+    # 8. Return HTTP 202 Accepted with generation_id response payload
     return IndexRepositoryResponse(
-        repository_id=repository_id,
-        status="indexing",
+        repository_id=repo_obj.id,
+        generation_id=new_gen.id,
+        status="queued",
+        current_ref=requested_ref,
         files_indexed=0,
         files_skipped=0,
         symbols_indexed=0,

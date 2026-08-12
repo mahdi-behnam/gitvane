@@ -96,7 +96,7 @@ class _IntegrationDb:
 
     def queue_index_for_impact(self) -> None:
         code_files, symbols, edges, commits = self.indexed_rows()
-        self.result_queue = [code_files, symbols, edges, commits]
+        self.result_queue = [commits, code_files, symbols, edges]
 
 
 class _FakeEmbeddingService:

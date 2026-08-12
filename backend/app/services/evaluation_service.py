@@ -210,24 +210,32 @@ class EvaluationService:
     async def _load_indexed_data(
         self, db: AsyncSession, repository_id: UUID | Any, commit_limit: int
     ) -> tuple[list[CodeFile], list[DependencyEdge], list[Commit]]:
-        code_files = (
-            await db.execute(
-                select(CodeFile).where(CodeFile.repository_id == repository_id)
-            )
-        ).scalars().all()
-        edges = (
-            await db.execute(
-                select(DependencyEdge).where(
-                    DependencyEdge.repository_id == repository_id
-                )
-            )
-        ).scalars().all()
+        repo_obj = await self._get_repository_or_raise(db, repository_id)
         commits = (
             await db.execute(
                 select(Commit)
                 .where(Commit.repository_id == repository_id)
                 .order_by(Commit.author_date.desc().nullslast())
                 .limit(commit_limit)
+            )
+        ).scalars().all()
+        if repo_obj.active_generation_id is None:
+            return [], [], list(commits)
+
+        code_files = (
+            await db.execute(
+                select(CodeFile).where(
+                    CodeFile.repository_id == repository_id,
+                    CodeFile.generation_id == repo_obj.active_generation_id,
+                )
+            )
+        ).scalars().all()
+        edges = (
+            await db.execute(
+                select(DependencyEdge).where(
+                    DependencyEdge.repository_id == repository_id,
+                    DependencyEdge.generation_id == repo_obj.active_generation_id,
+                )
             )
         ).scalars().all()
         return list(code_files), list(edges), list(commits)

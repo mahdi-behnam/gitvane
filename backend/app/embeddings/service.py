@@ -100,6 +100,7 @@ class EmbeddingService:
             for chunk, embedding in zip(batch, embeddings, strict=True):
                 db.add(
                     CodeEmbedding(
+                        generation_id=chunk.generation_id,
                         chunk_id=chunk.id,
                         provider=settings.EMBEDDING_PROVIDER,
                         model=self.provider.model_name,

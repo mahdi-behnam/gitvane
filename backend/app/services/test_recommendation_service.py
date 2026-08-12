@@ -211,20 +211,33 @@ class TestRecommendationService:
     async def _load_indexed_data(
         self, db: AsyncSession, repository_id: UUID | Any
     ) -> tuple[list[CodeFile], list[DependencyEdge], list[Commit]]:
+        repo_obj = await db.get(Repository, repository_id)
+        if repo_obj is None:
+            raise RepositoryNotFoundError(
+                f"Repository with id={repository_id} does not exist"
+            )
+
+        commits = (
+            await db.execute(select(Commit).where(Commit.repository_id == repository_id))
+        ).scalars().all()
+        if repo_obj.active_generation_id is None:
+            return [], [], list(commits)
+
         code_files = (
             await db.execute(
-                select(CodeFile).where(CodeFile.repository_id == repository_id)
+                select(CodeFile).where(
+                    CodeFile.repository_id == repository_id,
+                    CodeFile.generation_id == repo_obj.active_generation_id,
+                )
             )
         ).scalars().all()
         dependency_edges = (
             await db.execute(
                 select(DependencyEdge).where(
-                    DependencyEdge.repository_id == repository_id
+                    DependencyEdge.repository_id == repository_id,
+                    DependencyEdge.generation_id == repo_obj.active_generation_id,
                 )
             )
-        ).scalars().all()
-        commits = (
-            await db.execute(select(Commit).where(Commit.repository_id == repository_id))
         ).scalars().all()
         return list(code_files), list(dependency_edges), list(commits)
 

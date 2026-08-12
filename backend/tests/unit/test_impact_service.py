@@ -48,7 +48,7 @@ class _FakeDb:
         commits: list[Commit],
     ) -> None:
         self.repo = repo
-        self.results = [code_files, symbols, edges, commits]
+        self.results = [commits, code_files, symbols, edges]
         self.added: list[Any] = []
         self.next_id = 100
         self.committed = False
@@ -108,6 +108,9 @@ class _FakeExplanationService:
         return "deterministic explanation"
 
 
+GEN_UUID = UUID("22222222-2222-2222-2222-222222222222")
+
+
 def _indexed_fixture() -> tuple[
     Repository,
     list[CodeFile],
@@ -115,10 +118,11 @@ def _indexed_fixture() -> tuple[
     list[DependencyEdge],
     list[Commit],
 ]:
-    repo = Repository(id=TEST_UUID, name="repo", clone_url="", status="indexed")
+    repo = Repository(id=TEST_UUID, name="repo", clone_url="", status="indexed", active_generation_id=GEN_UUID)
     token = CodeFile(
         id=1,
         repository_id=TEST_UUID,
+        generation_id=GEN_UUID,
         path="src/auth/token.py",
         language="python",
         content_hash="a",
@@ -128,6 +132,7 @@ def _indexed_fixture() -> tuple[
     routes = CodeFile(
         id=2,
         repository_id=TEST_UUID,
+        generation_id=GEN_UUID,
         path="src/api/routes.py",
         language="python",
         content_hash="b",
@@ -137,6 +142,7 @@ def _indexed_fixture() -> tuple[
     tests = CodeFile(
         id=3,
         repository_id=TEST_UUID,
+        generation_id=GEN_UUID,
         path="tests/test_routes.py",
         language="python",
         content_hash="c",
@@ -146,6 +152,7 @@ def _indexed_fixture() -> tuple[
     unrelated = CodeFile(
         id=4,
         repository_id=TEST_UUID,
+        generation_id=GEN_UUID,
         path="src/unrelated.py",
         language="python",
         content_hash="d",
@@ -156,6 +163,7 @@ def _indexed_fixture() -> tuple[
         Symbol(
             id=1,
             repository_id=TEST_UUID,
+            generation_id=GEN_UUID,
             file_id=1,
             qualified_name="validate_token",
             simple_name="validate_token",
@@ -168,12 +176,14 @@ def _indexed_fixture() -> tuple[
     edges = [
         DependencyEdge(
             repository_id=TEST_UUID,
+            generation_id=GEN_UUID,
             source_file_id=2,
             target_file_id=1,
             edge_type="import",
         ),
         DependencyEdge(
             repository_id=TEST_UUID,
+            generation_id=GEN_UUID,
             source_file_id=3,
             target_file_id=2,
             edge_type="test_import",

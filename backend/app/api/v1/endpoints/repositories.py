@@ -26,7 +26,6 @@ router = APIRouter()
 @router.post("", response_model=RepositoryOut, status_code=status.HTTP_201_CREATED)
 async def create_repository(
     body: RepositoryCreate,
-    background_tasks: BackgroundTasks,
     db: Annotated[AsyncSession, Depends(get_db)],
     svc: Annotated[RepositoryService, Depends(get_repository_service)],
     current_user: Annotated[User, Depends(get_current_user)],
@@ -36,8 +35,7 @@ async def create_repository(
 
     - If `clone_url` is provided, the repository is cloned into the workspace.
     - If `local_path` is provided instead, the path is validated and adopted.
-    - Set `index_now=true` to queue indexing immediately after registration
-      (indexing pipeline must be active; see Phase 4).
+    - Set `index_now=true` to queue indexing immediately after registration.
     - Returns the created repository record.
     """
     try:
@@ -53,32 +51,50 @@ async def create_repository(
         )
 
         if body.index_now:
-            repo.status = "indexing"
+            import hashlib
+            import uuid
+            from datetime import datetime, timezone
+
+            from app.core.config import settings
+            from app.db.models import IndexGeneration, OutboxEvent
+
+            requested_ref = body.branch or repo.default_branch or repo.current_ref or "main"
+            config_str = f"{settings.EMBEDDING_PROVIDER}:{settings.LOCAL_EMBEDDING_MODEL}:{settings.EMBEDDING_DIM}"
+            config_hash = hashlib.sha256(config_str.encode("utf-8")).hexdigest()[:16]
+
+            new_gen = IndexGeneration(
+                id=uuid.uuid4(),
+                repository_id=repo.id,
+                requested_ref=requested_ref,
+                commit_sha=None,
+                pipeline_version="v1",
+                parser_version="v1",
+                chunker_version="v1",
+                embedding_backend=settings.EMBEDDING_PROVIDER,
+                embedding_model=settings.LOCAL_EMBEDDING_MODEL,
+                embedding_dimension=settings.EMBEDDING_DIM,
+                embedding_config_hash=config_hash,
+                status="queued",
+                stage_lease_owner=None,
+                stage_lease_expires_at=None,
+                stage_attempt=0,
+            )
+            db.add(new_gen)
+            repo.desired_generation_id = new_gen.id
+            repo.status = "indexing_queued"
+
+            outbox_event = OutboxEvent(
+                id=uuid.uuid4(),
+                aggregate_id=new_gen.id,
+                event_type="prepare_requested",
+                payload={"generation_id": str(new_gen.id)},
+                status="pending",
+                attempt_count=0,
+                next_attempt_at=datetime.now(timezone.utc),
+            )
+            db.add(outbox_event)
             await db.commit()
             await db.refresh(repo)
-
-            async def run_indexing_task():
-                from app.db.session import SessionLocal
-                from app.api.deps import get_indexing_service
-                async with SessionLocal() as async_db:
-                    try:
-                        indexing_svc = get_indexing_service()
-                        await indexing_svc.index_repository(
-                            db=async_db,
-                            repository_id=repo.id,
-                            ref=body.branch,  # Index the specified branch
-                        )
-                    except Exception as exc:
-                        logger.exception("Background indexing failed for repo %s", repo.id)
-                        from app.services.progress_tracker import IndexingProgressTracker
-                        IndexingProgressTracker.get_instance().set_failed(repo.id, str(exc))
-                        async with SessionLocal() as fail_db:
-                            repo_to_update = await fail_db.get(Repository, repo.id)
-                            if repo_to_update:
-                                repo_to_update.status = "index_failed"
-                                await fail_db.commit()
-
-            background_tasks.add_task(run_indexing_task)
 
         return RepositoryOut.model_validate(repo)
     except InvalidPathError as exc:
@@ -177,11 +193,18 @@ async def search_repository_files(
 ) -> list[FileSearchResult]:
     """Perform fast autocomplete file search in an indexed repository."""
     try:
-        await svc.get_repository_or_raise(db=db, repository_id=repository_id, owner_id=current_user.id)
+        repo = await svc.get_repository_or_raise(db=db, repository_id=repository_id, owner_id=current_user.id)
+        if repo.active_generation_id is None:
+            return []
+
         from sqlalchemy import select
+
         from app.db.models import CodeFile
 
-        stmt = select(CodeFile).where(CodeFile.repository_id == repository_id)
+        stmt = select(CodeFile).where(
+            CodeFile.repository_id == repository_id,
+            CodeFile.generation_id == repo.active_generation_id,
+        )
         if query.strip():
             search_pattern = f"%{query.strip()}%"
             stmt = stmt.where(CodeFile.path.ilike(search_pattern))

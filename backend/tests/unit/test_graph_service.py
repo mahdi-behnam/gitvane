@@ -31,6 +31,9 @@ class _ExecuteResult:
         return _ScalarResult(self.values)
 
 
+GEN_UUID = UUID("22222222-2222-2222-2222-222222222222")
+
+
 class _FakeDb:
     def __init__(
         self,
@@ -45,7 +48,7 @@ class _FakeDb:
 
     async def get(self, model: type[Any], object_id: Any) -> Any:
         if model is Repository and self.repo_exists:
-            return Repository(id=object_id, name="repo", clone_url="", status="indexed")
+            return Repository(id=object_id, name="repo", clone_url="", status="indexed", active_generation_id=GEN_UUID)
         if model is CodeFile:
             return next((item for item in self.files if item.id == object_id), None)
         return None
@@ -66,6 +69,7 @@ def _files() -> list[CodeFile]:
         CodeFile(
             id=1,
             repository_id=TEST_UUID,
+            generation_id=GEN_UUID,
             path="src/auth/token.py",
             language="python",
             content_hash="a",
@@ -75,6 +79,7 @@ def _files() -> list[CodeFile]:
         CodeFile(
             id=2,
             repository_id=TEST_UUID,
+            generation_id=GEN_UUID,
             path="src/api/routes.py",
             language="python",
             content_hash="b",
@@ -84,6 +89,7 @@ def _files() -> list[CodeFile]:
         CodeFile(
             id=3,
             repository_id=TEST_UUID,
+            generation_id=GEN_UUID,
             path="tests/test_routes.py",
             language="python",
             content_hash="c",
@@ -98,6 +104,7 @@ def _edges() -> list[DependencyEdge]:
         DependencyEdge(
             id=1,
             repository_id=TEST_UUID,
+            generation_id=GEN_UUID,
             source_file_id=2,
             target_file_id=1,
             edge_type="import",
@@ -107,6 +114,7 @@ def _edges() -> list[DependencyEdge]:
         DependencyEdge(
             id=2,
             repository_id=TEST_UUID,
+            generation_id=GEN_UUID,
             source_file_id=3,
             target_file_id=2,
             edge_type="test_import",

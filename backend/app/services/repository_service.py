@@ -193,11 +193,17 @@ class RepositoryService:
     async def list_repository_languages(
         self, db: AsyncSession, repository_id: UUID | str, owner_id: int
     ) -> List[str]:
-        """Return distinct indexed programming languages for a repository."""
-        await self.get_repository_or_raise(db=db, repository_id=repository_id, owner_id=owner_id)
+        """Return distinct indexed programming languages for a repository's active generation."""
+        repo = await self.get_repository_or_raise(db=db, repository_id=repository_id, owner_id=owner_id)
+        if repo.active_generation_id is None:
+            return []
         stmt = (
             select(CodeFile.language)
-            .where(CodeFile.repository_id == repository_id, CodeFile.language != "")
+            .where(
+                CodeFile.repository_id == repository_id,
+                CodeFile.generation_id == repo.active_generation_id,
+                CodeFile.language != "",
+            )
             .distinct()
             .order_by(CodeFile.language)
         )

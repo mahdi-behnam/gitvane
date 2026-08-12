@@ -31,6 +31,9 @@ class _ExecuteResult:
         return _ScalarResult(self.values)
 
 
+GEN_UUID = UUID("22222222-2222-2222-2222-222222222222")
+
+
 class _FakeDb:
     def __init__(
         self,
@@ -40,12 +43,12 @@ class _FakeDb:
         chunks: list[CodeChunk],
         repo_exists: bool = True,
     ) -> None:
-        self.results = [code_files, edges, commits, chunks]
+        self.results = [commits, code_files, edges, chunks]
         self.repo_exists = repo_exists
 
     async def get(self, model: type[Any], object_id: Any) -> Any:
         if model is Repository and self.repo_exists:
-            return Repository(id=object_id, name="repo", clone_url="", status="indexed")
+            return Repository(id=object_id, name="repo", clone_url="", status="indexed", active_generation_id=GEN_UUID)
         return None
 
     async def execute(self, statement: object) -> _ExecuteResult:
@@ -56,6 +59,7 @@ def test_risk_service_scores_file_components() -> None:
     code_file = CodeFile(
         id=1,
         repository_id=TEST_UUID,
+        generation_id=GEN_UUID,
         path="src/core/payment.py",
         language="python",
         content_hash="abc",
@@ -95,6 +99,7 @@ async def test_repository_risk_ranks_indexed_files() -> None:
     payment = CodeFile(
         id=1,
         repository_id=TEST_UUID,
+        generation_id=GEN_UUID,
         path="src/core/payment.py",
         language="python",
         content_hash="abc",
@@ -104,6 +109,7 @@ async def test_repository_risk_ranks_indexed_files() -> None:
     helpers = CodeFile(
         id=2,
         repository_id=TEST_UUID,
+        generation_id=GEN_UUID,
         path="src/core/helpers.py",
         language="python",
         content_hash="def",
@@ -113,6 +119,7 @@ async def test_repository_risk_ranks_indexed_files() -> None:
     tests = CodeFile(
         id=3,
         repository_id=TEST_UUID,
+        generation_id=GEN_UUID,
         path="tests/test_payment.py",
         language="python",
         content_hash="ghi",
@@ -122,6 +129,7 @@ async def test_repository_risk_ranks_indexed_files() -> None:
     edge = DependencyEdge(
         id=1,
         repository_id=TEST_UUID,
+        generation_id=GEN_UUID,
         source_file_id=2,
         target_file_id=1,
         edge_type="import",
@@ -136,6 +144,7 @@ async def test_repository_risk_ranks_indexed_files() -> None:
     chunk = CodeChunk(
         id=1,
         repository_id=TEST_UUID,
+        generation_id=GEN_UUID,
         file_id=1,
         chunk_type="function",
         start_line=1,
@@ -169,6 +178,7 @@ async def test_repository_risk_path_search_and_mean_risk_score() -> None:
     payment = CodeFile(
         id=1,
         repository_id=TEST_UUID,
+        generation_id=GEN_UUID,
         path="src/core/payment.py",
         language="python",
         content_hash="abc",
@@ -178,6 +188,7 @@ async def test_repository_risk_path_search_and_mean_risk_score() -> None:
     helpers = CodeFile(
         id=2,
         repository_id=TEST_UUID,
+        generation_id=GEN_UUID,
         path="src/utils/helpers.py",
         language="python",
         content_hash="def",
@@ -213,6 +224,7 @@ async def test_repository_risk_path_search_unmatched_reflects_true_repo_average(
     payment = CodeFile(
         id=1,
         repository_id=TEST_UUID,
+        generation_id=GEN_UUID,
         path="src/core/payment.py",
         language="python",
         content_hash="abc",
@@ -222,6 +234,7 @@ async def test_repository_risk_path_search_unmatched_reflects_true_repo_average(
     helpers = CodeFile(
         id=2,
         repository_id=TEST_UUID,
+        generation_id=GEN_UUID,
         path="src/utils/helpers.py",
         language="python",
         content_hash="def",

@@ -37,6 +37,9 @@ class _ExecuteResult:
         return _ScalarResult(self.values)
 
 
+GEN_UUID = UUID("22222222-2222-2222-2222-222222222222")
+
+
 class _FakeDb:
     def __init__(
         self,
@@ -45,12 +48,12 @@ class _FakeDb:
         commits: list[Commit],
         repo_exists: bool = True,
     ) -> None:
-        self.results = [code_files, edges, commits]
+        self.results = [commits, code_files, edges]
         self.repo_exists = repo_exists
 
     async def get(self, model: type[Any], object_id: Any) -> Any:
         if model is Repository and self.repo_exists:
-            return Repository(id=object_id, name="repo", clone_url="", status="indexed")
+            return Repository(id=object_id, name="repo", clone_url="", status="indexed", active_generation_id=GEN_UUID)
         return None
 
     async def execute(self, statement: object) -> _ExecuteResult:
@@ -240,6 +243,7 @@ async def test_recommend_for_repository_loads_indexed_data() -> None:
     source = CodeFile(
         id=1,
         repository_id=TEST_UUID,
+        generation_id=GEN_UUID,
         path="src/auth/token.py",
         language="python",
         content_hash="a",
@@ -248,6 +252,7 @@ async def test_recommend_for_repository_loads_indexed_data() -> None:
     test = CodeFile(
         id=2,
         repository_id=TEST_UUID,
+        generation_id=GEN_UUID,
         path="tests/test_auth_flow.py",
         language="python",
         content_hash="b",

@@ -44,7 +44,7 @@ class _FakeDb:
         commits: list[Commit],
     ) -> None:
         self.repo = repo
-        self.results = [code_files, edges, commits]
+        self.results = [commits, code_files, edges]
         self.added: list[Any] = []
         self.next_id = 1
         self.committed = False
@@ -108,11 +108,15 @@ class _FakeSemanticSearchService:
         )
 
 
+GEN_UUID = UUID("22222222-2222-2222-2222-222222222222")
+
+
 def _fixture() -> tuple[Repository, list[CodeFile], list[DependencyEdge], list[Commit]]:
-    repo = Repository(id=TEST_UUID, name="repo", clone_url="", status="indexed")
+    repo = Repository(id=TEST_UUID, name="repo", clone_url="", status="indexed", active_generation_id=GEN_UUID)
     token = CodeFile(
         id=1,
         repository_id=TEST_UUID,
+        generation_id=GEN_UUID,
         path="src/auth/token.py",
         language="python",
         content_hash="a",
@@ -120,12 +124,14 @@ def _fixture() -> tuple[Repository, list[CodeFile], list[DependencyEdge], list[C
     routes = CodeFile(
         id=2,
         repository_id=TEST_UUID,
+        generation_id=GEN_UUID,
         path="src/api/routes.py",
         language="python",
         content_hash="b",
     )
     edge = DependencyEdge(
         repository_id=TEST_UUID,
+        generation_id=GEN_UUID,
         source_file_id=2,
         target_file_id=1,
         edge_type="import",

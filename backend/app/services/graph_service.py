@@ -18,16 +18,24 @@ class GraphService:
         repository_id: UUID | Any,
         file_id: int,
     ) -> GraphResponse:
-        await self._ensure_repository(db, repository_id)
+        repo = await self._get_repository(db, repository_id)
+        if repo.active_generation_id is None:
+            return GraphResponse(repository_id=repository_id, nodes=[], edges=[])
+
         center = await db.get(CodeFile, file_id)
-        if center is None or center.repository_id != repository_id:
+        if (
+            center is None
+            or center.repository_id != repository_id
+            or center.generation_id != repo.active_generation_id
+        ):
             raise RepositoryNotFoundError(
-                f"File with id={file_id} does not exist in repository {repository_id}"
+                f"File with id={file_id} does not exist in active generation of repository {repository_id}"
             )
 
         edge_result = await db.execute(
             select(DependencyEdge).where(
                 DependencyEdge.repository_id == repository_id,
+                DependencyEdge.generation_id == repo.active_generation_id,
                 or_(
                     DependencyEdge.source_file_id == file_id,
                     DependencyEdge.target_file_id == file_id,
@@ -40,7 +48,7 @@ class GraphService:
             file_ids.add(edge.source_file_id)
             file_ids.add(edge.target_file_id)
 
-        nodes = await self._load_files(db, repository_id, file_ids)
+        nodes = await self._load_files(db, repository_id, repo.active_generation_id, file_ids)
         return self._response(repository_id, nodes, edges)
 
     async def get_repository_subgraph(
@@ -51,10 +59,16 @@ class GraphService:
         language: str | None = None,
         include_tests: bool = True,
     ) -> GraphResponse:
-        await self._ensure_repository(db, repository_id)
+        repo = await self._get_repository(db, repository_id)
+        if repo.active_generation_id is None:
+            return GraphResponse(repository_id=repository_id, nodes=[], edges=[])
+
         stmt = (
             select(CodeFile)
-            .where(CodeFile.repository_id == repository_id)
+            .where(
+                CodeFile.repository_id == repository_id,
+                CodeFile.generation_id == repo.active_generation_id,
+            )
             .order_by(CodeFile.path)
             .limit(max_nodes)
         )
@@ -72,6 +86,7 @@ class GraphService:
         edge_result = await db.execute(
             select(DependencyEdge).where(
                 DependencyEdge.repository_id == repository_id,
+                DependencyEdge.generation_id == repo.active_generation_id,
                 DependencyEdge.source_file_id.in_(file_ids),
                 DependencyEdge.target_file_id.in_(file_ids),
             )
@@ -79,15 +94,20 @@ class GraphService:
         edges = list(edge_result.scalars().all())
         return self._response(repository_id, nodes, edges)
 
-    async def _ensure_repository(self, db: AsyncSession, repository_id: UUID | Any) -> None:
+    async def _get_repository(self, db: AsyncSession, repository_id: UUID | Any) -> Repository:
         repo = await db.get(Repository, repository_id)
         if repo is None:
             raise RepositoryNotFoundError(
                 f"Repository with id={repository_id} does not exist"
             )
+        return repo
 
     async def _load_files(
-        self, db: AsyncSession, repository_id: UUID | Any, file_ids: set[int]
+        self,
+        db: AsyncSession,
+        repository_id: UUID | Any,
+        active_generation_id: UUID,
+        file_ids: set[int],
     ) -> list[CodeFile]:
         if not file_ids:
             return []
@@ -95,6 +115,7 @@ class GraphService:
             select(CodeFile)
             .where(
                 CodeFile.repository_id == repository_id,
+                CodeFile.generation_id == active_generation_id,
                 CodeFile.id.in_(file_ids),
             )
             .order_by(CodeFile.path)
