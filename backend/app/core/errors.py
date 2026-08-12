@@ -39,6 +39,18 @@ class PrivateRepositoryNotSupportedError(GitVaneError):
     message = "Private repositories are not yet supported. Please use a public repository URL."
 
 
+class SecurityValidationError(GitVaneError):
+    message = "Security validation failed"
+
+
+class SSRFValidationError(SecurityValidationError):
+    message = "Target URL or IP address failed SSRF safety checks"
+
+
+class ResourceLimitExceededError(SecurityValidationError):
+    message = "Repository ingestion resource limit exceeded"
+
+
 class AuthenticationError(GitVaneError):
     message = "Invalid or expired credentials"
 

@@ -208,6 +208,9 @@ class IndexGeneration(Base):
     terminal_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    cleaned_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     __table_args__ = (
         Index("idx_index_generations_repo_status", "repository_id", "status"),

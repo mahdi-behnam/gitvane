@@ -6,11 +6,19 @@ from typing import Any, Dict, List, Optional, cast
 
 import git
 
-from app.core.errors import GitOperationError, PrivateRepositoryNotSupportedError
+from app.core.errors import (
+    GitOperationError,
+    GitVaneError,
+    PrivateRepositoryNotSupportedError,
+)
+from app.services.security_validator import RepositoryIngestionValidator
 
 
 class GitService:
-    """Service to handle Git operations using GitPython"""
+    """Service to handle Git operations using GitPython with Security Boundary enforcement."""
+
+    def __init__(self, validator: Optional[RepositoryIngestionValidator] = None) -> None:
+        self.validator = validator or RepositoryIngestionValidator()
 
     def _get_authenticated_url(self, url: str, pat: Optional[str] = None) -> str:
         if not pat:
@@ -28,11 +36,16 @@ class GitService:
         return err_msg
 
     def verify_public_accessibility(self, clone_url: str, pat: Optional[str] = None) -> None:
-        """Verifies if the remote repository is publicly accessible."""
+        """Verifies if the remote repository is publicly accessible and safe from SSRF."""
+        # 1. Enforce scheme & SSRF IP validation
+        self.validator.validate_dns_and_ssrf(clone_url)
+
         auth_url = self._get_authenticated_url(clone_url, pat)
         try:
             g = git.cmd.Git()
             g.ls_remote("--symref", auth_url, "HEAD", env={"GIT_TERMINAL_PROMPT": "0"})
+        except GitVaneError:
+            raise
         except git.exc.GitCommandError as e:
             err_msg = self._sanitize_error_message(str(e), pat)
             stderr_msg = self._sanitize_error_message(getattr(e, "stderr", "") or "", pat)
@@ -57,7 +70,14 @@ class GitService:
     def clone_repository(
         self, clone_url: str, target_path: str | Path, branch: Optional[str] = None, pat: Optional[str] = None
     ) -> git.Repo:
-        """Clones a remote repository to the specified target path."""
+        """Clones a remote repository to the specified target path after security validation."""
+        # 1. Workspace path containment validation
+        target_path_obj = Path(target_path)
+        self.validator.validate_path_containment(target_path_obj)
+
+        # 2. SSRF protection validation
+        self.validator.validate_dns_and_ssrf(clone_url)
+
         auth_url = self._get_authenticated_url(clone_url, pat)
         try:
             os.makedirs(os.path.dirname(target_path), exist_ok=True)
@@ -65,8 +85,14 @@ class GitService:
             if branch:
                 kwargs["branch"] = branch
 
-            repo = git.Repo.clone_from(auth_url, str(target_path), **kwargs)  # type: ignore
+            env = self.validator.get_sandbox_execution_env()
+            repo = git.Repo.clone_from(auth_url, str(target_path), env=env, **kwargs)  # type: ignore
+
+            # 3. Post-clone resource limit validation
+            self.validator.validate_repository_limits(target_path)
             return repo
+        except GitVaneError:
+            raise
         except git.exc.GitCommandError as e:
             err_msg = self._sanitize_error_message(str(e), pat)
             raise GitOperationError(f"Failed to clone repository: {err_msg}") from e
