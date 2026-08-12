@@ -5,6 +5,7 @@ import uuid
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
     UUID,
+    CheckConstraint,
     DateTime,
     ForeignKey,
     Index,
@@ -14,6 +15,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
     func,
+    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -80,6 +82,28 @@ class Repository(Base):
     current_ref: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     status: Mapped[str] = mapped_column(String, default="pending", nullable=False)
     last_indexed_commit: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+
+    active_generation_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey(
+            "index_generations.id",
+            ondelete="SET NULL",
+            use_alter=True,
+            name="fk_repositories_active_generation_id",
+        ),
+        nullable=True,
+    )
+    desired_generation_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey(
+            "index_generations.id",
+            ondelete="SET NULL",
+            use_alter=True,
+            name="fk_repositories_desired_generation_id",
+        ),
+        nullable=True,
+    )
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -95,15 +119,33 @@ class Repository(Base):
     owner_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
+    encrypted_pat: Mapped[Optional[str]] = mapped_column(String, nullable=True)
 
     # Constraints & Indices
     __table_args__ = (
         Index("idx_repositories_owner_id", "owner_id"),
+        Index("idx_repositories_active_gen", "active_generation_id"),
+        Index("idx_repositories_desired_gen", "desired_generation_id"),
     )
-    encrypted_pat: Mapped[Optional[str]] = mapped_column(String, nullable=True)
 
     # Relationships
     owner = relationship("User", back_populates="repositories")
+    active_generation = relationship(
+        "IndexGeneration",
+        foreign_keys=[active_generation_id],
+        post_update=True,
+    )
+    desired_generation = relationship(
+        "IndexGeneration",
+        foreign_keys=[desired_generation_id],
+        post_update=True,
+    )
+    generations = relationship(
+        "IndexGeneration",
+        foreign_keys="IndexGeneration.repository_id",
+        back_populates="repository",
+        cascade="all, delete-orphan",
+    )
     commits = relationship(
         "Commit", back_populates="repository", cascade="all, delete-orphan"
     )
@@ -124,6 +166,79 @@ class Repository(Base):
     )
     evaluation_runs = relationship(
         "EvaluationRun", back_populates="repository", cascade="all, delete-orphan"
+    )
+
+
+class IndexGeneration(Base):
+    __tablename__ = "index_generations"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    repository_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("repositories.id", ondelete="CASCADE"), nullable=False
+    )
+    requested_ref: Mapped[str] = mapped_column(Text, nullable=False)
+    commit_sha: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    pipeline_version: Mapped[str] = mapped_column(Text, nullable=False)
+    parser_version: Mapped[str] = mapped_column(Text, nullable=False)
+    chunker_version: Mapped[str] = mapped_column(Text, nullable=False)
+    embedding_backend: Mapped[str] = mapped_column(Text, nullable=False)
+    embedding_model: Mapped[str] = mapped_column(Text, nullable=False)
+    embedding_dimension: Mapped[int] = mapped_column(Integer, nullable=False)
+    embedding_config_hash: Mapped[str] = mapped_column(Text, nullable=False)
+    status: Mapped[str] = mapped_column(Text, nullable=False)
+    stage_lease_owner: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    stage_lease_expires_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    stage_attempt: Mapped[int] = mapped_column(
+        Integer, server_default="0", default=0, nullable=False
+    )
+    error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+    completed_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    terminal_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+    __table_args__ = (
+        Index("idx_index_generations_repo_status", "repository_id", "status"),
+        Index("idx_index_generations_status_lease", "status", "stage_lease_expires_at"),
+        CheckConstraint(
+            "status IN ('queued', 'preparing', 'parsing', 'embedding', 'finalizing', 'completed', 'failed', 'cancelled', 'superseded')",
+            name="ck_index_generations_status",
+        ),
+    )
+
+    # Relationships
+    repository = relationship(
+        "Repository", foreign_keys=[repository_id], back_populates="generations"
+    )
+    embedding_batches = relationship(
+        "EmbeddingBatch", back_populates="generation", cascade="all, delete-orphan"
+    )
+    code_files = relationship(
+        "CodeFile", back_populates="generation", cascade="all, delete-orphan"
+    )
+    symbols = relationship(
+        "Symbol", back_populates="generation", cascade="all, delete-orphan"
+    )
+    dependency_edges = relationship(
+        "DependencyEdge", back_populates="generation", cascade="all, delete-orphan"
+    )
+    code_chunks = relationship(
+        "CodeChunk", back_populates="generation", cascade="all, delete-orphan"
+    )
+    code_embeddings = relationship(
+        "CodeEmbedding", back_populates="generation", cascade="all, delete-orphan"
     )
 
 
@@ -165,6 +280,9 @@ class CodeFile(Base):
     repository_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("repositories.id", ondelete="CASCADE"), nullable=False
     )
+    generation_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("index_generations.id", ondelete="CASCADE"), nullable=True
+    )
     path: Mapped[str] = mapped_column(String, nullable=False)
     language: Mapped[str] = mapped_column(String, nullable=False)
     content_hash: Mapped[str] = mapped_column(String, nullable=False)
@@ -184,11 +302,13 @@ class CodeFile(Base):
 
     # Constraints
     __table_args__ = (
-        UniqueConstraint("repository_id", "path", name="uq_code_files_repository_path"),
+        Index("idx_code_files_generation_id", "generation_id"),
+        UniqueConstraint("generation_id", "path", name="uq_code_files_generation_path"),
     )
 
     # Relationships
     repository = relationship("Repository", back_populates="code_files")
+    generation = relationship("IndexGeneration", back_populates="code_files")
     symbols = relationship(
         "Symbol", back_populates="code_file", cascade="all, delete-orphan"
     )
@@ -203,6 +323,9 @@ class Symbol(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     repository_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("repositories.id", ondelete="CASCADE"), nullable=False
+    )
+    generation_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("index_generations.id", ondelete="CASCADE"), nullable=True
     )
     file_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("code_files.id", ondelete="CASCADE"), nullable=False
@@ -230,11 +353,13 @@ class Symbol(Base):
             unique=True,
         ),
         Index("idx_symbols_repository_id", "repository_id"),
+        Index("idx_symbols_generation_id", "generation_id"),
         Index("idx_symbols_file_id", "file_id"),
     )
 
     # Relationships
     repository = relationship("Repository", back_populates="symbols")
+    generation = relationship("IndexGeneration", back_populates="symbols")
     code_file = relationship("CodeFile", back_populates="symbols")
     code_chunks = relationship(
         "CodeChunk", back_populates="symbol", cascade="all, delete-orphan"
@@ -247,6 +372,9 @@ class DependencyEdge(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     repository_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("repositories.id", ondelete="CASCADE"), nullable=False
+    )
+    generation_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("index_generations.id", ondelete="CASCADE"), nullable=True
     )
     source_file_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("code_files.id", ondelete="CASCADE"), nullable=False
@@ -272,12 +400,14 @@ class DependencyEdge(Base):
     # Constraints & Indices
     __table_args__ = (
         Index("idx_dependency_edges_repository_id", "repository_id"),
+        Index("idx_dependency_edges_generation_id", "generation_id"),
         Index("idx_dependency_edges_source_file_id", "source_file_id"),
         Index("idx_dependency_edges_target_file_id", "target_file_id"),
     )
 
     # Relationships
     repository = relationship("Repository", back_populates="dependency_edges")
+    generation = relationship("IndexGeneration", back_populates="dependency_edges")
     source_file = relationship("CodeFile", foreign_keys=[source_file_id])
     target_file = relationship("CodeFile", foreign_keys=[target_file_id])
     source_symbol = relationship("Symbol", foreign_keys=[source_symbol_id])
@@ -290,6 +420,9 @@ class CodeChunk(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     repository_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("repositories.id", ondelete="CASCADE"), nullable=False
+    )
+    generation_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("index_generations.id", ondelete="CASCADE"), nullable=True
     )
     file_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("code_files.id", ondelete="CASCADE"), nullable=False
@@ -310,11 +443,13 @@ class CodeChunk(Base):
     # Constraints & Indices
     __table_args__ = (
         Index("idx_code_chunks_repository_id", "repository_id"),
+        Index("idx_code_chunks_generation_id", "generation_id"),
         Index("idx_code_chunks_file_id", "file_id"),
     )
 
     # Relationships
     repository = relationship("Repository", back_populates="code_chunks")
+    generation = relationship("IndexGeneration", back_populates="code_chunks")
     code_file = relationship("CodeFile", back_populates="code_chunks")
     symbol = relationship("Symbol", back_populates="code_chunks")
     embedding = relationship(
@@ -326,6 +461,9 @@ class CodeEmbedding(Base):
     __tablename__ = "code_embeddings"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    generation_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("index_generations.id", ondelete="CASCADE"), nullable=True
+    )
     chunk_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("code_chunks.id", ondelete="CASCADE"), nullable=False
     )
@@ -340,10 +478,97 @@ class CodeEmbedding(Base):
     # Constraints & Indices
     __table_args__ = (
         Index("idx_code_embeddings_chunk_id", "chunk_id"),
+        Index("idx_code_embeddings_generation_id", "generation_id"),
+        UniqueConstraint("generation_id", "chunk_id", "model", name="uq_code_embeddings_gen_chunk_model"),
     )
 
     # Relationships
+    generation = relationship("IndexGeneration", back_populates="code_embeddings")
     code_chunk = relationship("CodeChunk", back_populates="embedding")
+
+
+class EmbeddingBatch(Base):
+    __tablename__ = "embedding_batches"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    generation_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("index_generations.id", ondelete="CASCADE"), nullable=False
+    )
+    batch_index: Mapped[int] = mapped_column(Integer, nullable=False)
+    status: Mapped[str] = mapped_column(Text, default="pending", nullable=False)
+    chunk_start_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    chunk_end_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    lease_owner: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    lease_expires_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    attempt_count: Mapped[int] = mapped_column(
+        Integer, server_default="0", default=0, nullable=False
+    )
+    started_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    completed_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    last_error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    __table_args__ = (
+        UniqueConstraint("generation_id", "batch_index", name="uq_embedding_batches_gen_index"),
+        Index("idx_embedding_batches_gen_status", "generation_id", "status"),
+        Index("idx_embedding_batches_status_lease", "status", "lease_expires_at"),
+        CheckConstraint(
+            "status IN ('pending', 'processing', 'completed', 'failed')",
+            name="ck_embedding_batches_status",
+        ),
+    )
+
+    # Relationships
+    generation = relationship("IndexGeneration", back_populates="embedding_batches")
+
+
+class OutboxEvent(Base):
+    __tablename__ = "outbox_events"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    aggregate_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    event_type: Mapped[str] = mapped_column(Text, nullable=False)
+    payload: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
+    status: Mapped[str] = mapped_column(Text, default="pending", nullable=False)
+    attempt_count: Mapped[int] = mapped_column(
+        Integer, server_default="0", default=0, nullable=False
+    )
+    next_attempt_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    locked_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    locked_by: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    published_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    last_error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    __table_args__ = (
+        Index(
+            "idx_outbox_events_pending",
+            "next_attempt_at",
+            "created_at",
+            postgresql_where=text("status = 'pending'"),
+        ),
+        CheckConstraint(
+            "status IN ('pending', 'processing', 'published', 'failed')",
+            name="ck_outbox_events_status",
+        ),
+    )
 
 
 class AnalysisRun(Base):
