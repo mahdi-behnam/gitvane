@@ -30,6 +30,8 @@ dependencies = [
     "bcrypt",
     "pyjwt",
     "cryptography",
+    "celery>=5.3.0",
+    "kombu>=5.3.0",
     "email-validator>=2.3.0",
 ]
 

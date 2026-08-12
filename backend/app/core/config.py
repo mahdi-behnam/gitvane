@@ -31,6 +31,8 @@ class Settings(BaseSettings):
     DATABASE_POOL_TIMEOUT: int = 30
 
     REDIS_URL: str = "redis://localhost:6379/0"
+    CELERY_BROKER_URL: str = "amqp://guest:guest@localhost:5672//"
+    CELERY_RESULT_BACKEND: Optional[str] = "redis://localhost:6379/1"
 
     GITVANE_WORKSPACE: str = "./workspace/repos"
     MAX_INDEX_FILE_SIZE_KB: int = 512
