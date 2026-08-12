@@ -5,6 +5,19 @@ from app.db.models import Repository
 from app.core.errors import RepositoryNotFoundError
 from app.main import app
 
+from sqlalchemy.ext.compiler import compiles
+from sqlalchemy.dialects.postgresql import JSONB
+from pgvector.sqlalchemy import Vector
+
+@compiles(JSONB, "sqlite")
+def _compile_jsonb_sqlite(type_, compiler, **kw):
+    return "JSON"
+
+@compiles(Vector, "sqlite")
+def _compile_vector_sqlite(type_, compiler, **kw):
+    return "TEXT"
+
+
 # Configure MagicMock globally to support awaitable execute and commit
 mock_result = MagicMock()
 mock_result.scalar_one_or_none.return_value = 1
