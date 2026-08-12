@@ -139,6 +139,18 @@ async def claim_parser_stage_lease(
     if not row:
         return None
 
+    from app.services.progress_publisher import ProgressStreamPublisher
+    publisher = ProgressStreamPublisher()
+    await publisher.publish_progress(
+        generation_id=row.id,
+        payload={
+            "status": "preparing",
+            "phase": "preparing",
+            "phase_name": "Preparing repository workspace",
+            "stage_attempt": row.stage_attempt,
+        },
+    )
+
     return {
         "id": row.id,
         "repository_id": row.repository_id,
@@ -260,6 +272,17 @@ async def transition_preparing_to_parsing(
     )
     await db.execute(stmt)
 
+    from app.services.progress_publisher import ProgressStreamPublisher
+    publisher = ProgressStreamPublisher()
+    await publisher.publish_progress(
+        generation_id=generation_id,
+        payload={
+            "status": "parsing",
+            "phase": "parsing",
+            "phase_name": "Parsing repository files",
+        },
+    )
+
 
 def get_ephemeral_workspace_path(generation_id: UUID, commit_sha: str) -> Path:
     """Return workspace path: /workspaces/{generation_id}/{commit_sha}"""
@@ -290,6 +313,9 @@ async def final_parser_checkpoint(
         raise FenceCheckFailedError("Fence check failed at final parser checkpoint.")
 
     total_chunks = len(chunks)
+    from app.services.progress_publisher import ProgressStreamPublisher
+    publisher = ProgressStreamPublisher()
+
     if total_chunks > 0:
         num_batches = math.ceil(total_chunks / batch_size)
         batch_rows = []
@@ -345,6 +371,17 @@ async def final_parser_checkpoint(
             )
         )
         await db.execute(stmt)
+
+        await publisher.publish_progress(
+            generation_id=generation_id,
+            payload={
+                "status": "embedding",
+                "phase": "embedding",
+                "phase_name": "Generating embeddings",
+                "chunks_total": total_chunks,
+                "batches_total": num_batches,
+            },
+        )
         return {"next_status": "embedding", "num_batches": num_batches}
 
     else:
@@ -375,4 +412,13 @@ async def final_parser_checkpoint(
             )
         )
         await db.execute(stmt)
+
+        await publisher.publish_progress(
+            generation_id=generation_id,
+            payload={
+                "status": "finalizing",
+                "phase": "finalizing",
+                "phase_name": "Finalizing indexing",
+            },
+        )
         return {"next_status": "finalizing", "num_batches": 0}

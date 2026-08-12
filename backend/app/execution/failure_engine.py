@@ -74,6 +74,18 @@ async def handle_parser_failure(
     )
     upd_res = await db.execute(stmt)
     if upd_res.rowcount > 0:
+        from app.services.progress_publisher import ProgressStreamPublisher
+        publisher = ProgressStreamPublisher()
+        await publisher.publish_progress(
+            generation_id=generation_id,
+            payload={
+                "status": target_status,
+                "phase": target_status,
+                "phase_name": f"Indexing {target_status}",
+                "error": error_message,
+            },
+            is_terminal=True,
+        )
         return target_status
     return None
 
@@ -145,5 +157,18 @@ async def handle_embedding_batch_failure(
     )
     upd_res = await db.execute(upd_gen_stmt)
     if upd_res.rowcount > 0:
+        from app.services.progress_publisher import ProgressStreamPublisher
+        publisher = ProgressStreamPublisher()
+        await publisher.publish_progress(
+            generation_id=generation_id,
+            payload={
+                "status": target_status,
+                "phase": target_status,
+                "phase_name": f"Indexing {target_status}",
+                "error": f"Embedding batch {batch_index} failed: {error_message}",
+            },
+            is_terminal=True,
+        )
         return target_status
     return None
+

@@ -82,6 +82,18 @@ async def activate_generation(
         gen.status = "superseded"
         gen.terminal_at = now_utc
         gen.updated_at = now_utc
+
+        from app.services.progress_publisher import ProgressStreamPublisher
+        publisher = ProgressStreamPublisher()
+        await publisher.publish_progress(
+            generation_id=gen.id,
+            payload={
+                "status": "superseded",
+                "phase": "superseded",
+                "phase_name": "Indexing superseded",
+            },
+            is_terminal=True,
+        )
         return {"status": "superseded", "reason": "generation_fenced_by_newer_desired"}
 
     # Case 5: Finalizing & desired -> Activate!
@@ -92,6 +104,19 @@ async def activate_generation(
     gen.completed_at = now_utc
     gen.terminal_at = now_utc
     gen.updated_at = now_utc
+
+    from app.services.progress_publisher import ProgressStreamPublisher
+    publisher = ProgressStreamPublisher()
+    await publisher.publish_progress(
+        generation_id=gen.id,
+        payload={
+            "status": "completed",
+            "phase": "completed",
+            "phase_name": "Indexing complete",
+            "progress_percentage": 100.0,
+        },
+        is_terminal=True,
+    )
 
     # Supersede previous active generation if distinct
     if previous_active_id and previous_active_id != gen.id:
@@ -107,6 +132,15 @@ async def activate_generation(
             prev_gen.status = "superseded"
             prev_gen.terminal_at = now_utc
             prev_gen.updated_at = now_utc
+            await publisher.publish_progress(
+                generation_id=prev_gen.id,
+                payload={
+                    "status": "superseded",
+                    "phase": "superseded",
+                    "phase_name": "Indexing superseded",
+                },
+                is_terminal=True,
+            )
 
     return {
         "status": "completed",

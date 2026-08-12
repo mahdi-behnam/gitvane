@@ -32,6 +32,7 @@ from app.schemas.indexing import (
 )
 from app.services.git_service import GitService
 from app.services.indexing_service import IndexingService
+from app.services.progress_publisher import ProgressStreamPublisher, get_progress_publisher
 from app.services.progress_tracker import IndexingProgressTracker
 from app.services.repository_service import RepositoryService
 
@@ -51,6 +52,7 @@ async def index_repository(
     db: Annotated[AsyncSession, Depends(get_db)],
     repo_svc: Annotated[RepositoryService, Depends(get_repository_service)],
     current_user: Annotated[User, Depends(get_current_user)],
+    publisher: Annotated[ProgressStreamPublisher, Depends(get_progress_publisher)],
 ) -> IndexRepositoryResponse:
     # 1. Lock Repository row (SELECT ... FOR UPDATE)
     stmt = (
@@ -125,6 +127,15 @@ async def index_repository(
         ):
             prev_gen.status = "superseded"
             prev_gen.terminal_at = datetime.now(timezone.utc)
+            await publisher.publish_progress(
+                generation_id=prev_gen.id,
+                payload={
+                    "status": "superseded",
+                    "phase": "superseded",
+                    "phase_name": "Indexing superseded by new request",
+                },
+                is_terminal=True,
+            )
 
     # 6. Insert OutboxEvent
     outbox_event = OutboxEvent(
@@ -140,6 +151,16 @@ async def index_repository(
 
     # 7. Commit transaction
     await db.commit()
+
+    # Emit initial progress event
+    await publisher.publish_progress(
+        generation_id=new_gen.id,
+        payload={
+            "status": "queued",
+            "phase": "queued",
+            "phase_name": "Indexing request queued",
+        },
+    )
 
     # 8. Return HTTP 202 Accepted with generation_id response payload
     return IndexRepositoryResponse(
@@ -174,6 +195,178 @@ async def get_index_status(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)
         ) from exc
+
+
+@router.get("/{generation_id}/stream")
+@router.get("/generations/{generation_id}/stream")
+async def stream_generation_progress(
+    generation_id: UUID,
+    request: Request,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    publisher: Annotated[ProgressStreamPublisher, Depends(get_progress_publisher)],
+    token: str | None = Query(None),
+) -> StreamingResponse:
+    """SSE Streaming Endpoint (Section 15).
+    
+    Sequence:
+    1. Capture current Redis stream tail ID `C` (using XREVRANGE).
+    2. Fetch PostgreSQL generation snapshot (IndexGeneration state, batch progress, error message).
+    3. Yield snapshot event to client as first SSE payload.
+    4. Loop streaming: XREAD BLOCK 15000 COUNT 100 STREAMS gitvane:progress:{generation_id} C.
+    Sets SSE `id:` field to Redis stream ID for every streamed progress event.
+    """
+    auth_token = token
+    if not auth_token:
+        auth_header = request.headers.get("authorization")
+        if auth_header and auth_header.startswith("Bearer "):
+            auth_token = auth_header.split(" ")[1]
+        elif "access_token" in request.cookies:
+            auth_token = request.cookies.get("access_token")
+
+    if not auth_token:
+        raise AuthenticationError("Not authenticated")
+
+    try:
+        payload = decode_access_token(auth_token)
+        user_id = int(payload["sub"])
+    except Exception as exc:
+        raise AuthenticationError("Invalid or expired token") from exc
+
+    result = await db.execute(select(User).where(User.id == user_id, User.is_active.is_(True)))
+    user = result.scalars().first()
+    if not user:
+        raise AuthenticationError("User not found or inactive")
+
+    # Verify generation exists and user owns repository
+    gen_stmt = (
+        select(IndexGeneration, Repository)
+        .join(Repository, IndexGeneration.repository_id == Repository.id)
+        .where(IndexGeneration.id == generation_id, Repository.owner_id == user.id)
+    )
+    res = await db.execute(gen_stmt)
+    row = res.fetchone()
+    if not row:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"IndexGeneration with id={generation_id} not found or access denied",
+        )
+    gen, repo = row
+
+    async def sse_event_generator():
+        # 1. Capture current Redis stream tail ID C
+        c_id = await publisher.get_tail_id(generation_id)
+
+        # 2. Fetch PostgreSQL generation snapshot
+        snap_stmt = select(IndexGeneration).where(IndexGeneration.id == generation_id)
+        snap_res = await db.execute(snap_stmt)
+        snap_gen = snap_res.scalar_one_or_none() or gen
+
+        from sqlalchemy import func
+        from app.db.models import EmbeddingBatch
+        batch_total_stmt = select(func.count(EmbeddingBatch.id)).where(EmbeddingBatch.generation_id == generation_id)
+        batch_completed_stmt = select(func.count(EmbeddingBatch.id)).where(
+            EmbeddingBatch.generation_id == generation_id,
+            EmbeddingBatch.status == "completed",
+        )
+        batch_failed_stmt = select(func.count(EmbeddingBatch.id)).where(
+            EmbeddingBatch.generation_id == generation_id,
+            EmbeddingBatch.status == "failed",
+        )
+
+        b_total = (await db.execute(batch_total_stmt)).scalar() or 0
+        b_completed = (await db.execute(batch_completed_stmt)).scalar() or 0
+        b_failed = (await db.execute(batch_failed_stmt)).scalar() or 0
+
+        snapshot_payload = {
+            "generation_id": str(snap_gen.id),
+            "repository_id": str(snap_gen.repository_id),
+            "status": snap_gen.status,
+            "phase": snap_gen.status,
+            "phase_name": f"Generation is {snap_gen.status}",
+            "requested_ref": snap_gen.requested_ref,
+            "commit_sha": snap_gen.commit_sha,
+            "error_message": snap_gen.error_message,
+            "stage_attempt": snap_gen.stage_attempt,
+            "batches_total": b_total,
+            "batches_completed": b_completed,
+            "batches_failed": b_failed,
+            "event_type": "snapshot",
+        }
+
+        # 3. Yield snapshot event as first SSE payload
+        snapshot_json = json.dumps(snapshot_payload)
+        yield f"id: {c_id}\nevent: progress\ndata: {snapshot_json}\n\n"
+
+        if snap_gen.status in {"completed", "failed", "cancelled", "superseded"}:
+            return
+
+        # 4. Loop streaming: XREAD BLOCK 15000 COUNT 100 STREAMS gitvane:progress:{generation_id} C
+        last_read_id = c_id
+        terminal_reached = False
+
+        while not terminal_reached:
+            if await request.is_disconnected():
+                logger.info("SSE client disconnected for generation stream %s", generation_id)
+                break
+
+            try:
+                entries = await publisher.read_stream(
+                    generation_id=generation_id,
+                    last_id=last_read_id,
+                    block_ms=15000,
+                    count=100,
+                )
+
+                if entries:
+                    for msg_id, payload in entries:
+                        last_read_id = msg_id
+                        payload_json = json.dumps(payload) if isinstance(payload, dict) else str(payload)
+                        yield f"id: {msg_id}\nevent: progress\ndata: {payload_json}\n\n"
+
+                        status_val = payload.get("status") if isinstance(payload, dict) else None
+                        if status_val in {"completed", "failed", "cancelled", "superseded"}:
+                            terminal_reached = True
+                            break
+                else:
+                    # Timeout / ping heartbeat
+                    yield ": ping\n\n"
+                    # Polling fallback check in PostgreSQL using request session
+                    try:
+                        db_gen_stmt = select(IndexGeneration.status, IndexGeneration.error_message).where(
+                            IndexGeneration.id == generation_id
+                        )
+                        db_res = await db.execute(db_gen_stmt)
+                        db_row = db_res.fetchone()
+                        if db_row and db_row.status in {"completed", "failed", "cancelled", "superseded"}:
+                            term_payload = {
+                                "generation_id": str(generation_id),
+                                "status": db_row.status,
+                                "phase": db_row.status,
+                                "phase_name": f"Generation is {db_row.status}",
+                                "error": db_row.error_message,
+                            }
+                            yield f"id: {last_read_id}\nevent: progress\ndata: {json.dumps(term_payload)}\n\n"
+                            terminal_reached = True
+                            break
+                    except Exception as poll_exc:
+                        logger.debug("SSE polling fallback check ignored exception: %s", poll_exc)
+
+            except asyncio.CancelledError:
+                break
+            except Exception as exc:
+                logger.warning("Error in SSE stream loop for generation %s: %s", generation_id, exc)
+                yield ": ping\n\n"
+                await asyncio.sleep(2.0)
+
+    return StreamingResponse(
+        sse_event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 @router.get("/{repository_id}/index/events")

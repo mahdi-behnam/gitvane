@@ -23,6 +23,9 @@ api_router.include_router(
 api_router.include_router(
     indexing.router, prefix="/repositories", tags=["indexing"]
 )  # prefix is nested under repositories
+api_router.include_router(
+    indexing.router, prefix="/indexing", tags=["indexing"]
+)
 api_router.include_router(impact.router, prefix="/impact", tags=["impact"])
 api_router.include_router(search.router, prefix="/search", tags=["search"])
 api_router.include_router(tests.router, prefix="/tests", tags=["tests"])

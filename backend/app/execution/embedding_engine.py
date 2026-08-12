@@ -317,6 +317,17 @@ async def checkpoint_batch_completion(
             next_attempt_at=now_utc,
         )
         db.add(event)
+
+        from app.services.progress_publisher import ProgressStreamPublisher
+        publisher = ProgressStreamPublisher()
+        await publisher.publish_progress(
+            generation_id=generation_id,
+            payload={
+                "status": "finalizing",
+                "phase": "finalizing",
+                "phase_name": "Finalizing indexing",
+            },
+        )
         return {"completed": True, "finalized": True}
 
     return {"completed": True, "finalized": False}
