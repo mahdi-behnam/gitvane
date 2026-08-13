@@ -21,6 +21,9 @@ services:
       - "127.0.0.1:15672:15672"
 
   backend:
+    env_file:
+      - path: .env
+        required: false
     environment:
       - DEBUG=true
       - ENVIRONMENT=local
@@ -28,6 +31,9 @@ services:
       - ./backend:/app
 
   outbox-dispatcher:
+    env_file:
+      - path: .env
+        required: false
     environment:
       - DEBUG=true
       - ENVIRONMENT=local
@@ -35,6 +41,9 @@ services:
       - ./backend:/app
 
   reconciler:
+    env_file:
+      - path: .env
+        required: false
     environment:
       - DEBUG=true
       - ENVIRONMENT=local
@@ -42,6 +51,9 @@ services:
       - ./backend:/app
 
   celery-worker-cpu:
+    env_file:
+      - path: .env
+        required: false
     environment:
       - DEBUG=true
       - ENVIRONMENT=local
