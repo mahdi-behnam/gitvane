@@ -128,15 +128,16 @@ cd ..
 Copy-Item .env.example .env
 ```
 
-For host-local backend execution while PostgreSQL/Redis run in Docker, set the
-database host in `.env` to `localhost`:
+For host-local backend execution while PostgreSQL/Redis run in Docker, route application database connections through PgBouncer on `localhost:6432` (maintaining environment parity with production):
 
 ```env
-DATABASE_URL=postgresql+asyncpg://gitvane:gitvane@localhost:5432/gitvane
-SYNC_DATABASE_URL=postgresql+psycopg://gitvane:gitvane@localhost:5432/gitvane
+DATABASE_URL=postgresql+asyncpg://gitvane:gitvane@localhost:6432/gitvane
+SYNC_DATABASE_URL=postgresql+psycopg://gitvane:gitvane@localhost:6432/gitvane
 REDIS_URL=redis://localhost:6379/0
 GITVANE_WORKSPACE=./workspace/repos
 ```
+*(Note: Port `6432` routes through PgBouncer. If you need direct PostgreSQL access for administrative tools or DDL migrations, use port `5433`).*
+
 
 Start PostgreSQL and Redis:
 
@@ -199,26 +200,45 @@ npm run test:e2e
 
 ## Docker Compose Setup
 
-Run the full local stack:
+### Local Development Stack
+
+Run the full local stack (automatically merges `docker-compose.yml` and `docker-compose.override.yml`):
 
 ```powershell
 docker compose up --build
 ```
 
-In another shell, run migrations inside the backend container:
+This boots the application with source code hot-reloading (`./backend:/app`), debug mode enabled, and localhost debugging ports bound to `127.0.0.1` (`5433` for PostgreSQL, `6432` for PgBouncer, `6379` for Redis, and `15672` for RabbitMQ Management UI).
+
+In another shell, run database migrations inside the backend container:
 
 ```powershell
 docker compose exec backend alembic upgrade head
 ```
 
-The API is available at `http://localhost:8000`; the frontend is available at
-`http://localhost:3000`.
+The API is available at `http://localhost:8000`; the frontend is available at `http://localhost:3000`.
 
-GPU support is optional. By default, Docker Compose runs in CPU-only mode. If you have an NVIDIA GPU and want the container to use it, you can run the stack using the GPU override file:
+### Production Deployment Stack
+
+To run using the strict production configuration (network isolation, no published internal DB ports, resource quotas, and log rotation):
 
 ```powershell
-docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build -d
+docker compose -f docker-compose.yml up --build -d
 ```
+
+### GPU Support (Optional)
+
+By default, Docker Compose runs in CPU-only mode. If you have an NVIDIA GPU and the NVIDIA Container Toolkit installed:
+
+- **For local development with GPU:**
+  ```powershell
+  docker compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.gpu.yml up --build -d
+  ```
+- **For production deployment with GPU:**
+  ```powershell
+  docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build -d
+  ```
+
 
 _(Note: This requires the NVIDIA Container Toolkit installed on your host machine. If run without the GPU configuration override, the container will automatically and gracefully fall back to CPU-only execution)._
 

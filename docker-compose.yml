@@ -2,92 +2,190 @@ services:
   postgres:
     image: pgvector/pgvector:pg16
     container_name: gitvane-postgres
+    restart: unless-stopped
+    security_opt:
+      - "no-new-privileges:true"
     environment:
-      POSTGRES_USER: gitvane
-      POSTGRES_PASSWORD: gitvane
-      POSTGRES_DB: gitvane
-    ports:
-      - "5433:5432"
+      POSTGRES_USER: ${POSTGRES_USER:-gitvane}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-gitvane}
+      POSTGRES_DB: ${POSTGRES_DB:-gitvane}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - db-net
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U gitvane"]
-      interval: 5s
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-gitvane}"]
+      interval: 10s
       timeout: 5s
       retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1024M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   pgbouncer:
     image: edoburu/pgbouncer:v1.25.2-p0
     container_name: gitvane-pgbouncer
-    ports:
-      - "6432:6432"
+    restart: unless-stopped
+    security_opt:
+      - "no-new-privileges:true"
     environment:
-      - DB_USER=gitvane
-      - DB_PASSWORD=gitvane
+      - DB_USER=${POSTGRES_USER:-gitvane}
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-gitvane}
       - DB_HOST=postgres
       - DB_PORT=5432
-      - DB_NAME=gitvane
+      - DB_NAME=${POSTGRES_DB:-gitvane}
       - LISTEN_PORT=6432
       - POOL_MODE=transaction
       - MAX_PREPARED_STATEMENTS=100
+    networks:
+      - db-net
+      - backend-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h localhost -p 6432 -U ${POSTGRES_USER:-gitvane} || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     depends_on:
       postgres:
         condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   redis:
     image: redis:7-alpine
     container_name: gitvane-redis
-    ports:
-      - "6379:6379"
+    restart: unless-stopped
+    security_opt:
+      - "no-new-privileges:true"
     volumes:
       - redis_data:/data
+    networks:
+      - backend-net
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
+      interval: 10s
       timeout: 5s
       retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   rabbitmq:
     image: rabbitmq:4.3.4-management-alpine
     container_name: gitvane-rabbitmq
-    ports:
-      - "5672:5672"
-      - "15672:15672"
+    restart: unless-stopped
+    security_opt:
+      - "no-new-privileges:true"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-guest}
+    networks:
+      - backend-net
     healthcheck:
       test: ["CMD-SHELL", "rabbitmq-diagnostics -q ping"]
-      interval: 5s
+      interval: 10s
       timeout: 5s
       retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 1024M
+        reservations:
+          cpus: '0.2'
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
     container_name: gitvane-backend
+    restart: unless-stopped
+    security_opt:
+      - "no-new-privileges:true"
     ports:
-      - "8000:8000"
+      - "${BACKEND_PORT:-8000}:8000"
+    env_file:
+      - path: .env
+        required: false
     environment:
-      - DATABASE_URL=postgresql+asyncpg://gitvane:gitvane@pgbouncer:6432/gitvane
-      - SYNC_DATABASE_URL=postgresql+psycopg://gitvane:gitvane@pgbouncer:6432/gitvane
-      - REDIS_URL=redis://redis:6379/0
-      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672//
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-gitvane}:${POSTGRES_PASSWORD:-gitvane}@pgbouncer:6432/${POSTGRES_DB:-gitvane}
+      - SYNC_DATABASE_URL=postgresql+psycopg://${POSTGRES_USER:-gitvane}:${POSTGRES_PASSWORD:-gitvane}@pgbouncer:6432/${POSTGRES_DB:-gitvane}
+      - REDIS_URL=redis://${REDIS_HOST:-redis}:6379/0
+      - CELERY_BROKER_URL=amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASSWORD:-guest}@rabbitmq:5672//
       - GITVANE_WORKSPACE=/workspace/repos
-      - APP_NAME=GitVane
-      - ENVIRONMENT=docker
-      - DEBUG=true
+      - APP_NAME=${APP_NAME:-GitVane}
+      - ENVIRONMENT=${ENVIRONMENT:-production}
+      - DEBUG=${DEBUG:-false}
     volumes:
-      - ./backend:/app
       - repos_volume:/workspace/repos
       - huggingface_cache:/root/.cache/huggingface
+    networks:
+      - backend-net
+      - frontend-net
+    healthcheck:
+      test: ["CMD-SHELL", "python -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:8000/api/v1/health\")' || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
     depends_on:
       postgres:
         condition: service_healthy
       pgbouncer:
-        condition: service_started
+        condition: service_healthy
       redis:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2048M
+        reservations:
+          cpus: '0.25'
+          memory: 512M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   outbox-dispatcher:
     build:
@@ -95,22 +193,47 @@ services:
       dockerfile: Dockerfile
     container_name: gitvane-outbox-dispatcher
     command: python -m app.cli.dispatcher
+    restart: unless-stopped
+    security_opt:
+      - "no-new-privileges:true"
+    env_file:
+      - path: .env
+        required: false
     environment:
-      - DATABASE_URL=postgresql+asyncpg://gitvane:gitvane@pgbouncer:6432/gitvane
-      - SYNC_DATABASE_URL=postgresql+psycopg://gitvane:gitvane@pgbouncer:6432/gitvane
-      - REDIS_URL=redis://redis:6379/0
-      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672//
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-gitvane}:${POSTGRES_PASSWORD:-gitvane}@pgbouncer:6432/${POSTGRES_DB:-gitvane}
+      - SYNC_DATABASE_URL=postgresql+psycopg://${POSTGRES_USER:-gitvane}:${POSTGRES_PASSWORD:-gitvane}@pgbouncer:6432/${POSTGRES_DB:-gitvane}
+      - REDIS_URL=redis://${REDIS_HOST:-redis}:6379/0
+      - CELERY_BROKER_URL=amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASSWORD:-guest}@rabbitmq:5672//
       - GITVANE_WORKSPACE=/workspace/repos
-      - APP_NAME=GitVane
-      - ENVIRONMENT=docker
-      - DEBUG=true
+      - APP_NAME=${APP_NAME:-GitVane}
+      - ENVIRONMENT=${ENVIRONMENT:-production}
+      - DEBUG=${DEBUG:-false}
+    volumes:
+      - repos_volume:/workspace/repos
+    networks:
+      - backend-net
     depends_on:
+      postgres:
+        condition: service_healthy
       pgbouncer:
-        condition: service_started
+        condition: service_healthy
       rabbitmq:
         condition: service_healthy
       redis:
         condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   reconciler:
     build:
@@ -118,22 +241,47 @@ services:
       dockerfile: Dockerfile
     container_name: gitvane-reconciler
     command: python -m app.cli.reconciler
+    restart: unless-stopped
+    security_opt:
+      - "no-new-privileges:true"
+    env_file:
+      - path: .env
+        required: false
     environment:
-      - DATABASE_URL=postgresql+asyncpg://gitvane:gitvane@pgbouncer:6432/gitvane
-      - SYNC_DATABASE_URL=postgresql+psycopg://gitvane:gitvane@pgbouncer:6432/gitvane
-      - REDIS_URL=redis://redis:6379/0
-      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672//
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-gitvane}:${POSTGRES_PASSWORD:-gitvane}@pgbouncer:6432/${POSTGRES_DB:-gitvane}
+      - SYNC_DATABASE_URL=postgresql+psycopg://${POSTGRES_USER:-gitvane}:${POSTGRES_PASSWORD:-gitvane}@pgbouncer:6432/${POSTGRES_DB:-gitvane}
+      - REDIS_URL=redis://${REDIS_HOST:-redis}:6379/0
+      - CELERY_BROKER_URL=amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASSWORD:-guest}@rabbitmq:5672//
       - GITVANE_WORKSPACE=/workspace/repos
-      - APP_NAME=GitVane
-      - ENVIRONMENT=docker
-      - DEBUG=true
+      - APP_NAME=${APP_NAME:-GitVane}
+      - ENVIRONMENT=${ENVIRONMENT:-production}
+      - DEBUG=${DEBUG:-false}
+    volumes:
+      - repos_volume:/workspace/repos
+    networks:
+      - backend-net
     depends_on:
+      postgres:
+        condition: service_healthy
       pgbouncer:
-        condition: service_started
+        condition: service_healthy
       rabbitmq:
         condition: service_healthy
       redis:
         condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   celery-worker-cpu:
     build:
@@ -141,25 +289,48 @@ services:
       dockerfile: Dockerfile
     container_name: gitvane-celery-worker-cpu
     command: celery -A app.core.celery_app worker -Q indexing_cpu,workflow_control,evaluation_cpu --loglevel=info --concurrency=4
+    restart: unless-stopped
+    security_opt:
+      - "no-new-privileges:true"
+    env_file:
+      - path: .env
+        required: false
     environment:
-      - DATABASE_URL=postgresql+asyncpg://gitvane:gitvane@pgbouncer:6432/gitvane
-      - SYNC_DATABASE_URL=postgresql+psycopg://gitvane:gitvane@pgbouncer:6432/gitvane
-      - REDIS_URL=redis://redis:6379/0
-      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672//
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-gitvane}:${POSTGRES_PASSWORD:-gitvane}@pgbouncer:6432/${POSTGRES_DB:-gitvane}
+      - SYNC_DATABASE_URL=postgresql+psycopg://${POSTGRES_USER:-gitvane}:${POSTGRES_PASSWORD:-gitvane}@pgbouncer:6432/${POSTGRES_DB:-gitvane}
+      - REDIS_URL=redis://${REDIS_HOST:-redis}:6379/0
+      - CELERY_BROKER_URL=amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASSWORD:-guest}@rabbitmq:5672//
       - GITVANE_WORKSPACE=/workspace/repos
-      - APP_NAME=GitVane
-      - ENVIRONMENT=docker
-      - DEBUG=true
+      - APP_NAME=${APP_NAME:-GitVane}
+      - ENVIRONMENT=${ENVIRONMENT:-production}
+      - DEBUG=${DEBUG:-false}
     volumes:
-      - ./backend:/app
       - repos_volume:/workspace/repos
+      - huggingface_cache:/root/.cache/huggingface
+    networks:
+      - backend-net
     depends_on:
+      postgres:
+        condition: service_healthy
       pgbouncer:
-        condition: service_started
+        condition: service_healthy
       rabbitmq:
         condition: service_healthy
       redis:
         condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2048M
+        reservations:
+          cpus: '0.25'
+          memory: 512M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   frontend:
     build:
@@ -168,16 +339,45 @@ services:
       args:
         NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8000/api/v1}
     container_name: gitvane-frontend
+    restart: unless-stopped
+    security_opt:
+      - "no-new-privileges:true"
     ports:
-      - "3000:3000"
+      - "${FRONTEND_PORT:-3000}:3000"
     environment:
       - NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8000/api/v1}
       - NEXT_TELEMETRY_DISABLED=1
+    networks:
+      - frontend-net
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 1024M
+        reservations:
+          cpus: '0.2'
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 volumes:
   postgres_data:
   redis_data:
   repos_volume:
   huggingface_cache:
+
+networks:
+  frontend-net:
+    driver: bridge
+  backend-net:
+    driver: bridge
+  db-net:
+    driver: bridge
+
+

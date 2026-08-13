@@ -1,0 +1,49 @@
+# Local Development Overlay
+# Docker Compose automatically merges this file with docker-compose.yml during local `docker compose up`.
+# In production, specify `docker compose -f docker-compose.yml up` to ignore this file.
+
+services:
+  postgres:
+    ports:
+      - "127.0.0.1:5433:5432"
+
+  pgbouncer:
+    ports:
+      - "127.0.0.1:6432:6432"
+
+  redis:
+    ports:
+      - "127.0.0.1:6379:6379"
+
+  rabbitmq:
+    ports:
+      - "127.0.0.1:5672:5672"
+      - "127.0.0.1:15672:15672"
+
+  backend:
+    environment:
+      - DEBUG=true
+      - ENVIRONMENT=local
+    volumes:
+      - ./backend:/app
+
+  outbox-dispatcher:
+    environment:
+      - DEBUG=true
+      - ENVIRONMENT=local
+    volumes:
+      - ./backend:/app
+
+  reconciler:
+    environment:
+      - DEBUG=true
+      - ENVIRONMENT=local
+    volumes:
+      - ./backend:/app
+
+  celery-worker-cpu:
+    environment:
+      - DEBUG=true
+      - ENVIRONMENT=local
+    volumes:
+      - ./backend:/app
