@@ -208,7 +208,7 @@ Run the full local stack (automatically merges `docker-compose.yml` and `docker-
 docker compose up --build
 ```
 
-This boots the application with source code hot-reloading (`./backend:/app`), debug mode enabled, and localhost debugging ports bound to `127.0.0.1` (`5433` for PostgreSQL, `6432` for PgBouncer, `6379` for Redis, and `15672` for RabbitMQ Management UI).
+This boots the application with Nginx edge routing (`http://localhost` on port 80), source code hot-reloading (`./backend:/app`), debug mode enabled, and localhost debugging ports bound to `127.0.0.1` (`8000` for FastAPI, `3000` for Next.js, `6432` for PgBouncer, `5433` for PostgreSQL, `6379` for Redis, and `15672` for RabbitMQ Management UI).
 
 In another shell, run database migrations inside the backend container:
 
@@ -216,14 +216,22 @@ In another shell, run database migrations inside the backend container:
 docker compose exec backend alembic upgrade head
 ```
 
-The API is available at `http://localhost:8000`; the frontend is available at `http://localhost:3000`.
+- **Application (Nginx)**: `http://localhost` (routes `/` to Next.js and `/api/` & `/docs` to FastAPI)
+- **Direct Backend API (Dev)**: `http://localhost:8000`
+- **Direct Frontend (Dev)**: `http://localhost:3000`
 
 ### Production Deployment Stack
 
-To run using the strict production configuration (network isolation, no published internal DB ports, resource quotas, and log rotation):
+To run using the production configuration with Nginx edge proxy, load balancing, rate limiting, and network isolation:
 
 ```powershell
 docker compose -f docker-compose.yml up --build -d
+```
+
+You can scale the backend API service across multiple worker containers:
+
+```powershell
+docker compose -f docker-compose.yml up --scale backend=2 -d
 ```
 
 ### GPU Support (Optional)
