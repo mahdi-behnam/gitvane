@@ -116,4 +116,8 @@ celery_app.conf.update(
     # Soft limit 110m (6600s) < Hard limit 120m (7200s) < stage lease 125m < RMQ timeout 135m
     task_soft_time_limit=6600,
     task_time_limit=7200,
+    # Disable peer gossip, mingle, and broadcast control (avoids transient non-exclusive queues)
+    worker_enable_remote_control=False,
+    worker_gossip=False,
+    worker_mingle=False,
 )

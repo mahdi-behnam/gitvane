@@ -288,7 +288,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: gitvane-celery-worker-cpu
-    command: celery -A app.core.celery_app worker -Q indexing_cpu,workflow_control,evaluation_cpu --loglevel=info --concurrency=4
+    command: celery -A app.core.celery_app worker -Q indexing_cpu,workflow_control,evaluation_cpu --loglevel=info --concurrency=4 --without-mingle --without-gossip --without-heartbeat
     restart: unless-stopped
     security_opt:
       - "no-new-privileges:true"
