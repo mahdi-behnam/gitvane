@@ -47,6 +47,8 @@ services:
       - LISTEN_PORT=6432
       - POOL_MODE=transaction
       - MAX_PREPARED_STATEMENTS=100
+      - AUTH_TYPE=scram-sha-256
+      - AUTH_USER=${POSTGRES_USER:?POSTGRES_USER is required}
     networks:
       - db-net
       - backend-net
