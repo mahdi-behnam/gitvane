@@ -216,7 +216,12 @@ class OutboxDispatcher:
     ) -> None:
         """Run dispatcher daemon loop with graceful shutdown signal handling."""
         self.running = True
-        logger.info("Starting OutboxDispatcher loop [dispatcher_id=%s]", self.dispatcher_id)
+        logger.info(
+            "GitVane OutboxDispatcher is ready and listening for events [dispatcher_id=%s, poll_interval=%.1fs, batch_size=%d]",
+            self.dispatcher_id,
+            poll_interval,
+            batch_size,
+        )
 
         loop = asyncio.get_running_loop()
         for sig in (signal.SIGTERM, signal.SIGINT):

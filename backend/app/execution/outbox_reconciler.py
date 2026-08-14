@@ -296,7 +296,13 @@ class OutboxReconciler:
     ) -> None:
         """Run reconciler daemon loop with graceful shutdown signal handling."""
         self.running = True
-        logger.info("Starting OutboxReconciler loop [reconciler_id=%s]", self.reconciler_id)
+        logger.info(
+            "GitVane OutboxReconciler is ready and monitoring leases [reconciler_id=%s, poll_interval=%.1fs, outbox_lease_timeout=%ds, finalizing_threshold=%ds]",
+            self.reconciler_id,
+            poll_interval,
+            outbox_lease_seconds,
+            finalizing_threshold_seconds,
+        )
 
         loop = asyncio.get_running_loop()
         for sig in (signal.SIGTERM, signal.SIGINT):
