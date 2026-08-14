@@ -109,146 +109,125 @@ flowchart LR
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for details.
 
-## Local Setup
+## Development Setup (Fast Iteration & Hot Reloading)
 
-Use the repository-local virtual environment. Do not install backend
-dependencies globally.
+When developing and frequently modifying frontend and backend files, the recommended workflow is to run the pure infrastructure services (**PostgreSQL**, **Redis**, **PgBouncer**, **RabbitMQ**) inside Docker containers, and run the Python backend services and Next.js frontend directly in dedicated terminals on your host machine using `uv` and `npm`. This provides instant code hot-reloading without container rebuild overhead.
 
-```powershell
-cd gitvane
-.\venv\Scripts\activate
-cd backend
-python -m pip install -r requirements.txt
-```
+### 1. Configure Environment Variables
 
-Copy the example environment file:
+Create your local `.env` configuration from the template:
 
 ```powershell
-cd ..
 Copy-Item .env.example .env
 ```
 
-For host-local backend execution while PostgreSQL/Redis run in Docker, route application database connections through PgBouncer on `localhost:6432` (maintaining environment parity with production):
+Ensure required infrastructure credentials and keys are set in `.env` (such as `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, `RABBITMQ_USER`, `RABBITMQ_PASSWORD`, `JWT_SECRET_KEY`, and `ENCRYPTION_KEY`).
 
+For host-local execution, point database and broker connections to `localhost` with the exposed port mapping:
 ```env
-DATABASE_URL=postgresql+asyncpg://gitvane:gitvane@localhost:6432/gitvane
-SYNC_DATABASE_URL=postgresql+psycopg://gitvane:gitvane@localhost:6432/gitvane
+DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:6432/${POSTGRES_DB}
+SYNC_DATABASE_URL=postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:6432/${POSTGRES_DB}
 REDIS_URL=redis://localhost:6379/0
-GITVANE_WORKSPACE=./workspace/repos
+CELERY_BROKER_URL=amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@localhost:5672//
+CELERY_RESULT_BACKEND=redis://localhost:6379/1
 ```
-*(Note: Port `6432` routes through PgBouncer. If you need direct PostgreSQL access for administrative tools or DDL migrations, use port `5433`).*
+*(Note: Port `6432` routes through PgBouncer with connection pooling. If you need direct PostgreSQL access for administrative tools or direct DDL migrations, use port `5433`).*
 
+### 2. Start Docker Infrastructure
 
-Start PostgreSQL and Redis:
+Spin up only the database, cache, connection pooler, and message broker containers:
 
 ```powershell
-docker compose up -d postgres redis
+docker compose up -d postgres redis pgbouncer rabbitmq
 ```
 
-Run migrations:
+### 3. Run Database Migrations
+
+Apply the latest database migrations from the `backend/` directory:
 
 ```powershell
 cd backend
-alembic upgrade head
+uv run alembic upgrade head
 ```
 
-Run the backend:
+### 4. Run Application Services in 5 Separate Terminals
 
+Execute each of the following commands in its own dedicated terminal:
+
+#### Terminal 1: FastAPI Backend
 ```powershell
-uvicorn app.main:app --reload
+cd backend
+uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+* **API Documentation**: Available at `http://localhost:8000/docs`
+
+#### Terminal 2: Celery Worker
+- **For CPU-Only:**
+  ```powershell
+  cd backend
+  uv run celery -A app.core.celery_app worker -Q indexing_cpu,workflow_control,evaluation_cpu --loglevel=info -P solo --without-mingle --without-gossip --without-heartbeat
+  ```
+- **With NVIDIA GPU (Local Embeddings Acceleration):**
+  If you have an NVIDIA GPU and PyTorch with CUDA installed, include the `embeddings_gpu` queue (and ensure `USE_CUDA_IF_AVAILABLE=true` in `.env`):
+  ```powershell
+  cd backend
+  uv run celery -A app.core.celery_app worker -Q indexing_cpu,embeddings_gpu,workflow_control,evaluation_cpu --loglevel=info -P solo --without-mingle --without-gossip --without-heartbeat
+  ```
+
+#### Terminal 3: Outbox Dispatcher
+```powershell
+cd backend
+uv run python -m app.cli.dispatcher
 ```
 
-OpenAPI docs are available at `http://localhost:8000/docs`.
+#### Terminal 4: Outbox Reconciler
+```powershell
+cd backend
+uv run python -m app.cli.reconciler
+```
 
-Run the frontend in another shell:
-
+#### Terminal 5: Next.js Frontend
 ```powershell
 cd frontend
 npm install
-Copy-Item .env.example .env.local
 npm run dev
 ```
+* **Web UI Dashboard**: Accessible at `http://localhost:3000`
 
-The frontend opens at `http://localhost:3000` and talks to the backend through:
+---
 
-```env
-NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api/v1
-```
+## Production Deployment (Full Docker Compose Stack)
 
-## Frontend Dashboard
-
-The dashboard is a Next.js app under `frontend/`. It covers repository
-registration and indexing, overview metrics, semantic search, impact analysis,
-test recommendations, risk ranking, dependency graph exploration, and evaluation
-reports.
-
-Use these commands for local frontend work:
+For production deployments, staging environments, or testing the fully containerized system with the Nginx edge proxy, reverse proxying, rate limiting, and network isolation, run the complete Docker Compose stack:
 
 ```powershell
-cd frontend
-npm install
-Copy-Item .env.example .env.local
-npm run dev
+docker compose up --build -d
 ```
 
-Run the browser smoke tests after installing Playwright's Chromium build:
-
-```powershell
-npx playwright install chromium
-npm run test:e2e
-```
-
-## Docker Compose Setup
-
-### Local Development Stack
-
-Run the full local stack (automatically merges `docker-compose.yml` and `docker-compose.override.yml`):
-
-```powershell
-docker compose up --build
-```
-
-This boots the application with Nginx edge routing (`http://localhost` on port 80), source code hot-reloading (`./backend:/app`), debug mode enabled, and localhost debugging ports bound to `127.0.0.1` (`8000` for FastAPI, `3000` for Next.js, `6432` for PgBouncer, `5433` for PostgreSQL, `6379` for Redis, and `15672` for RabbitMQ Management UI).
-
-In another shell, run database migrations inside the backend container:
-
-```powershell
-docker compose exec backend alembic upgrade head
-```
-
-- **Application (Nginx)**: `http://localhost` (routes `/` to Next.js and `/api/` & `/docs` to FastAPI)
-- **Direct Backend API (Dev)**: `http://localhost:8000`
-- **Direct Frontend (Dev)**: `http://localhost:3000`
-
-### Production Deployment Stack
-
-To run using the production configuration with Nginx edge proxy, load balancing, rate limiting, and network isolation:
-
-```powershell
-docker compose -f docker-compose.yml up --build -d
-```
-
-You can scale the backend API service across multiple worker containers:
-
-```powershell
-docker compose -f docker-compose.yml up --scale backend=2 -d
-```
+- **Unified Application Gateway (Nginx)**: `http://localhost` (proxies `/` to the Next.js frontend container and `/api/` / `/docs` to the FastAPI backend container)
+- **Run Migrations inside container**:
+  ```powershell
+  docker compose exec backend alembic upgrade head
+  ```
+- **Scale Backend API Workers (Optional)**:
+  ```powershell
+  docker compose up --scale backend=2 -d
+  ```
 
 ### GPU Support (Optional)
 
-By default, Docker Compose runs in CPU-only mode. If you have an NVIDIA GPU and the NVIDIA Container Toolkit installed:
+By default, Docker Compose runs in CPU-only mode. If you have an NVIDIA GPU and the NVIDIA Container Toolkit installed on your host:
 
-- **For local development with GPU:**
+- **Local development with GPU:**
   ```powershell
   docker compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.gpu.yml up --build -d
   ```
-- **For production deployment with GPU:**
+- **Production deployment with GPU:**
   ```powershell
   docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build -d
   ```
 
-
-_(Note: This requires the NVIDIA Container Toolkit installed on your host machine. If run without the GPU configuration override, the container will automatically and gracefully fall back to CPU-only execution)._
+*(Note: This requires the NVIDIA Container Toolkit installed on your host machine. If run without the GPU configuration override, the containers automatically and gracefully fall back to CPU-only execution).*
 
 ## Tests And Checks
 
