@@ -43,6 +43,7 @@ def upgrade() -> None:
         sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
         sa.Column('completed_at', sa.DateTime(timezone=True), nullable=True),
         sa.Column('terminal_at', sa.DateTime(timezone=True), nullable=True),
+        sa.Column('cleaned_at', sa.DateTime(timezone=True), nullable=True),
         sa.CheckConstraint(
             "status IN ('queued', 'preparing', 'parsing', 'embedding', 'finalizing', 'completed', 'failed', 'cancelled', 'superseded')",
             name='ck_index_generations_status'
