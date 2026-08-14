@@ -21,6 +21,12 @@ class Settings(BaseSettings):
     DEBUG: bool = True
     API_V1_PREFIX: str = "/api/v1"
 
+    POSTGRES_USER: Optional[str] = None
+    POSTGRES_PASSWORD: Optional[str] = None
+    POSTGRES_DB: Optional[str] = None
+    RABBITMQ_USER: Optional[str] = None
+    RABBITMQ_PASSWORD: Optional[str] = None
+
     DATABASE_URL: str = "postgresql+asyncpg://gitvane:gitvane@localhost:5432/gitvane"
     SYNC_DATABASE_URL: str = (
         "postgresql+psycopg://gitvane:gitvane@localhost:5432/gitvane"

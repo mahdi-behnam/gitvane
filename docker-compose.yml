@@ -6,15 +6,15 @@ services:
     security_opt:
       - "no-new-privileges:true"
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-gitvane}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-gitvane}
-      POSTGRES_DB: ${POSTGRES_DB:-gitvane}
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - db-net
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-gitvane}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:?POSTGRES_USER is required}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -39,11 +39,11 @@ services:
     security_opt:
       - "no-new-privileges:true"
     environment:
-      - DB_USER=${POSTGRES_USER:-gitvane}
-      - DB_PASSWORD=${POSTGRES_PASSWORD:-gitvane}
+      - DB_USER=${POSTGRES_USER:?POSTGRES_USER is required}
+      - DB_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
       - DB_HOST=postgres
       - DB_PORT=5432
-      - DB_NAME=${POSTGRES_DB:-gitvane}
+      - DB_NAME=${POSTGRES_DB:?POSTGRES_DB is required}
       - LISTEN_PORT=6432
       - POOL_MODE=transaction
       - MAX_PREPARED_STATEMENTS=100
@@ -51,7 +51,7 @@ services:
       - db-net
       - backend-net
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -h localhost -p 6432 -U ${POSTGRES_USER:-gitvane} || exit 1"]
+      test: ["CMD-SHELL", "pg_isready -h localhost -p 6432 -U ${POSTGRES_USER:?POSTGRES_USER is required} || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -108,8 +108,8 @@ services:
     security_opt:
       - "no-new-privileges:true"
     environment:
-      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
-      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-guest}
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:?RABBITMQ_USER is required}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?RABBITMQ_PASSWORD is required}
     networks:
       - backend-net
     healthcheck:
@@ -143,10 +143,10 @@ services:
       - path: .env
         required: true
     environment:
-      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-gitvane}:${POSTGRES_PASSWORD:-gitvane}@pgbouncer:6432/${POSTGRES_DB:-gitvane}
-      - SYNC_DATABASE_URL=postgresql+psycopg://${POSTGRES_USER:-gitvane}:${POSTGRES_PASSWORD:-gitvane}@pgbouncer:6432/${POSTGRES_DB:-gitvane}
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@pgbouncer:6432/${POSTGRES_DB:?POSTGRES_DB is required}
+      - SYNC_DATABASE_URL=postgresql+psycopg://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@pgbouncer:6432/${POSTGRES_DB:?POSTGRES_DB is required}
       - REDIS_URL=redis://${REDIS_HOST:-redis}:6379/0
-      - CELERY_BROKER_URL=amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASSWORD:-guest}@rabbitmq:5672//
+      - CELERY_BROKER_URL=amqp://${RABBITMQ_USER:?RABBITMQ_USER is required}:${RABBITMQ_PASSWORD:?RABBITMQ_PASSWORD is required}@rabbitmq:5672//
       - GITVANE_WORKSPACE=/workspace/repos
       - APP_NAME=${APP_NAME:-GitVane}
       - ENVIRONMENT=${ENVIRONMENT:-production}
@@ -198,10 +198,10 @@ services:
       - path: .env
         required: true
     environment:
-      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-gitvane}:${POSTGRES_PASSWORD:-gitvane}@pgbouncer:6432/${POSTGRES_DB:-gitvane}
-      - SYNC_DATABASE_URL=postgresql+psycopg://${POSTGRES_USER:-gitvane}:${POSTGRES_PASSWORD:-gitvane}@pgbouncer:6432/${POSTGRES_DB:-gitvane}
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@pgbouncer:6432/${POSTGRES_DB:?POSTGRES_DB is required}
+      - SYNC_DATABASE_URL=postgresql+psycopg://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@pgbouncer:6432/${POSTGRES_DB:?POSTGRES_DB is required}
       - REDIS_URL=redis://${REDIS_HOST:-redis}:6379/0
-      - CELERY_BROKER_URL=amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASSWORD:-guest}@rabbitmq:5672//
+      - CELERY_BROKER_URL=amqp://${RABBITMQ_USER:?RABBITMQ_USER is required}:${RABBITMQ_PASSWORD:?RABBITMQ_PASSWORD is required}@rabbitmq:5672//
       - GITVANE_WORKSPACE=/workspace/repos
       - APP_NAME=${APP_NAME:-GitVane}
       - ENVIRONMENT=${ENVIRONMENT:-production}
@@ -246,10 +246,10 @@ services:
       - path: .env
         required: true
     environment:
-      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-gitvane}:${POSTGRES_PASSWORD:-gitvane}@pgbouncer:6432/${POSTGRES_DB:-gitvane}
-      - SYNC_DATABASE_URL=postgresql+psycopg://${POSTGRES_USER:-gitvane}:${POSTGRES_PASSWORD:-gitvane}@pgbouncer:6432/${POSTGRES_DB:-gitvane}
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@pgbouncer:6432/${POSTGRES_DB:?POSTGRES_DB is required}
+      - SYNC_DATABASE_URL=postgresql+psycopg://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@pgbouncer:6432/${POSTGRES_DB:?POSTGRES_DB is required}
       - REDIS_URL=redis://${REDIS_HOST:-redis}:6379/0
-      - CELERY_BROKER_URL=amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASSWORD:-guest}@rabbitmq:5672//
+      - CELERY_BROKER_URL=amqp://${RABBITMQ_USER:?RABBITMQ_USER is required}:${RABBITMQ_PASSWORD:?RABBITMQ_PASSWORD is required}@rabbitmq:5672//
       - GITVANE_WORKSPACE=/workspace/repos
       - APP_NAME=${APP_NAME:-GitVane}
       - ENVIRONMENT=${ENVIRONMENT:-production}
@@ -294,10 +294,10 @@ services:
       - path: .env
         required: true
     environment:
-      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-gitvane}:${POSTGRES_PASSWORD:-gitvane}@pgbouncer:6432/${POSTGRES_DB:-gitvane}
-      - SYNC_DATABASE_URL=postgresql+psycopg://${POSTGRES_USER:-gitvane}:${POSTGRES_PASSWORD:-gitvane}@pgbouncer:6432/${POSTGRES_DB:-gitvane}
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@pgbouncer:6432/${POSTGRES_DB:?POSTGRES_DB is required}
+      - SYNC_DATABASE_URL=postgresql+psycopg://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@pgbouncer:6432/${POSTGRES_DB:?POSTGRES_DB is required}
       - REDIS_URL=redis://${REDIS_HOST:-redis}:6379/0
-      - CELERY_BROKER_URL=amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASSWORD:-guest}@rabbitmq:5672//
+      - CELERY_BROKER_URL=amqp://${RABBITMQ_USER:?RABBITMQ_USER is required}:${RABBITMQ_PASSWORD:?RABBITMQ_PASSWORD is required}@rabbitmq:5672//
       - GITVANE_WORKSPACE=/workspace/repos
       - APP_NAME=${APP_NAME:-GitVane}
       - ENVIRONMENT=${ENVIRONMENT:-production}
