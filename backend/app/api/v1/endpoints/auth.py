@@ -28,7 +28,6 @@ from app.schemas.user import (
     PasswordResetRequest,
     PasswordResetConfirm,
     UserUpdate,
-    PasswordChange,
 )
 
 import smtplib
@@ -194,7 +193,23 @@ async def refresh(
     db_refresh_token = result.scalars().first()
     if not db_refresh_token:
         raise AuthenticationError("Invalid or expired credentials")
+    now = datetime.now(timezone.utc)
+
+    # Verify expiration
+    if db_refresh_token.expires_at < now:
+        raise AuthenticationError("Invalid or expired credentials")
+
     if db_refresh_token.is_revoked:
+        # Grace period check (15 seconds) to accommodate in-flight concurrent requests / network jitter
+        if (
+            db_refresh_token.revoked_at
+            and (now - db_refresh_token.revoked_at).total_seconds() <= 15
+        ):
+            # Concurrent request within grace period: allow and issue access token
+            access_token = create_access_token(subject=db_refresh_token.user_id)
+            return TokenResponse(access_token=access_token)
+
+        # Genuine reuse / replay attack (>15s after revocation)
         from sqlalchemy import update
         await db.execute(
             update(UserRefreshToken)
@@ -202,20 +217,17 @@ async def refresh(
                 UserRefreshToken.user_id == db_refresh_token.user_id,
                 UserRefreshToken.is_revoked == False,
             )
-            .values(is_revoked=True)
+            .values(is_revoked=True, revoked_at=now)
         )
         await db.commit()
         raise AuthenticationError("Invalid or expired credentials")
 
-    # Verify expiration
-    if db_refresh_token.expires_at < datetime.now(timezone.utc):
-        raise AuthenticationError("Invalid or expired credentials")
-
     # Perform RTR (Refresh Token Rotation)
     db_refresh_token.is_revoked = True
+    db_refresh_token.revoked_at = now
 
     new_refresh_token_val = generate_secure_token()
-    new_expires_at = datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+    new_expires_at = now + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
 
     new_db_refresh_token = UserRefreshToken(
         user_id=db_refresh_token.user_id,
@@ -263,6 +275,7 @@ async def logout(
         db_refresh_token = result.scalars().first()
         if db_refresh_token:
             db_refresh_token.is_revoked = True
+            db_refresh_token.revoked_at = datetime.now(timezone.utc)
             await db.commit()
 
     # Clear cookies
@@ -292,6 +305,7 @@ async def get_me(
 
 @router.get("/csrf", status_code=status.HTTP_200_OK)
 async def get_csrf() -> dict[str, str]:
+    """Lightweight bootstrap probe for non-browser/CLI clients to initialize CSRF and session cookies."""
     return {"status": "success"}
 
 
@@ -513,13 +527,14 @@ async def reset_password(
 
     # Revoke all active refresh tokens for user
     from sqlalchemy import update
+    now = datetime.now(timezone.utc)
     await db.execute(
         update(UserRefreshToken)
         .where(
             UserRefreshToken.user_id == user.id,
             UserRefreshToken.is_revoked == False,
         )
-        .values(is_revoked=True)
+        .values(is_revoked=True, revoked_at=now)
     )
 
     await db.commit()
@@ -553,21 +568,3 @@ async def update_me(
     await db.commit()
     await db.refresh(current_user)
     return current_user
-
-
-@router.post("/change-password", status_code=status.HTTP_200_OK)
-async def change_password(
-    password_change: PasswordChange,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-) -> dict[str, str]:
-    if not current_user.hashed_password or not verify_password(
-        password_change.current_password, current_user.hashed_password
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Incorrect current password",
-        )
-    current_user.hashed_password = hash_password(password_change.new_password)
-    await db.commit()
-    return {"status": "success", "message": "Password updated successfully"}

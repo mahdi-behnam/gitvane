@@ -28,7 +28,6 @@ import type { EvaluationMethod, EvaluationStatusResponse } from "@/lib/api/types
 import { formatPercent, formatSnakeCase } from "@/lib/format";
 import {
   useGetEvaluationReportMarkdownQuery,
-  useGetEvaluationReportQuery,
   useGetEvaluationStatusQuery,
   useGetRepositoryQuery,
   useListEvaluationRunsQuery,

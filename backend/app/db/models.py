@@ -64,6 +64,9 @@ class UserRefreshToken(Base):
         DateTime(timezone=True), server_default=func.now()
     )
     is_revoked: Mapped[bool] = mapped_column(default=False, nullable=False)
+    revoked_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     # Relationships
     user = relationship("User", back_populates="refresh_tokens")

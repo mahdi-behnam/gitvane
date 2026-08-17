@@ -301,6 +301,80 @@ def test_refresh_token_expired() -> None:
         app.dependency_overrides.clear()
 
 
+def test_refresh_token_revoked_within_grace_period() -> None:
+    now = datetime.now(UTC)
+    mock_token = MagicMock(spec=UserRefreshToken)
+    mock_token.user_id = 42
+    mock_token.token = "recently_rotated_token"
+    mock_token.expires_at = now + timedelta(days=7)
+    mock_token.is_revoked = True
+    mock_token.revoked_at = now - timedelta(seconds=5)  # 5s ago (< 15s grace period)
+
+    class MockExecuteResult:
+        def scalars(self) -> Any:
+            mock_scalar = MagicMock()
+            mock_scalar.first.return_value = mock_token
+            return mock_scalar
+
+    async def override_get_db() -> AsyncGenerator[Any, None]:
+        db = _mock_db_with_add()
+        db.execute.return_value = MockExecuteResult()
+        yield db
+
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        client = TestClient(app)
+        bootstrap_res = client.get("/api/v1/auth/csrf")
+        csrf_token = bootstrap_res.cookies.get("csrf_token")
+
+        client.cookies.set("refresh_token", "recently_rotated_token")
+        client.headers.update({"X-CSRF-Token": csrf_token})
+
+        response = client.post("/api/v1/auth/refresh")
+        assert response.status_code == 200
+        assert "access_token" in response.json()
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_refresh_token_revoked_outside_grace_period_triggers_reuse_detection() -> None:
+    now = datetime.now(UTC)
+    mock_token = MagicMock(spec=UserRefreshToken)
+    mock_token.user_id = 42
+    mock_token.token = "old_stolen_token"
+    mock_token.expires_at = now + timedelta(days=7)
+    mock_token.is_revoked = True
+    mock_token.revoked_at = now - timedelta(seconds=60)  # 60s ago (> 15s grace period)
+
+    class MockExecuteResult:
+        def scalars(self) -> Any:
+            mock_scalar = MagicMock()
+            mock_scalar.first.return_value = mock_token
+            return mock_scalar
+
+    mock_db = _mock_db_with_add()
+    mock_db.execute.return_value = MockExecuteResult()
+
+    async def override_get_db() -> AsyncGenerator[Any, None]:
+        yield mock_db
+
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        client = TestClient(app)
+        bootstrap_res = client.get("/api/v1/auth/csrf")
+        csrf_token = bootstrap_res.cookies.get("csrf_token")
+
+        client.cookies.set("refresh_token", "old_stolen_token")
+        client.headers.update({"X-CSRF-Token": csrf_token})
+
+        response = client.post("/api/v1/auth/refresh")
+        assert response.status_code == 401
+        assert response.json()["error_type"] == "AuthenticationError"
+        assert mock_db.commit.called
+    finally:
+        app.dependency_overrides.clear()
+
+
 def test_logout() -> None:
     mock_token = MagicMock(spec=UserRefreshToken)
     mock_token.user_id = 42
@@ -605,9 +679,16 @@ def test_update_me_password_missing_current_password_fails() -> None:
         app.dependency_overrides.clear()
 
 
-def test_change_password_endpoint_success() -> None:
+def test_update_me_password_success() -> None:
     mock_user = MagicMock(spec=User)
     mock_user.id = 42
+    mock_user.email = "update@example.com"
+    mock_user.full_name = "Original Name"
+    mock_user.picture = None
+    mock_user.oauth_provider = None
+    mock_user.is_active = True
+    mock_user.created_at = datetime.now(timezone.utc)
+    mock_user.updated_at = datetime.now(timezone.utc)
     mock_user.hashed_password = "old_hashed_password"
 
     class MockExecuteResult:
@@ -623,18 +704,18 @@ def test_change_password_endpoint_success() -> None:
 
     app.dependency_overrides[get_db] = override_get_db
     try:
-        with patch("app.api.deps.decode_access_token", return_value={"sub": "42"}),              patch("app.api.v1.endpoints.auth.verify_password", return_value=True):
+        with patch("app.api.deps.decode_access_token", return_value={"sub": "42"}), \
+             patch("app.api.v1.endpoints.auth.verify_password", return_value=True):
             client = TestClient(app)
             client.headers.update({"Authorization": "Bearer some_access_token"})
-            response = client.post(
-                "/api/v1/auth/change-password",
-                json={"current_password": "OldSecureP@ssword123", "new_password": "NewSecureP@ssword123"},
+            response = client.put(
+                "/api/v1/auth/me",
+                json={"current_password": "OldSecureP@ssword123", "password": "NewSecureP@ssword123"},
             )
             assert response.status_code == 200
-            assert response.json()["status"] == "success"
+            assert response.json()["email"] == "update@example.com"
     finally:
         app.dependency_overrides.clear()
-
 
 
 def test_email_validation_schemas() -> None:

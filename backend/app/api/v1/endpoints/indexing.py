@@ -39,6 +39,7 @@ from app.services.repository_service import RepositoryService
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+generation_router = APIRouter()
 
 
 @router.post(
@@ -197,8 +198,8 @@ async def get_index_status(
         ) from exc
 
 
-@router.get("/{generation_id}/stream")
-@router.get("/generations/{generation_id}/stream")
+@generation_router.get("/{generation_id}/stream")
+@generation_router.get("/generations/{generation_id}/stream")
 async def stream_generation_progress(
     generation_id: UUID,
     request: Request,

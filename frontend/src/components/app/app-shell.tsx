@@ -16,6 +16,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { usePathname } from "next/navigation";
 import React, { useState, useEffect, useRef, type ReactNode } from "react";
+import { skipToken } from "@reduxjs/toolkit/query";
 import { Logo } from "@/components/app/logo";
 import { ThemeToggle } from "@/components/app/theme-toggle";
 import { UserMenu } from "@/components/auth/user-menu";
@@ -160,9 +161,15 @@ export function AppShell({ children }: { children: ReactNode }) {
   const activeRepositoryId = useAppSelector(
     (state) => state.repositorySelection.activeRepositoryId,
   );
-  const repositories = useListRepositoriesQuery();
-  const dispatch = useAppDispatch();
+  const isAuthPage = [
+    "/login",
+    "/signup",
+    "/forgot-password",
+    "/reset-password",
+    "/auth/callback",
+  ].includes(pathname);
 
+  const dispatch = useAppDispatch();
   const accessToken = useAppSelector((state) => state.auth.accessToken);
   const user = useAppSelector((state) => state.auth.user);
 
@@ -171,13 +178,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [logout] = useLogoutMutation();
   const [isInitializing, setIsInitializing] = useState(true);
 
-  const isAuthPage = [
-    "/login",
-    "/signup",
-    "/forgot-password",
-    "/reset-password",
-    "/auth/callback",
-  ].includes(pathname);
+  const repositories = useListRepositoriesQuery(
+    !isInitializing && accessToken && !isAuthPage ? undefined : skipToken
+  );
 
   const hasAttemptedRefreshRef = useRef(false);
 

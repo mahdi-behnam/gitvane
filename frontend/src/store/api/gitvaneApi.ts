@@ -123,6 +123,43 @@ const baseQuery: typeof rawBaseQuery = async (args, api, extraOptions) => {
 
 let refreshPromise: Promise<TokenResponse | null> | null = null;
 
+export async function performTokenRefresh(
+  api: Parameters<typeof rawBaseQuery>[1],
+  extraOptions: Parameters<typeof rawBaseQuery>[2]
+): Promise<TokenResponse | null> {
+  if (!refreshPromise) {
+    refreshPromise = (async () => {
+      try {
+        const refreshResult = await baseQuery(
+          { url: "/auth/refresh", method: "POST" },
+          api,
+          extraOptions
+        );
+
+        if (refreshResult.data) {
+          const data = refreshResult.data as TokenResponse;
+          api.dispatch(setCredentials({ accessToken: data.access_token }));
+          return data;
+        } else {
+          api.dispatch(clearCredentials());
+          if (typeof document !== "undefined") {
+            document.cookie =
+              "gitvane_logged_in=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+          }
+          return null;
+        }
+      } catch {
+        api.dispatch(clearCredentials());
+        return null;
+      } finally {
+        refreshPromise = null;
+      }
+    })();
+  }
+
+  return refreshPromise;
+}
+
 const baseQueryWithReauth: typeof rawBaseQuery = async (args, api, extraOptions) => {
   let result = await baseQuery(args, api, extraOptions);
 
@@ -135,37 +172,7 @@ const baseQueryWithReauth: typeof rawBaseQuery = async (args, api, extraOptions)
     url?.includes("/auth/reset-password");
 
   if (result.error && result.error.status === 401 && !isAuthEndpoint) {
-    if (!refreshPromise) {
-      refreshPromise = (async () => {
-        try {
-          const refreshResult = await baseQuery(
-            { url: "/auth/refresh", method: "POST" },
-            api,
-            extraOptions
-          );
-
-          if (refreshResult.data) {
-            const data = refreshResult.data as TokenResponse;
-            api.dispatch(setCredentials({ accessToken: data.access_token }));
-            return data;
-          } else {
-            api.dispatch(clearCredentials());
-            if (typeof document !== "undefined") {
-              document.cookie =
-                "gitvane_logged_in=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-            }
-            return null;
-          }
-        } catch {
-          api.dispatch(clearCredentials());
-          return null;
-        } finally {
-          refreshPromise = null;
-        }
-      })();
-    }
-
-    const refreshResult = await refreshPromise;
+    const refreshResult = await performTokenRefresh(api, extraOptions);
 
     if (refreshResult) {
       result = await baseQuery(args, api, extraOptions);
@@ -351,10 +358,18 @@ export const gitvaneApi = createApi({
       }),
     }),
     refresh: builder.mutation<TokenResponse, void>({
-      query: () => ({
-        method: "POST",
-        url: "/auth/refresh",
-      }),
+      queryFn: async (_arg, api, extraOptions) => {
+        const data = await performTokenRefresh(api, extraOptions);
+        if (data) {
+          return { data };
+        }
+        return {
+          error: {
+            status: 401,
+            data: { detail: "Invalid or expired credentials", error_type: "AuthenticationError" },
+          },
+        };
+      },
     }),
     me: builder.query<UserResponse, void>({
       query: () => "/auth/me",

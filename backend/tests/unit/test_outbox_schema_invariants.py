@@ -161,7 +161,8 @@ def test_alembic_migration_file_exists_and_valid():
     script = ScriptDirectory.from_config(config)
 
     head_revision = script.get_current_head()
-    assert head_revision == "decoupled_outbox_schema"
+    assert head_revision == "add_revoked_at"
 
     rev = script.get_revision("decoupled_outbox_schema")
+    assert rev is not None
     assert rev.down_revision == "6ec32e4180bd"
