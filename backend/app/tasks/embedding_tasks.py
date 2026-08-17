@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+from typing import Any
 from uuid import UUID, uuid4
 
 from celery import Task
@@ -33,7 +34,9 @@ def task_generate_embeddings_batch(self: Task, generation_id_str: str, batch_ind
     return asyncio.run(_async_generate_embeddings_batch(generation_id, batch_index, task_id))
 
 
-async def _async_generate_embeddings_batch(generation_id: UUID, batch_index: int, task_id: str) -> dict:
+async def _async_generate_embeddings_batch(generation_id: UUID, batch_index: int, task_id: str) -> dict[str, Any]:
+    import time
+    batch_start_time = time.monotonic()
     embedding_svc = EmbeddingService()
 
     async with SessionLocal() as db:
@@ -142,9 +145,27 @@ async def _async_generate_embeddings_batch(generation_id: UUID, batch_index: int
 
                     chunks_processed = min(total_chunks, int(total_chunks * (completed_batches / max(1, total_batches)))) if total_chunks > 0 else chunk_end_id
                     progress_pct = round(min(98.0, 50.0 + (completed_batches / max(1, total_batches)) * 48.0), 1)
-                    eta_sec = max(0, int(rem_batches * 4.2))
 
+                    batch_duration = max(0.05, time.monotonic() - batch_start_time)
                     publisher = ProgressStreamPublisher()
+                    redis_client = publisher.get_async_client()
+                    ema_key = f"gitvane:progress:ema:{generation_id}"
+
+                    try:
+                        cached_ema = await redis_client.get(ema_key)
+                        prev_ema = float(cached_ema) if cached_ema is not None else 4.0
+                    except Exception:
+                        prev_ema = 4.0
+
+                    alpha = 0.35
+                    current_ema = (alpha * batch_duration) + ((1.0 - alpha) * prev_ema)
+                    try:
+                        await redis_client.set(ema_key, str(current_ema), ex=3600)
+                    except Exception:
+                        pass
+
+                    eta_sec = max(0, int(rem_batches * current_ema))
+
                     await publisher.publish_progress(
                         generation_id=generation_id,
                         payload={

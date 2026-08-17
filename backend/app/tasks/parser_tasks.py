@@ -118,11 +118,21 @@ async def _async_prepare_and_parse(generation_id: UUID, task_id: str) -> dict:
                         from app.utils.hashing import compute_normalized_hash
 
                         from app.services.progress_publisher import ProgressStreamPublisher
+                        import time
                         publisher = ProgressStreamPublisher()
                         total_files = len(tracked_files)
+                        parsing_start_time = time.monotonic()
 
                         for idx, tracked_path in enumerate(tracked_files, start=1):
                             if idx % 10 == 0 or idx == total_files:
+                                elapsed = time.monotonic() - parsing_start_time
+                                files_per_sec = idx / max(0.1, elapsed)
+                                rem_files = max(0, total_files - idx)
+                                parsing_rem_sec = rem_files / files_per_sec
+                                est_chunks = total_files * 10
+                                est_batches = max(1, est_chunks // 16)
+                                total_eta = int(parsing_rem_sec + (est_batches * 4.0))
+
                                 await publisher.publish_progress(
                                     generation_id=generation_id,
                                     payload={
@@ -132,6 +142,7 @@ async def _async_prepare_and_parse(generation_id: UUID, task_id: str) -> dict:
                                         "files_total": total_files,
                                         "files_processed": idx,
                                         "progress_percentage": round(min(45.0, (idx / max(1, total_files)) * 45.0), 1),
+                                        "estimated_seconds_remaining": total_eta,
                                     },
                                 )
 
@@ -212,6 +223,9 @@ async def _async_prepare_and_parse(generation_id: UUID, task_id: str) -> dict:
                             )
                             await db.flush()
 
+                            est_batches = max(1, len(chunks) // max(1, settings.EMBEDDING_BATCH_SIZE))
+                            est_eta = int(est_batches * 4.0)
+
                             await publisher.publish_progress(
                                 generation_id=generation_id,
                                 payload={
@@ -223,6 +237,7 @@ async def _async_prepare_and_parse(generation_id: UUID, task_id: str) -> dict:
                                     "chunks_total": len(chunks),
                                     "chunks_processed": 0,
                                     "progress_percentage": 50.0,
+                                    "estimated_seconds_remaining": est_eta,
                                 },
                             )
 
