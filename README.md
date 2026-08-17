@@ -157,7 +157,7 @@ Execute each of the following commands in its own dedicated terminal:
 #### Terminal 1: FastAPI Backend
 ```powershell
 cd backend
-uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+uv run uvicorn app.main:app --reload --reload-dir app --host 0.0.0.0 --port 8000
 ```
 * **API Documentation**: Available at `http://localhost:8000/docs`
 

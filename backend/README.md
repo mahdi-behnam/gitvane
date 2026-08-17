@@ -16,7 +16,7 @@ python -m pip install -e ".[dev]"
 ## Run
 
 ```powershell
-uvicorn app.main:app --reload
+uvicorn app.main:app --reload --reload-dir app
 ```
 
 ## Migrations
