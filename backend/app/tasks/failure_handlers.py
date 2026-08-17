@@ -7,7 +7,7 @@ from uuid import UUID
 from celery import Task
 
 from app.core.celery_app import celery_app
-from app.db.session import SessionLocal
+from app.db.session import WorkerSessionLocal as SessionLocal
 from app.execution.failure_engine import (
     handle_embedding_batch_failure,
     handle_parser_failure,

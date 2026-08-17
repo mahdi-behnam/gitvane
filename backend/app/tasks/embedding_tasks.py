@@ -7,7 +7,7 @@ from uuid import UUID, uuid4
 from celery import Task
 
 from app.core.celery_app import celery_app
-from app.db.session import SessionLocal
+from app.db.session import WorkerSessionLocal as SessionLocal
 from app.execution.embedding_engine import (
     checkpoint_batch_completion,
     claim_embedding_batch_lease,
@@ -109,6 +109,59 @@ async def _async_generate_embeddings_batch(generation_id: UUID, batch_index: int
                 task_id=task_id,
             )
             await db.commit()
+
+            if checkpoint.get("completed") and not checkpoint.get("finalized"):
+                try:
+                    from sqlalchemy import func
+                    from app.db.models import CodeChunk, CodeFile, EmbeddingBatch
+                    from app.services.progress_publisher import ProgressStreamPublisher
+
+                    tb_res = await db.execute(
+                        select(func.count(EmbeddingBatch.id)).where(EmbeddingBatch.generation_id == generation_id)
+                    )
+                    total_batches = (tb_res.scalar() or 1)
+
+                    rem_res = await db.execute(
+                        select(func.count(EmbeddingBatch.id)).where(
+                            EmbeddingBatch.generation_id == generation_id,
+                            EmbeddingBatch.status != "completed",
+                        )
+                    )
+                    rem_batches = rem_res.scalar() or 0
+                    completed_batches = max(1, total_batches - rem_batches)
+
+                    tc_res = await db.execute(
+                        select(func.count(CodeChunk.id)).where(CodeChunk.generation_id == generation_id)
+                    )
+                    total_chunks = tc_res.scalar() or 0
+
+                    tf_res = await db.execute(
+                        select(func.count(CodeFile.id)).where(CodeFile.generation_id == generation_id)
+                    )
+                    total_files = tf_res.scalar() or 0
+
+                    chunks_processed = min(total_chunks, int(total_chunks * (completed_batches / max(1, total_batches)))) if total_chunks > 0 else chunk_end_id
+                    progress_pct = round(min(98.0, 50.0 + (completed_batches / max(1, total_batches)) * 48.0), 1)
+                    eta_sec = max(0, int(rem_batches * 4.2))
+
+                    publisher = ProgressStreamPublisher()
+                    await publisher.publish_progress(
+                        generation_id=generation_id,
+                        payload={
+                            "status": "indexing",
+                            "phase": "embedding",
+                            "phase_name": f"Generating embeddings ({completed_batches}/{total_batches} batches)",
+                            "files_total": total_files,
+                            "files_processed": total_files,
+                            "chunks_total": total_chunks,
+                            "chunks_processed": chunks_processed,
+                            "progress_percentage": progress_pct,
+                            "estimated_seconds_remaining": eta_sec,
+                        },
+                    )
+                except Exception as pub_exc:
+                    logger.debug("Failed to publish embedding batch progress: %s", pub_exc)
+
             return {"status": "success", "batch_index": batch_index, **checkpoint}
 
         except Exception as exc:

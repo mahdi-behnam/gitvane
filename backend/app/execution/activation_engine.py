@@ -100,10 +100,35 @@ async def activate_generation(
     previous_active_id = repo.active_generation_id
 
     repo.active_generation_id = gen.id
+    repo.status = "indexed"
+    repo.indexed_at = now_utc
+    if gen.commit_sha:
+        repo.current_ref = gen.commit_sha
+        repo.last_indexed_commit = gen.commit_sha
+
     gen.status = "completed"
     gen.completed_at = now_utc
     gen.terminal_at = now_utc
     gen.updated_at = now_utc
+
+    total_files = 0
+    total_chunks = 0
+    try:
+        from sqlalchemy import func
+        from app.db.models import CodeChunk, CodeFile
+        total_files_stmt = select(func.count(CodeFile.id)).where(CodeFile.generation_id == gen.id)
+        total_files_res = await db.execute(total_files_stmt)
+        if total_files_res is not None and hasattr(total_files_res, "scalar"):
+            tf_val = total_files_res.scalar()
+            total_files = int(tf_val) if tf_val is not None else 0
+
+        total_chunks_stmt = select(func.count(CodeChunk.id)).where(CodeChunk.generation_id == gen.id)
+        total_chunks_res = await db.execute(total_chunks_stmt)
+        if total_chunks_res is not None and hasattr(total_chunks_res, "scalar"):
+            tc_val = total_chunks_res.scalar()
+            total_chunks = int(tc_val) if tc_val is not None else 0
+    except Exception:
+        pass
 
     from app.services.progress_publisher import ProgressStreamPublisher
     publisher = ProgressStreamPublisher()
@@ -113,10 +138,19 @@ async def activate_generation(
             "status": "completed",
             "phase": "completed",
             "phase_name": "Indexing complete",
+            "files_total": total_files,
+            "files_processed": total_files,
+            "chunks_total": total_chunks,
+            "chunks_processed": total_chunks,
             "progress_percentage": 100.0,
+            "estimated_seconds_remaining": 0,
         },
         is_terminal=True,
     )
+
+    from app.services.progress_tracker import IndexingProgressTracker
+    tracker = IndexingProgressTracker.get_instance()
+    tracker.set_completed(repo.id, files_indexed=total_files, chunks_indexed=total_chunks)
 
     # Supersede previous active generation if distinct
     if previous_active_id and previous_active_id != gen.id:

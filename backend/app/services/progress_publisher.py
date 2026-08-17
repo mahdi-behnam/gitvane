@@ -7,6 +7,7 @@ Implements Section 15 & Section 14.3 of the GitVane implementation plan.
 - Supports both async and sync execution contexts.
 """
 
+import asyncio
 import json
 import logging
 from typing import Any, Optional
@@ -27,6 +28,7 @@ class ProgressStreamPublisher:
     """Service to publish and stream progress events via Redis Streams."""
 
     _async_redis_client: Optional[aioredis.Redis] = None
+    _async_client_loop: Optional[asyncio.AbstractEventLoop] = None
     _sync_redis_client: Optional[redis.Redis] = None
 
     def __init__(
@@ -40,13 +42,32 @@ class ProgressStreamPublisher:
         self.redis_url = redis_url or settings.REDIS_URL
 
     def get_async_client(self) -> aioredis.Redis:
-        """Get or initialize the async Redis client."""
+        """Get or initialize the async Redis client for the current running loop."""
         if self._custom_async_client is not None:
             return self._custom_async_client
+
+        try:
+            current_loop = asyncio.get_running_loop()
+        except RuntimeError:
+            current_loop = None
+
+        if (
+            ProgressStreamPublisher._async_redis_client is not None
+            and ProgressStreamPublisher._async_client_loop is not None
+            and (
+                ProgressStreamPublisher._async_client_loop.is_closed()
+                or (current_loop is not None and ProgressStreamPublisher._async_client_loop is not current_loop)
+            )
+        ):
+            ProgressStreamPublisher._async_redis_client = None
+            ProgressStreamPublisher._async_client_loop = None
+
         if ProgressStreamPublisher._async_redis_client is None:
             ProgressStreamPublisher._async_redis_client = aioredis.from_url(
                 self.redis_url, decode_responses=True
             )
+            ProgressStreamPublisher._async_client_loop = current_loop
+
         return ProgressStreamPublisher._async_redis_client
 
     def get_sync_client(self) -> redis.Redis:

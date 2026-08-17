@@ -7,7 +7,7 @@ from typing import Any, Dict
 from celery import Task
 
 from app.core.celery_app import celery_app
-from app.db.session import SessionLocal
+from app.db.session import WorkerSessionLocal as SessionLocal
 from app.services.garbage_collection_service import GarbageCollectionService
 
 logger = logging.getLogger(__name__)

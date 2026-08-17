@@ -125,6 +125,26 @@ async def create_repository(
             await db.commit()
             await db.refresh(repo)
 
+            from app.services.progress_publisher import ProgressStreamPublisher
+            from app.services.progress_tracker import IndexingProgressTracker
+
+            publisher = ProgressStreamPublisher()
+            await publisher.publish_progress(
+                generation_id=new_gen.id,
+                payload={
+                    "status": "queued",
+                    "phase": "queued",
+                    "phase_name": "Indexing request queued",
+                },
+            )
+            tracker = IndexingProgressTracker.get_instance()
+            tracker.update_progress(
+                repository_id=repo.id,
+                phase="queued",
+                phase_name="Indexing request queued",
+                status="indexing_queued",
+            )
+
         return RepositoryOut.model_validate(repo)
     except InvalidPathError as exc:
         raise HTTPException(

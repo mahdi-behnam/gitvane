@@ -24,11 +24,12 @@ import type { IndexingProgressEvent, Repository } from "@/lib/api/types";
 import { formatDateTime, formatSnakeCase } from "@/lib/format";
 import { useIndexingSSE } from "@/lib/hooks/useIndexingSSE";
 import {
+  gitvaneApi,
   useDeleteRepositoryMutation,
   useIndexRepositoryMutation,
   useListRepositoriesQuery,
 } from "@/store/api/gitvaneApi";
-import { useAppSelector } from "@/store/hooks";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 
 function RepositorySkeletonRows() {
   return (
@@ -72,21 +73,23 @@ function RepositoryStatusCell({
 }) {
   const token = useAppSelector((state) => state.auth.accessToken);
   const indexingStatuses = ["indexing", "indexing_queued", "queued", "cloning"];
-  const isIndexing = indexingStatuses.includes(repository.status) || isLocallyIndexing;
+  const shouldConnect = indexingStatuses.includes(repository.status) || isLocallyIndexing;
 
   const initialProgress = (repository.repo_metadata?.indexing_progress as
     | IndexingProgressEvent
     | undefined) ?? null;
 
   const { progress } = useIndexingSSE({
-    enabled: isIndexing,
+    enabled: shouldConnect,
     initialProgress,
     onComplete,
     repositoryId: String(repository.id),
     token,
   });
 
-  if (isIndexing) {
+  const isActuallyIndexing = shouldConnect && progress?.status !== "indexed";
+
+  if (isActuallyIndexing) {
     const pct = progress?.progress_percentage ?? 0;
     const eta = progress?.estimated_seconds_remaining;
 
@@ -116,14 +119,17 @@ function RepositoryStatusCell({
     );
   }
 
+  const effectiveStatus = progress?.status === "indexed" ? "indexed" : repository.status;
+
   return (
-    <Badge tone={repository.status === "indexed" ? "success" : "neutral"}>
-      {formatSnakeCase(repository.status)}
+    <Badge tone={effectiveStatus === "indexed" ? "success" : "neutral"}>
+      {formatSnakeCase(effectiveStatus)}
     </Badge>
   );
 }
 
 export function RepositoryManagementPage() {
+  const dispatch = useAppDispatch();
   const repositories = useListRepositoriesQuery();
   const [activeIndexingIds, setActiveIndexingIds] = useState<Record<string, boolean>>({});
   const [searchQuery, setSearchQuery] = useState("");
@@ -163,6 +169,7 @@ export function RepositoryManagementPage() {
 
   const handleIndexingEnded = (repositoryId: string) => {
     setActiveIndexingIds((prev) => ({ ...prev, [repositoryId]: false }));
+    dispatch(gitvaneApi.util.invalidateTags(["Repository", "IndexStatus"]));
     void repositories.refetch();
   };
 

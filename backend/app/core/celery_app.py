@@ -102,6 +102,13 @@ celery_app = Celery(
 )
 
 celery_app.conf.update(
+    include=[
+        "app.tasks.parser_tasks",
+        "app.tasks.embedding_tasks",
+        "app.tasks.activation_tasks",
+        "app.tasks.gc_tasks",
+        "app.tasks.failure_handlers",
+    ],
     task_queues=task_queues,
     task_default_queue="indexing_cpu",
     task_default_exchange="gitvane",

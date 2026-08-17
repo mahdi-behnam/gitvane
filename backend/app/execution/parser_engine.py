@@ -208,7 +208,20 @@ async def resolve_and_freeze_commit_sha(
         return current_commit_sha
 
     # Resolve symbolic ref to full commit SHA
-    resolved_sha = git_service.resolve_ref_to_sha(repo_path, requested_ref)
+    try:
+        resolved_sha = git_service.resolve_ref_to_sha(repo_path, requested_ref)
+    except Exception:
+        stmt_repo = (
+            select(Repository.local_path)
+            .join(IndexGeneration, Repository.id == IndexGeneration.repository_id)
+            .where(IndexGeneration.id == generation_id)
+        )
+        res_repo = await db.execute(stmt_repo)
+        local_path = res_repo.scalar_one_or_none()
+        if local_path:
+            resolved_sha = git_service.resolve_ref_to_sha(local_path, requested_ref)
+        else:
+            raise
 
     now_utc = get_utc_now()
     fence_valid = await verify_parser_fence(db, generation_id, task_id, claimed_attempt)
@@ -375,11 +388,14 @@ async def final_parser_checkpoint(
         await publisher.publish_progress(
             generation_id=generation_id,
             payload={
-                "status": "embedding",
+                "status": "indexing",
                 "phase": "embedding",
-                "phase_name": "Generating embeddings",
+                "phase_name": f"Generating embeddings ({num_batches} batches)",
                 "chunks_total": total_chunks,
+                "chunks_processed": 0,
                 "batches_total": num_batches,
+                "progress_percentage": 50.0,
+                "estimated_seconds_remaining": int(num_batches * 4.2),
             },
         )
         return {"next_status": "embedding", "num_batches": num_batches}

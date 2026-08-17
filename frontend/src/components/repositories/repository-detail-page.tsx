@@ -71,22 +71,26 @@ export function RepositoryDetailPage({ repositoryId }: { repositoryId: string })
     void indexStatus.refetch();
   }, [repository, indexStatus]);
 
-  const isIndexing =
-    repository.data?.status === "indexing" ||
-    indexStatus.data?.status === "indexing" ||
+  const indexingStatuses = ["indexing", "indexing_queued", "queued", "cloning"];
+  const shouldConnect =
+    indexingStatuses.includes(repository.data?.status ?? "") ||
+    indexingStatuses.includes(indexStatus.data?.status ?? "") ||
     indexState.isLoading ||
-    indexState.data?.status === "indexing";
+    indexingStatuses.includes(indexState.data?.status ?? "");
 
   const { connectionState, progress } = useIndexingSSE({
     repositoryId: validRepositoryId,
-    enabled: isIndexing,
+    enabled: shouldConnect,
     token,
     initialProgress: indexStatus.data?.progress,
     onComplete: () => {
       indexState.reset();
+      dispatch(gitvaneApi.util.invalidateTags(["Repository", "IndexStatus"]));
       handleRefresh();
     },
   });
+
+  const isActuallyIndexing = shouldConnect && progress?.status !== "indexed";
 
   const handleIndex = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -189,7 +193,7 @@ export function RepositoryDetailPage({ repositoryId }: { repositoryId: string })
         </div>
       </div>
 
-      {isIndexing || progress?.status === "indexing" ? (
+      {isActuallyIndexing ? (
         <IndexingProgressCard
           connectionState={connectionState}
           progress={progress ?? indexStatus.data?.progress ?? null}
@@ -207,9 +211,9 @@ export function RepositoryDetailPage({ repositoryId }: { repositoryId: string })
                 <dt className="text-muted">Status</dt>
                 <dd>
                   <Badge
-                    tone={repositoryData.status === "indexed" ? "success" : "neutral"}
+                    tone={(progress?.status === "indexed" ? "indexed" : repositoryData.status) === "indexed" ? "success" : "neutral"}
                   >
-                    {formatSnakeCase(repositoryData.status)}
+                    {formatSnakeCase(progress?.status === "indexed" ? "indexed" : repositoryData.status)}
                   </Badge>
                 </dd>
               </div>

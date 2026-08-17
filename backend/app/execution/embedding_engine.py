@@ -17,6 +17,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import (
+    CodeChunk,
     CodeEmbedding,
     EmbeddingBatch,
     IndexGeneration,
@@ -281,7 +282,14 @@ async def checkpoint_batch_completion(
         EmbeddingBatch.status != "completed",
     )
     rem_res = await db.execute(rem_stmt)
-    remaining_count = rem_res.scalar() or 0
+    rem_val = rem_res.scalar() if hasattr(rem_res, "scalar") else None
+    try:
+        remaining_count = int(rem_val) if rem_val is not None else 0
+    except (TypeError, ValueError):
+        remaining_count = 0
+
+    from app.services.progress_publisher import ProgressStreamPublisher
+    publisher = ProgressStreamPublisher()
 
     if remaining_count > 0:
         return {"completed": True, "finalized": False}
@@ -318,14 +326,31 @@ async def checkpoint_batch_completion(
         )
         db.add(event)
 
-        from app.services.progress_publisher import ProgressStreamPublisher
-        publisher = ProgressStreamPublisher()
+        total_chunks = 0
+        total_files = 0
+        try:
+            from app.db.models import CodeFile
+            tc_res = await db.execute(select(func.count(CodeChunk.id)).where(CodeChunk.generation_id == generation_id))
+            if tc_res is not None and hasattr(tc_res, "scalar"):
+                total_chunks = tc_res.scalar() or 0
+            tf_res = await db.execute(select(func.count(CodeFile.id)).where(CodeFile.generation_id == generation_id))
+            if tf_res is not None and hasattr(tf_res, "scalar"):
+                total_files = tf_res.scalar() or 0
+        except Exception:
+            pass
+
         await publisher.publish_progress(
             generation_id=generation_id,
             payload={
                 "status": "finalizing",
                 "phase": "finalizing",
                 "phase_name": "Finalizing indexing",
+                "files_total": total_files,
+                "files_processed": total_files,
+                "chunks_total": total_chunks,
+                "chunks_processed": total_chunks,
+                "progress_percentage": 99.0,
+                "estimated_seconds_remaining": 0,
             },
         )
         return {"completed": True, "finalized": True}

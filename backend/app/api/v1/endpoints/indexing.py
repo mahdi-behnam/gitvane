@@ -29,6 +29,7 @@ from app.schemas.indexing import (
     IndexRepositoryRequest,
     IndexRepositoryResponse,
     IndexStatusResponse,
+    IndexingProgressEvent,
 )
 from app.services.git_service import GitService
 from app.services.indexing_service import IndexingService
@@ -377,6 +378,7 @@ async def index_events(
     request: Request,
     db: Annotated[AsyncSession, Depends(get_db)],
     repo_svc: Annotated[RepositoryService, Depends(get_repository_service)],
+    publisher: Annotated[ProgressStreamPublisher, Depends(get_progress_publisher)],
     token: str | None = Query(None),
 ) -> StreamingResponse:
     auth_token = token
@@ -419,32 +421,168 @@ async def index_events(
             initial_event = tracker.load_from_metadata(
                 repository_id, repo_obj.repo_metadata, repo_obj.status
             )
+        if not initial_event:
+            phase = "queued" if repo_obj.status in {"indexing_queued", "queued", "cloning"} else repo_obj.status
+            phase_name = "Indexing Queued" if repo_obj.status in {"indexing_queued", "queued", "cloning"} else f"Repository is {repo_obj.status}"
+            initial_event = IndexingProgressEvent(
+                repository_id=repository_id,
+                status=repo_obj.status,
+                phase=phase,
+                phase_name=phase_name,
+                progress_percentage=100.0 if repo_obj.status == "indexed" else 0.0,
+            )
 
         if initial_event:
             data = initial_event.model_dump_json()
             yield f"event: progress\ndata: {data}\n\n"
 
-        if repo_obj.status not in {"indexing"}:
+        if repo_obj.status in {"indexed", "index_failed", "failed", "ready"}:
             return
 
-        loop = asyncio.get_running_loop()
+        gen_id = repo_obj.desired_generation_id
+        last_read_id = "0-0"
+        if gen_id:
+            last_read_id = await publisher.get_tail_id(gen_id)
+
         subscriber_gen = tracker.subscribe(repository_id)
+        terminal_reached = False
+
+        current_state = {
+            "files_total": initial_event.files_total if initial_event else 0,
+            "files_processed": initial_event.files_processed if initial_event else 0,
+            "chunks_total": initial_event.chunks_total if initial_event else 0,
+            "chunks_processed": initial_event.chunks_processed if initial_event else 0,
+            "progress_percentage": initial_event.progress_percentage if initial_event else 0.0,
+            "estimated_seconds_remaining": initial_event.estimated_seconds_remaining if initial_event else None,
+        }
 
         try:
-            while True:
-                # Wait for next event or heartbeat timeout
-                try:
-                    event = await asyncio.wait_for(subscriber_gen.__anext__(), timeout=15.0)
-                    data = event.model_dump_json()
-                    yield f"event: progress\ndata: {data}\n\n"
-                    if event.status in {"indexed", "index_failed"}:
-                        await asyncio.sleep(0.5)
-                        break
-                except asyncio.TimeoutError:
-                    # Keep-alive heartbeat
-                    yield ": ping\n\n"
-                except StopAsyncIteration:
+            while not terminal_reached:
+                if await request.is_disconnected():
+                    logger.info("SSE client disconnected for repository %s", repository_id)
                     break
+
+                event_sent = False
+
+                # 1. Read Redis Stream events from Celery workers if gen_id exists
+                if gen_id:
+                    try:
+                        entries = await publisher.read_stream(
+                            generation_id=gen_id,
+                            last_id=last_read_id,
+                            block_ms=1000,
+                            count=100,
+                        )
+                        if entries:
+                            for msg_id, raw_payload in entries:
+                                last_read_id = msg_id
+                                if isinstance(raw_payload, dict):
+                                    raw_status = raw_payload.get("status", "indexing")
+                                    mapped_status = (
+                                        "indexed"
+                                        if raw_status == "completed"
+                                        else "index_failed"
+                                        if raw_status in {"failed", "cancelled", "superseded"}
+                                        else "indexing"
+                                    )
+
+                                    incoming_pct = float(raw_payload.get("progress_percentage", 0.0) or (100.0 if raw_status == "completed" else 0.0))
+                                    if mapped_status != "indexed" and incoming_pct < current_state["progress_percentage"] and incoming_pct == 0.0:
+                                        incoming_pct = current_state["progress_percentage"]
+                                    else:
+                                        current_state["progress_percentage"] = max(current_state["progress_percentage"], incoming_pct)
+
+                                    incoming_files_total = int(raw_payload.get("files_total", 0) or 0)
+                                    if incoming_files_total > 0:
+                                        current_state["files_total"] = incoming_files_total
+
+                                    incoming_files_proc = int(raw_payload.get("files_processed", 0) or 0)
+                                    if incoming_files_proc > 0:
+                                        current_state["files_processed"] = max(current_state["files_processed"], incoming_files_proc)
+
+                                    incoming_chunks_total = int(raw_payload.get("chunks_total", 0) or raw_payload.get("batches_total", 0) or 0)
+                                    if incoming_chunks_total > 0:
+                                        current_state["chunks_total"] = incoming_chunks_total
+
+                                    incoming_chunks_proc = int(raw_payload.get("chunks_processed", 0) or raw_payload.get("batches_completed", 0) or 0)
+                                    if incoming_chunks_proc > 0:
+                                        current_state["chunks_processed"] = max(current_state["chunks_processed"], incoming_chunks_proc)
+
+                                    incoming_eta = raw_payload.get("estimated_seconds_remaining")
+                                    if incoming_eta is not None:
+                                        current_state["estimated_seconds_remaining"] = incoming_eta
+
+                                    evt = IndexingProgressEvent(
+                                        repository_id=repository_id,
+                                        status=mapped_status,
+                                        phase=raw_payload.get("phase", raw_status),
+                                        phase_name=raw_payload.get("phase_name", f"Phase: {raw_status}"),
+                                        files_total=current_state["files_total"],
+                                        files_processed=current_state["files_processed"],
+                                        chunks_total=current_state["chunks_total"],
+                                        chunks_processed=current_state["chunks_processed"],
+                                        progress_percentage=current_state["progress_percentage"],
+                                        estimated_seconds_remaining=current_state["estimated_seconds_remaining"],
+                                        error=raw_payload.get("error") or raw_payload.get("error_message"),
+                                    )
+                                    yield f"event: progress\ndata: {evt.model_dump_json()}\n\n"
+                                    event_sent = True
+                                    if mapped_status in {"indexed", "index_failed"}:
+                                        terminal_reached = True
+                                        break
+                    except Exception as stream_exc:
+                        logger.debug("Error reading Redis progress stream for repo %s: %s", repository_id, stream_exc)
+
+                if terminal_reached:
+                    break
+
+                # 2. Check in-memory tracker queue
+                try:
+                    event = await asyncio.wait_for(subscriber_gen.__anext__(), timeout=0.5)
+                    yield f"event: progress\ndata: {event.model_dump_json()}\n\n"
+                    event_sent = True
+                    if event.status in {"indexed", "index_failed"}:
+                        terminal_reached = True
+                        break
+                except (asyncio.TimeoutError, StopAsyncIteration):
+                    pass
+
+                # 3. If no event sent, check PostgreSQL for status updates
+                if not event_sent:
+                    try:
+                        db_repo_stmt = select(Repository.status, Repository.desired_generation_id, Repository.repo_metadata).where(
+                            Repository.id == repository_id
+                        )
+                        db_res = await db.execute(db_repo_stmt)
+                        db_row = db_res.fetchone()
+                        if db_row:
+                            current_db_status = db_row.status
+                            if current_db_status != repo_obj.status:
+                                repo_obj.status = current_db_status
+                                if db_row.desired_generation_id and not gen_id:
+                                    gen_id = db_row.desired_generation_id
+                                    last_read_id = await publisher.get_tail_id(gen_id)
+
+                            if current_db_status in {"indexed", "index_failed"}:
+                                term_event = tracker.load_from_metadata(
+                                    repository_id, db_row.repo_metadata, current_db_status
+                                ) or IndexingProgressEvent(
+                                    repository_id=repository_id,
+                                    status=current_db_status,
+                                    phase="completed" if current_db_status == "indexed" else "failed",
+                                    phase_name="Indexing Complete" if current_db_status == "indexed" else "Indexing Failed",
+                                    progress_percentage=100.0 if current_db_status == "indexed" else 0.0,
+                                )
+                                yield f"event: progress\ndata: {term_event.model_dump_json()}\n\n"
+                                terminal_reached = True
+                                break
+                    except Exception as poll_exc:
+                        logger.debug("DB polling in index_events: %s", poll_exc)
+
+                    # Heartbeat ping
+                    yield ": ping\n\n"
+                    await asyncio.sleep(1.5)
+
         finally:
             await subscriber_gen.aclose()
 

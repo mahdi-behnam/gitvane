@@ -205,6 +205,24 @@ class GitService:
                 f"Failed to retrieve current commit SHA: {str(e)}"
             ) from e
 
+    def resolve_ref_to_sha(self, repo_path: str | Path, ref: str) -> str:
+        """Resolves a Git ref (branch, tag, symbolic ref, HEAD, or commit) to a 40-character hex SHA."""
+        try:
+            repo = self.open_repository(repo_path)
+            try:
+                commit = repo.commit(ref)
+                return str(commit.hexsha)
+            except Exception:
+                if f"origin/{ref}" in repo.refs:
+                    return str(repo.refs[f"origin/{ref}"].commit.hexsha)
+                if ref in repo.heads:
+                    return str(repo.heads[ref].commit.hexsha)
+                if ref in repo.tags:
+                    return str(repo.tags[ref].commit.hexsha)
+                return str(repo.head.commit.hexsha)
+        except Exception as e:
+            raise GitOperationError(f"Failed to resolve ref '{ref}' to commit SHA: {str(e)}") from e
+
     def get_default_branch(self, repo: git.Repo) -> str:
         """Returns the default branch of the repository (e.g. main/master)."""
         try:

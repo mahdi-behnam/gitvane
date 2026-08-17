@@ -7,7 +7,7 @@ from uuid import UUID, uuid4
 from celery import Task
 
 from app.core.celery_app import celery_app
-from app.db.session import SessionLocal
+from app.db.session import WorkerSessionLocal as SessionLocal
 from app.execution.failure_engine import handle_parser_failure
 from app.execution.parser_engine import (
     cleanup_incomplete_staged_rows,
@@ -81,14 +81,150 @@ async def _async_prepare_and_parse(generation_id: UUID, task_id: str) -> dict:
             await db.commit()
 
             # 5. Parse repository files & generate chunks
-            # For demonstration and execution, we fetch any existing CodeChunks for this generation
-            # or generated chunks
+            from pathlib import Path
             from sqlalchemy import select
-            from app.db.models import CodeChunk
+            from app.db.models import CodeChunk, Repository
+            from app.services.indexing_service import IndexingService
 
             chunks_stmt = select(CodeChunk).where(CodeChunk.generation_id == generation_id)
             chunks_res = await db.execute(chunks_stmt)
             chunks = list(chunks_res.scalars().all())
+
+            if not chunks:
+                repo_stmt = select(Repository).where(Repository.id == claim["repository_id"])
+                repo_res = await db.execute(repo_stmt)
+                repo_obj = repo_res.scalars().first()
+
+                if repo_obj and repo_obj.local_path:
+                    idx_svc = IndexingService(git_service=git_svc)
+                    actual_repo_path = Path(repo_obj.local_path)
+                    if actual_repo_path.exists():
+                        git_repo = git_svc.open_repository(actual_repo_path)
+                        if requested_ref:
+                            try:
+                                git_svc.checkout_ref(git_repo, requested_ref)
+                            except Exception:
+                                pass
+
+                        tracked_files = git_svc.list_tracked_files(git_repo)
+                        parsed_files = []
+                        file_contents = {}
+                        code_files_by_path = {}
+                        symbol_records_by_key = {}
+
+                        from app.analysis.languages import Language
+                        from app.core.config import settings
+                        from app.db.models import CodeFile, Symbol
+                        from app.utils.hashing import compute_normalized_hash
+
+                        from app.services.progress_publisher import ProgressStreamPublisher
+                        publisher = ProgressStreamPublisher()
+                        total_files = len(tracked_files)
+
+                        for idx, tracked_path in enumerate(tracked_files, start=1):
+                            if idx % 10 == 0 or idx == total_files:
+                                await publisher.publish_progress(
+                                    generation_id=generation_id,
+                                    payload={
+                                        "status": "indexing",
+                                        "phase": "parsing",
+                                        "phase_name": f"Parsing files ({idx}/{total_files})",
+                                        "files_total": total_files,
+                                        "files_processed": idx,
+                                        "progress_percentage": round(min(45.0, (idx / max(1, total_files)) * 45.0), 1),
+                                    },
+                                )
+
+                            full_path = actual_repo_path / tracked_path
+                            if idx_svc._should_skip_path(full_path, tracked_path):
+                                continue
+                            content_bytes = full_path.read_bytes()
+                            if git_svc.is_binary_file(content=content_bytes):
+                                continue
+                            content = content_bytes.decode("utf-8", errors="replace")
+                            classification = idx_svc.classifier.classify(tracked_path, content)
+                            if (
+                                classification["should_ignore"]
+                                or classification["is_generated"]
+                                or not classification["is_supported"]
+                            ):
+                                continue
+
+                            parsed = idx_svc._parse_file(
+                                tracked_path,
+                                content,
+                                classification["language"],
+                            )
+                            code_file = CodeFile(
+                                repository_id=claim["repository_id"],
+                                generation_id=generation_id,
+                                path=Path(tracked_path).as_posix(),
+                                language=str(
+                                    classification["language"].value
+                                    if isinstance(classification["language"], Language)
+                                    else classification["language"]
+                                ),
+                                content_hash=compute_normalized_hash(content),
+                                loc=int(classification["loc"]),
+                                is_test=bool(classification["is_test"]),
+                                is_generated=bool(classification["is_generated"]),
+                                last_seen_commit=commit_sha,
+                                file_metadata={},
+                            )
+                            code_files_by_path[tracked_path] = code_file
+                            parsed_files.append(parsed)
+                            file_contents[tracked_path] = content
+
+                        if code_files_by_path:
+                            await idx_svc._upsert_code_files(db, list(code_files_by_path.values()))
+                            await idx_svc._save_symbols(
+                                db,
+                                claim["repository_id"],
+                                parsed_files,
+                                code_files_by_path,
+                                symbol_records_by_key,
+                                generation_id=generation_id,
+                            )
+                            _, chunks = await idx_svc._save_chunks(
+                                db,
+                                claim["repository_id"],
+                                parsed_files,
+                                code_files_by_path,
+                                symbol_records_by_key,
+                                file_contents,
+                                generation_id=generation_id,
+                            )
+                            edges = idx_svc.graph_builder.build_edges(
+                                parsed_files, set(code_files_by_path)
+                            )
+                            await idx_svc._save_dependency_edges(
+                                db,
+                                claim["repository_id"],
+                                edges,
+                                code_files_by_path,
+                                generation_id=generation_id,
+                            )
+                            await idx_svc._save_commit_metadata(
+                                db,
+                                claim["repository_id"],
+                                git_repo,
+                                settings.MAX_COMMITS_TO_MINE,
+                            )
+                            await db.flush()
+
+                            await publisher.publish_progress(
+                                generation_id=generation_id,
+                                payload={
+                                    "status": "indexing",
+                                    "phase": "parsing",
+                                    "phase_name": f"Parsing complete ({len(code_files_by_path)} files, {len(chunks)} chunks)",
+                                    "files_total": total_files,
+                                    "files_processed": total_files,
+                                    "chunks_total": len(chunks),
+                                    "chunks_processed": 0,
+                                    "progress_percentage": 50.0,
+                                },
+                            )
 
             # 6. Final parser checkpoint
             checkpoint_res = await final_parser_checkpoint(

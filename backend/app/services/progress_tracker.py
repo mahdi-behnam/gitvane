@@ -166,6 +166,16 @@ class IndexingProgressTracker:
                     f"Failed to parse indexing_progress metadata for repo {repository_id}: {e}"
                 )
 
+        if status in {"indexing_queued", "queued", "cloning"}:
+            return IndexingProgressEvent(
+                repository_id=repository_id,
+                status="indexing_queued",
+                phase="queued",
+                phase_name="Indexing Queued",
+                progress_percentage=0.0,
+                estimated_seconds_remaining=None,
+            )
+
         if status == "indexing":
             return IndexingProgressEvent(
                 repository_id=repository_id,
