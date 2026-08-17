@@ -31,6 +31,7 @@ def test_index_repository_endpoint_success() -> None:
     mock_res = MagicMock()
     mock_res.scalars.return_value.first.return_value = mock_repo
     mock_db.execute = AsyncMock(return_value=mock_res)
+    mock_db.flush = AsyncMock()
     mock_db.commit = AsyncMock()
 
     async def mock_get_db() -> AsyncGenerator[Any, None]:

@@ -108,6 +108,7 @@ async def create_repository(
                 stage_attempt=0,
             )
             db.add(new_gen)
+            await db.flush()
             repo.desired_generation_id = new_gen.id
             repo.status = "indexing_queued"
 

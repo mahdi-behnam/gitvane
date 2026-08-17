@@ -68,6 +68,7 @@ def _make_repo(
 async def _noop_db() -> AsyncGenerator[Any, None]:
     """No-op DB dependency override — service is fully mocked anyway."""
     db = MagicMock()
+    db.flush = AsyncMock()
     db.commit = AsyncMock()
     db.refresh = AsyncMock()
     yield db

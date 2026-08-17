@@ -102,6 +102,7 @@ async def index_repository(
         stage_attempt=0,
     )
     db.add(new_gen)
+    await db.flush()
 
     # 4. Set Repository.desired_generation_id = new_generation.id
     repo_obj.desired_generation_id = new_gen.id

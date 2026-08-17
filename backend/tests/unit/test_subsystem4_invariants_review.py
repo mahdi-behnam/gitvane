@@ -80,6 +80,9 @@ async def test_reviewer_a_invariant_1_and_2_api_kickoff_transaction() -> None:
         def add(self, obj: object) -> None:
             db_added.append(obj)
 
+        async def flush(self) -> None:
+            pass
+
         async def commit(self) -> None:
             self.commit_count += 1
 
