@@ -5,6 +5,7 @@ import { useSearchRepositoryRefsQuery } from "@/store/api/gitvaneApi";
 import { Selector, SelectorOption, SelectorProps } from "./selector";
 
 export type RefSelectorProps = Omit<SelectorProps, "options"> & {
+  options?: SelectorOption[];
   refType?: "branch" | "tag" | "commit";
   repositoryId?: string;
 };
@@ -12,6 +13,8 @@ export type RefSelectorProps = Omit<SelectorProps, "options"> & {
 export function RefSelector({
   allowCustomValue = true,
   disabled,
+  loading,
+  options: externalOptions,
   placeholder = "Select branch, tag, or commit...",
   refType,
   repositoryId,
@@ -40,19 +43,21 @@ export function RefSelector({
   );
 
   const options: SelectorOption[] = React.useMemo(() => {
-    const list: SelectorOption[] = refs.map((ref) => {
-      let badgeTone: "info" | "success" | "warning" | "danger" | "muted" = "info";
-      if (ref.ref_type === "tag") badgeTone = "success";
-      else if (ref.ref_type === "commit") badgeTone = "muted";
+    const list: SelectorOption[] = externalOptions
+      ? [...externalOptions]
+      : refs.map((ref) => {
+          let badgeTone: "info" | "success" | "warning" | "danger" | "muted" = "info";
+          if (ref.ref_type === "tag") badgeTone = "success";
+          else if (ref.ref_type === "commit") badgeTone = "muted";
 
-      return {
-        badge: ref.ref_type,
-        badgeTone,
-        description: ref.commit_message || (ref.commit_sha ? `Commit ${ref.commit_sha}` : undefined),
-        label: ref.name,
-        value: ref.name,
-      };
-    });
+          return {
+            badge: ref.ref_type,
+            badgeTone,
+            description: ref.commit_message || (ref.commit_sha ? `Commit ${ref.commit_sha}` : undefined),
+            label: ref.name,
+            value: ref.name,
+          };
+        });
 
     // If current value is not in returned list, append it so selected value is displayed
     const currentValues = Array.isArray(value)
@@ -74,7 +79,7 @@ export function RefSelector({
     }
 
     return list;
-  }, [refs, value]);
+  }, [externalOptions, refs, value]);
 
   return (
     <Selector
@@ -82,7 +87,7 @@ export function RefSelector({
       allowCustomValue={allowCustomValue}
       disabled={disabled}
       emptyText="No matching refs found."
-      loading={isFetching}
+      loading={loading ?? isFetching}
       onSearchChange={(q) => setSearchQuery(q)}
       options={options}
       placeholder={placeholder}

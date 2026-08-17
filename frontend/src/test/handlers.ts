@@ -179,6 +179,27 @@ export const handlers = [
   ),
   http.get(`${apiBaseUrl}/health`, () => HttpResponse.json(healthyResponse)),
   http.get(`${apiBaseUrl}/repositories`, () => HttpResponse.json(emptyRepositoryList)),
+  http.post(`${apiBaseUrl}/repositories/remote-branches`, () =>
+    HttpResponse.json({
+      branches: [
+        {
+          commit_date: null,
+          commit_message: null,
+          commit_sha: "abc1234",
+          name: "main",
+          ref_type: "branch",
+        },
+        {
+          commit_date: null,
+          commit_message: null,
+          commit_sha: "def5678",
+          name: "develop",
+          ref_type: "branch",
+        },
+      ],
+      default_branch: "main",
+    }),
+  ),
   http.post(`${apiBaseUrl}/repositories`, () => HttpResponse.json(repositoryFixture)),
   http.get(`${apiBaseUrl}/repositories/:repositoryId`, () =>
     HttpResponse.json(repositoryFixture),

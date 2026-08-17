@@ -230,3 +230,10 @@ class RepositoryService:
             repo=git_repo, query=query, limit=limit, ref_type=ref_type
         )
 
+    def list_remote_branches(
+        self, clone_url: str, pat: Optional[str] = None
+    ) -> dict:
+        """Inspects remote repository branches without cloning."""
+        return self.git_service.list_remote_branches(clone_url=clone_url, pat=pat)
+
+

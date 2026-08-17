@@ -132,7 +132,7 @@ describe("RepositoryManagementPage", () => {
     ).toBeInTheDocument();
   });
 
-  it("submits clone URL when adding repository", async () => {
+  it("submits clone URL and selected branch when adding repository", async () => {
     const bodies: unknown[] = [];
 
     server.use(
@@ -151,20 +151,67 @@ describe("RepositoryManagementPage", () => {
     fireEvent.change(screen.getByLabelText("Clone URL"), {
       target: { value: "https://github.com/mahdi-behnam/gitvane.git" },
     });
-    fireEvent.click(
-      within(screen.getByRole("dialog", { name: "Add repository" })).getByRole(
-        "button",
-        { name: "Add repository" },
-      ),
-    );
+
+    const submitBtn = within(
+      screen.getByRole("dialog", { name: "Add repository" }),
+    ).getByRole("button", { name: "Add repository" });
+
+    // Wait for debounced remote branch loading to complete and auto-select default branch
+    await waitFor(() => expect(submitBtn).not.toBeDisabled());
+
+    fireEvent.click(submitBtn);
 
     await waitFor(() => expect(bodies).toHaveLength(1));
     expect(bodies[0]).toMatchObject({
-      branch: null,
+      branch: "main",
       clone_url: "https://github.com/mahdi-behnam/gitvane.git",
       index_now: false,
       name: "gitvane",
     });
+  });
+
+  it("shows error when remote branch lookup fails for invalid repository URL", async () => {
+    server.use(
+      http.post(`${apiBaseUrl}/repositories/remote-branches`, () =>
+        HttpResponse.json(
+          { detail: "Git remote check failed: Repository not found" },
+          { status: 422 },
+        ),
+      ),
+    );
+
+    renderWithProviders(<RepositoryManagementPage />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Add repository" }));
+    fireEvent.change(screen.getByLabelText("Clone URL"), {
+      target: { value: "https://github.com/invalid/nonexistent.git" },
+    });
+
+    expect(
+      await screen.findByText(/Git remote check failed: Repository not found/i),
+    ).toBeInTheDocument();
+
+    const submitBtn = within(
+      screen.getByRole("dialog", { name: "Add repository" }),
+    ).getByRole("button", { name: "Add repository" });
+    expect(submitBtn).toBeDisabled();
+  });
+
+  it("disables submit button when required fields are missing", async () => {
+    renderWithProviders(<RepositoryManagementPage />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Add repository" }));
+
+    const submitBtn = within(
+      screen.getByRole("dialog", { name: "Add repository" }),
+    ).getByRole("button", { name: "Add repository" });
+    expect(submitBtn).toBeDisabled();
+
+    // Fill name only -> still disabled
+    fireEvent.change(screen.getByLabelText("Name"), {
+      target: { value: "my-repo" },
+    });
+    expect(submitBtn).toBeDisabled();
   });
 
   it("filters repositories by search query and updates stats", async () => {

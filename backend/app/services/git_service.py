@@ -67,6 +67,95 @@ class GitService:
             err_msg = self._sanitize_error_message(str(e), pat)
             raise GitOperationError(f"Git remote check failed: {err_msg}") from e
 
+    def list_remote_branches(
+        self, clone_url: str, pat: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Queries remote Git branches using ls-remote without cloning the repository.
+        Enforces SSRF safety, checks accessibility, and returns branch information and default branch.
+        """
+        # 1. Enforce scheme & SSRF IP validation
+        self.validator.validate_dns_and_ssrf(clone_url)
+
+        auth_url = self._get_authenticated_url(clone_url, pat)
+        env = self.validator.get_sandbox_execution_env()
+
+        try:
+            g = git.cmd.Git()
+            raw_heads = g.ls_remote("--heads", auth_url, env=env)
+
+            default_branch: Optional[str] = None
+            try:
+                raw_symref = g.ls_remote("--symref", auth_url, "HEAD", env=env)
+                for line in raw_symref.splitlines():
+                    line = line.strip()
+                    if line.startswith("ref: refs/heads/"):
+                        parts = line.split()
+                        if len(parts) >= 2:
+                            default_branch = parts[1].replace("refs/heads/", "")
+                            break
+            except Exception:
+                pass
+
+            results: List[Dict[str, Any]] = []
+            seen_branches: set = set()
+
+            for line in raw_heads.splitlines():
+                line = line.strip()
+                if not line:
+                    continue
+                parts = line.split("\t")
+                if len(parts) >= 2:
+                    sha = parts[0].strip()
+                    ref = parts[1].strip()
+                    if ref.startswith("refs/heads/"):
+                        branch_name = ref.replace("refs/heads/", "")
+                        if branch_name not in seen_branches:
+                            seen_branches.add(branch_name)
+                            results.append({
+                                "name": branch_name,
+                                "ref_type": "branch",
+                                "commit_sha": sha[:7] if sha else None,
+                                "commit_message": None,
+                                "commit_date": None,
+                            })
+
+            # Sort branches: default_branch first (if exists), then alphabetical
+            if default_branch:
+                results.sort(key=lambda b: (0 if b["name"] == default_branch else 1, b["name"]))
+            else:
+                results.sort(key=lambda b: b["name"])
+
+            return {
+                "branches": results,
+                "default_branch": default_branch,
+            }
+        except GitVaneError:
+            raise
+        except git.exc.GitCommandError as e:
+            err_msg = self._sanitize_error_message(str(e), pat)
+            stderr_msg = self._sanitize_error_message(getattr(e, "stderr", "") or "", pat)
+            combined_err = f"{err_msg}\n{stderr_msg}".lower()
+
+            auth_indicators = [
+                "terminal prompts disabled",
+                "authentication failed",
+                "could not read username",
+                "permission denied",
+            ]
+            if any(indicator in combined_err for indicator in auth_indicators):
+                raise PrivateRepositoryNotSupportedError(
+                    self._sanitize_error_message(
+                        "Private repositories are not yet supported. Please use a public repository URL.",
+                        pat,
+                    )
+                ) from e
+
+            raise GitOperationError(f"Git remote branch lookup failed: {err_msg}") from e
+        except Exception as e:
+            err_msg = self._sanitize_error_message(str(e), pat)
+            raise GitOperationError(f"Git remote branch lookup failed: {err_msg}") from e
+
     def clone_repository(
         self, clone_url: str, target_path: str | Path, branch: Optional[str] = None, pat: Optional[str] = None
     ) -> git.Repo:

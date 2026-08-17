@@ -482,6 +482,7 @@ def test_api_pat_sanitization_on_clone_failure() -> None:
                 json={
                     "name": "failed-repo",
                     "clone_url": clone_url,
+                    "branch": "main",
                     "pat": pat
                 }
             )

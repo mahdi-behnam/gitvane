@@ -2,16 +2,16 @@ from datetime import datetime
 from typing import Any, Optional
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class RepositoryCreate(BaseModel):
     """Request schema to register a new repository"""
 
-    name: str = Field(..., description="The name of the repository")
-    clone_url: str = Field(..., description="The remote clone URL")
-    branch: Optional[str] = Field(
-        None, description="Optional branch name to clone or inspect"
+    name: str = Field(..., min_length=1, description="The name of the repository")
+    clone_url: str = Field(..., min_length=1, description="The remote clone URL")
+    branch: str = Field(
+        ..., min_length=1, description="Branch name to clone or inspect"
     )
     index_now: bool = Field(
         False,
@@ -24,6 +24,37 @@ class RepositoryCreate(BaseModel):
         None,
         description="Optional Personal Access Token for authenticating clone/fetch",
     )
+
+    @field_validator("name", "clone_url", "branch")
+    @classmethod
+    def validate_non_empty(cls, v: str, info: Any) -> str:
+        if not isinstance(v, str) or not v.strip():
+            raise ValueError(f"{info.field_name} must not be empty or whitespace")
+        return v.strip()
+
+
+class RemoteBranchesRequest(BaseModel):
+    """Request schema to inspect available remote branches for a repository URL"""
+
+    clone_url: str = Field(..., min_length=1, description="The remote clone URL")
+    pat: Optional[str] = Field(
+        None,
+        description="Optional Personal Access Token for authenticating remote lookup",
+    )
+
+    @field_validator("clone_url")
+    @classmethod
+    def validate_clone_url(cls, v: str) -> str:
+        if not isinstance(v, str) or not v.strip():
+            raise ValueError("clone_url must not be empty or whitespace")
+        return v.strip()
+
+
+class RemoteBranchesResponse(BaseModel):
+    """Response schema containing list of remote branches and optional default branch"""
+
+    branches: list["RefSearchResult"]
+    default_branch: Optional[str] = None
 
 
 class RepositoryOut(BaseModel):

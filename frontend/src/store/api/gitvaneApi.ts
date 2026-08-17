@@ -18,6 +18,8 @@ import type {
   IndexRepositoryResponse,
   IndexStatusResponse,
   RefSearchResult,
+  RemoteBranchesRequest,
+  RemoteBranchesResponse,
   Repository,
   RepositoryCreate,
   RepositoryList,
@@ -444,6 +446,16 @@ export const gitvaneApi = createApi({
       query: (repositoryId) => `/impact/repository/${repositoryId}/runs`,
       providesTags: ["Impact"],
     }),
+    listRemoteBranches: builder.mutation<
+      RemoteBranchesResponse,
+      RemoteBranchesRequest
+    >({
+      query: (body) => ({
+        body,
+        method: "POST",
+        url: "/repositories/remote-branches",
+      }),
+    }),
   }),
   reducerPath: "gitvaneApi",
   tagTypes: ["Evaluation", "Graph", "Impact", "IndexStatus", "Repository", "Risk", "User"],
@@ -465,6 +477,7 @@ export const {
   useGetRepositorySubgraphQuery,
   useIndexRepositoryMutation,
   useListRepositoriesQuery,
+  useListRemoteBranchesMutation,
   useRecommendTestsMutation,
   useRunEvaluationMutation,
   useRunImpactAnalysisMutation,

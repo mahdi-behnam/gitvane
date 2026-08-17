@@ -11,6 +11,8 @@ from app.core.errors import GitOperationError, InvalidPathError, RepositoryNotFo
 from app.schemas.repository import (
     FileSearchResult,
     RefSearchResult,
+    RemoteBranchesRequest,
+    RemoteBranchesResponse,
     RepositoryCreate,
     RepositoryList,
     RepositoryOut,
@@ -21,6 +23,32 @@ from app.services.repository_service import RepositoryService
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+@router.post("/remote-branches", response_model=RemoteBranchesResponse)
+async def list_remote_branches(
+    body: RemoteBranchesRequest,
+    svc: Annotated[RepositoryService, Depends(get_repository_service)],
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> RemoteBranchesResponse:
+    """
+    Inspect available branches for a remote Git repository URL without cloning it.
+    """
+    try:
+        data = svc.list_remote_branches(clone_url=body.clone_url, pat=body.pat)
+        branches = [RefSearchResult.model_validate(b) for b in data["branches"]]
+        return RemoteBranchesResponse(
+            branches=branches,
+            default_branch=data.get("default_branch"),
+        )
+    except InvalidPathError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
+        ) from exc
+    except GitOperationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+        ) from exc
 
 
 @router.post("", response_model=RepositoryOut, status_code=status.HTTP_201_CREATED)

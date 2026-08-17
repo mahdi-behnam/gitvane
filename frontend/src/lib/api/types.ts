@@ -7,11 +7,21 @@ export type HealthResponse = {
 };
 
 export type RepositoryCreate = {
-  branch?: string | null;
+  branch: string;
   clone_url: string;
   index_now?: boolean;
   name: string;
   pat?: string | null;
+};
+
+export type RemoteBranchesRequest = {
+  clone_url: string;
+  pat?: string | null;
+};
+
+export type RemoteBranchesResponse = {
+  branches: RefSearchResult[];
+  default_branch: string | null;
 };
 
 export type Repository = {

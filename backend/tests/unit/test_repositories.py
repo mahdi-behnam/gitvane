@@ -90,7 +90,11 @@ def test_create_repository_success() -> None:
         client = TestClient(app)
         response = client.post(
             "/api/v1/repositories",
-            json={"name": "test-repo", "clone_url": "https://github.com/example/test-repo.git"},
+            json={
+                "name": "test-repo",
+                "clone_url": "https://github.com/example/test-repo.git",
+                "branch": "main",
+            },
         )
         assert response.status_code == 201
         data = response.json()
@@ -134,9 +138,25 @@ def test_create_repository_missing_url_and_path() -> None:
     client = TestClient(app)
     response = client.post(
         "/api/v1/repositories",
-        json={"name": "test-repo"},
+        json={"name": "test-repo", "branch": "main"},
     )
     assert response.status_code == 422
+
+
+def test_create_repository_missing_branch() -> None:
+    """POST returns 422 when branch is not provided or empty."""
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/repositories",
+        json={"name": "test-repo", "clone_url": "https://github.com/example/test-repo.git"},
+    )
+    assert response.status_code == 422
+
+    response_empty = client.post(
+        "/api/v1/repositories",
+        json={"name": "test-repo", "clone_url": "https://github.com/example/test-repo.git", "branch": "  "},
+    )
+    assert response_empty.status_code == 422
 
 
 def test_create_repository_git_error() -> None:
@@ -152,7 +172,11 @@ def test_create_repository_git_error() -> None:
         client = TestClient(app)
         response = client.post(
             "/api/v1/repositories",
-            json={"name": "bad-repo", "clone_url": "https://invalid.example/repo.git"},
+            json={
+                "name": "bad-repo",
+                "clone_url": "https://invalid.example/repo.git",
+                "branch": "main",
+            },
         )
         assert response.status_code == 422
     finally:
@@ -172,12 +196,110 @@ def test_create_repository_private_error() -> None:
         client = TestClient(app)
         response = client.post(
             "/api/v1/repositories",
-            json={"name": "private-repo", "clone_url": "https://github.com/microsoft/private.git"},
+            json={
+                "name": "private-repo",
+                "clone_url": "https://github.com/microsoft/private.git",
+                "branch": "main",
+            },
         )
         assert response.status_code == 400
         assert response.json()["detail"] == "Private repositories are not yet supported. Please use a public repository URL."
     finally:
         app.dependency_overrides.clear()
+
+
+# ---------------------------------------------------------------------------
+# Tests — POST /api/v1/repositories/remote-branches
+# ---------------------------------------------------------------------------
+
+
+def test_list_remote_branches_success() -> None:
+    """POST /remote-branches returns list of remote branches and default branch."""
+    mock_svc = MagicMock()
+    mock_svc.list_remote_branches = MagicMock(return_value={
+        "branches": [
+            {
+                "name": "main",
+                "ref_type": "branch",
+                "commit_sha": "abc1234",
+                "commit_message": None,
+                "commit_date": None,
+            },
+            {
+                "name": "feature/login",
+                "ref_type": "branch",
+                "commit_sha": "def5678",
+                "commit_message": None,
+                "commit_date": None,
+            },
+        ],
+        "default_branch": "main",
+    })
+
+    app.dependency_overrides[get_repository_service] = lambda: mock_svc
+    try:
+        client = TestClient(app)
+        response = client.post(
+            "/api/v1/repositories/remote-branches",
+            json={"clone_url": "https://github.com/example/test-repo.git"},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["default_branch"] == "main"
+        assert len(data["branches"]) == 2
+        assert data["branches"][0]["name"] == "main"
+        assert data["branches"][1]["name"] == "feature/login"
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_list_remote_branches_git_error() -> None:
+    """POST /remote-branches returns 422 when git operation fails."""
+    mock_svc = MagicMock()
+    mock_svc.list_remote_branches = MagicMock(
+        side_effect=GitOperationError("Remote branch lookup failed")
+    )
+
+    app.dependency_overrides[get_repository_service] = lambda: mock_svc
+    try:
+        client = TestClient(app)
+        response = client.post(
+            "/api/v1/repositories/remote-branches",
+            json={"clone_url": "https://invalid.example/repo.git"},
+        )
+        assert response.status_code == 422
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_list_remote_branches_private_error() -> None:
+    """POST /remote-branches returns 400 when private repository authentication fails."""
+    mock_svc = MagicMock()
+    mock_svc.list_remote_branches = MagicMock(
+        side_effect=PrivateRepositoryNotSupportedError()
+    )
+
+    app.dependency_overrides[get_repository_service] = lambda: mock_svc
+    try:
+        client = TestClient(app)
+        response = client.post(
+            "/api/v1/repositories/remote-branches",
+            json={"clone_url": "https://github.com/private/repo.git"},
+        )
+        assert response.status_code == 400
+        assert "Private repositories are not yet supported" in response.json()["detail"]
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_list_remote_branches_empty_url() -> None:
+    """POST /remote-branches returns 422 on empty clone_url."""
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/repositories/remote-branches",
+        json={"clone_url": "   "},
+    )
+    assert response.status_code == 422
 
 
 # ---------------------------------------------------------------------------
