@@ -128,3 +128,31 @@ celery_app.conf.update(
     worker_gossip=False,
     worker_mingle=False,
 )
+
+import logging
+from celery.signals import worker_process_init, worker_ready
+
+logger = logging.getLogger(__name__)
+
+def _warmup_local_embedding_model():
+    if settings.EMBEDDING_PROVIDER.lower() == "local":
+        try:
+            logger.info("Celery worker: pre-warming local embedding model into singleton memory cache...")
+            from app.embeddings.service import EmbeddingService
+
+            service = EmbeddingService()
+            if hasattr(service.provider, "_load_model"):
+                service.provider._load_model()
+            logger.info("Celery worker: local embedding model is warm and resident in memory.")
+        except Exception as e:
+            logger.warning("Celery worker: failed to warm up local embedding model on startup: %s", e)
+
+@worker_process_init.connect
+def on_worker_process_init(**kwargs):
+    """Pre-warm embedding model inside Celery worker child processes."""
+    _warmup_local_embedding_model()
+
+@worker_ready.connect
+def on_worker_ready(**kwargs):
+    """Pre-warm embedding model inside solo/main worker processes."""
+    _warmup_local_embedding_model()

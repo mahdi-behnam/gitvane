@@ -191,9 +191,21 @@ async def persist_batch_embeddings(
 
     now_utc = get_utc_now()
 
-    # Format records for insert/upsert
+    # Format records for insert/upsert (deduplicating by conflict target)
+    import math
+
+    seen_keys = set()
     insert_values = []
     for item in embeddings_data:
+        key = (generation_id, item["chunk_id"], item["model"])
+        if key in seen_keys:
+            continue
+        seen_keys.add(key)
+        raw_vec = item["embedding"]
+        clean_vec = [
+            0.0 if (v is None or (isinstance(v, float) and (math.isnan(v) or math.isinf(v)))) else float(v)
+            for v in raw_vec
+        ]
         insert_values.append(
             {
                 "generation_id": generation_id,
@@ -201,13 +213,13 @@ async def persist_batch_embeddings(
                 "provider": item["provider"],
                 "model": item["model"],
                 "dimensions": item["dimensions"],
-                "embedding": item["embedding"],
+                "embedding": clean_vec,
                 "created_at": now_utc,
             }
         )
 
-    try:
-        # PostgreSQL ON CONFLICT UPSERT
+    dialect_name = db.bind.dialect.name if db.bind is not None else "postgresql"
+    if dialect_name == "postgresql":
         stmt = pg_insert(CodeEmbedding).values(insert_values)
         upsert_stmt = stmt.on_conflict_do_update(
             constraint="uq_code_embeddings_gen_chunk_model",
@@ -219,7 +231,7 @@ async def persist_batch_embeddings(
             },
         )
         await db.execute(upsert_stmt)
-    except Exception:
+    else:
         # Fallback for SQLite in unit test environment where pg_insert isn't supported
         for item in insert_values:
             existing_stmt = select(CodeEmbedding).where(

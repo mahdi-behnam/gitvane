@@ -6,6 +6,7 @@ from uuid import UUID
 
 from celery import Task
 
+from app.core.async_runner import run_sync_in_worker_loop
 from app.core.celery_app import celery_app
 from app.db.session import WorkerSessionLocal as SessionLocal
 from app.execution.activation_engine import activate_generation
@@ -23,7 +24,7 @@ logger = logging.getLogger(__name__)
 def task_activate_generation(self: Task, generation_id_str: str) -> dict:
     """Task to activate an IndexGeneration on the workflow_control queue."""
     generation_id = UUID(generation_id_str)
-    return asyncio.run(_async_activate_generation(generation_id))
+    return run_sync_in_worker_loop(_async_activate_generation(generation_id))
 
 
 async def _async_activate_generation(generation_id: UUID) -> dict:

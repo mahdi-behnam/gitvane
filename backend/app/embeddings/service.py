@@ -50,6 +50,9 @@ class EmbeddingService:
         self.validate_embeddings(embeddings)
         return embeddings
 
+    async def generate_embeddings(self, texts: list[str]) -> list[list[float]]:
+        return await self.embed_passages(texts)
+
     async def embed_query(self, text: str) -> list[float]:
         embedding = await self.provider.embed_query(text)
         self.validate_embedding(embedding)

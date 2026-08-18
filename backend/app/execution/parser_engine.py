@@ -10,6 +10,7 @@ Section 11: Parser Task & Stage Lease Fencing
 - Atomic parser checkpoint (create batches, outbox events, update generation state)
 """
 
+import logging
 import math
 from datetime import datetime, timezone
 from pathlib import Path
@@ -32,6 +33,8 @@ from app.db.models import (
     Symbol,
 )
 from app.services.git_service import GitService
+
+logger = logging.getLogger(__name__)
 
 
 class FenceCheckFailedError(Exception):
@@ -385,17 +388,46 @@ async def final_parser_checkpoint(
         )
         await db.execute(stmt)
 
+        total_files = 0
+        try:
+            from app.db.models import CodeFile
+            tf_res = await db.execute(select(func.count(CodeFile.id)).where(CodeFile.generation_id == generation_id))
+            if tf_res is not None and hasattr(tf_res, "scalar"):
+                val = tf_res.scalar()
+                if isinstance(val, int):
+                    total_files = val
+        except Exception:
+            total_files = 0
+
+        try:
+            import json
+            redis_client = publisher.get_async_client()
+            meta_payload = {
+                "total_batches": num_batches,
+                "total_chunks": total_chunks,
+                "total_files": total_files,
+            }
+            await redis_client.set(
+                f"gitvane:generation:meta:{generation_id}",
+                json.dumps(meta_payload),
+                ex=7200,
+            )
+        except Exception as meta_exc:
+            logger.debug("Failed to cache generation metadata in Redis: %s", meta_exc)
+
         await publisher.publish_progress(
             generation_id=generation_id,
             payload={
                 "status": "indexing",
                 "phase": "embedding",
                 "phase_name": f"Generating embeddings ({num_batches} batches)",
+                "files_total": total_files,
+                "files_processed": total_files,
                 "chunks_total": total_chunks,
                 "chunks_processed": 0,
                 "batches_total": num_batches,
                 "progress_percentage": 50.0,
-                "estimated_seconds_remaining": int(num_batches * 4.2),
+                "estimated_seconds_remaining": None,
             },
         )
         return {"next_status": "embedding", "num_batches": num_batches}

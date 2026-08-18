@@ -25,12 +25,15 @@ SessionLocal = async_sessionmaker(
     autoflush=False,
 )
 
-# Worker engine with NullPool to prevent asyncpg connection sharing across transient asyncio.run() event loops
+# Worker engine with connection pooling running against the persistent worker event loop
 worker_engine = create_async_engine(
     settings.DATABASE_URL,
     echo=False,
     future=True,
-    poolclass=NullPool,
+    pool_pre_ping=True,
+    pool_size=settings.DATABASE_POOL_SIZE,
+    max_overflow=settings.DATABASE_MAX_OVERFLOW,
+    pool_timeout=settings.DATABASE_POOL_TIMEOUT,
 )
 
 WorkerSessionLocal = async_sessionmaker(

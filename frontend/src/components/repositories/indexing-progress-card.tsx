@@ -34,7 +34,7 @@ export function IndexingProgressCard({
       return "Calculating...";
     }
     if (seconds <= 0) {
-      return "Wrapping up...";
+      return pct >= 90 ? "Wrapping up..." : "Calculating...";
     }
     if (seconds < 60) {
       return `~${seconds}s remaining`;

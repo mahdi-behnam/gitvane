@@ -22,6 +22,9 @@ from app.services.git_service import GitService
 logger = logging.getLogger(__name__)
 
 
+from app.core.async_runner import run_sync_in_worker_loop
+
+
 @celery_app.task(
     bind=True,
     name="app.tasks.parser_tasks.task_prepare_and_parse",
@@ -36,7 +39,7 @@ def task_prepare_and_parse(self: Task, generation_id_str: str) -> dict:
     task_id = self.request.id or str(uuid4())
     generation_id = UUID(generation_id_str)
 
-    return asyncio.run(_async_prepare_and_parse(generation_id, task_id))
+    return run_sync_in_worker_loop(_async_prepare_and_parse(generation_id, task_id))
 
 
 async def _async_prepare_and_parse(generation_id: UUID, task_id: str) -> dict:
@@ -129,9 +132,7 @@ async def _async_prepare_and_parse(generation_id: UUID, task_id: str) -> dict:
                                 files_per_sec = idx / max(0.1, elapsed)
                                 rem_files = max(0, total_files - idx)
                                 parsing_rem_sec = rem_files / files_per_sec
-                                est_chunks = total_files * 10
-                                est_batches = max(1, est_chunks // 16)
-                                total_eta = int(parsing_rem_sec + (est_batches * 4.0))
+                                total_eta = int(parsing_rem_sec) if (idx >= 5 and rem_files > 0) else None
 
                                 await publisher.publish_progress(
                                     generation_id=generation_id,
@@ -223,9 +224,6 @@ async def _async_prepare_and_parse(generation_id: UUID, task_id: str) -> dict:
                             )
                             await db.flush()
 
-                            est_batches = max(1, len(chunks) // max(1, settings.EMBEDDING_BATCH_SIZE))
-                            est_eta = int(est_batches * 4.0)
-
                             await publisher.publish_progress(
                                 generation_id=generation_id,
                                 payload={
@@ -237,7 +235,7 @@ async def _async_prepare_and_parse(generation_id: UUID, task_id: str) -> dict:
                                     "chunks_total": len(chunks),
                                     "chunks_processed": 0,
                                     "progress_percentage": 50.0,
-                                    "estimated_seconds_remaining": est_eta,
+                                    "estimated_seconds_remaining": None,
                                 },
                             )
 

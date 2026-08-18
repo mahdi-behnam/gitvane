@@ -13,6 +13,9 @@ from app.services.garbage_collection_service import GarbageCollectionService
 logger = logging.getLogger(__name__)
 
 
+from app.core.async_runner import run_sync_in_worker_loop
+
+
 @celery_app.task(
     bind=True,
     name="app.tasks.gc_tasks.task_run_garbage_collection",
@@ -35,7 +38,7 @@ def task_run_garbage_collection(
         generation_limit,
         batch_size,
     )
-    return asyncio.run(
+    return run_sync_in_worker_loop(
         _async_run_garbage_collection(
             retention_hours=retention_hours,
             generation_limit=generation_limit,

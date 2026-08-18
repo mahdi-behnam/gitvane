@@ -539,27 +539,64 @@ class IndexingService:
         git_repo: Any,
         max_commits: int,
     ) -> int:
-        commits_to_add: list[Commit] = []
+        commit_records: list[dict[str, Any]] = []
         for commit in self.git_service.iter_commits(git_repo, max_count=max_commits):
             metadata = self.git_service.get_commit_metadata(git_repo, commit.hexsha)
-            commits_to_add.append(
-                Commit(
-                    repository_id=repository_id,
-                    sha=metadata["sha"],
-                    parent_sha=metadata.get("parent_sha"),
-                    author_name=metadata.get("author_name"),
-                    author_email=metadata.get("author_email"),
-                    author_date=metadata.get("author_date"),
-                    message=metadata.get("message"),
-                    changed_files=self._commit_changed_files(commit),
-                    insertions=metadata.get("insertions"),
-                    deletions=metadata.get("deletions"),
-                )
+            commit_records.append(
+                {
+                    "repository_id": repository_id,
+                    "sha": metadata["sha"],
+                    "parent_sha": metadata.get("parent_sha"),
+                    "author_name": metadata.get("author_name"),
+                    "author_email": metadata.get("author_email"),
+                    "author_date": metadata.get("author_date"),
+                    "message": metadata.get("message"),
+                    "changed_files": self._commit_changed_files(commit),
+                    "insertions": metadata.get("insertions"),
+                    "deletions": metadata.get("deletions"),
+                }
             )
-        if commits_to_add:
-            db.add_all(commits_to_add)
+
+        if not commit_records:
+            return 0
+
+        try:
+            from sqlalchemy.dialects.postgresql import insert as pg_insert
+
+            stmt = pg_insert(Commit).values(commit_records)
+            upsert_stmt = stmt.on_conflict_do_update(
+                constraint="uq_commits_repository_sha",
+                set_={
+                    "parent_sha": stmt.excluded.parent_sha,
+                    "author_name": stmt.excluded.author_name,
+                    "author_email": stmt.excluded.author_email,
+                    "author_date": stmt.excluded.author_date,
+                    "message": stmt.excluded.message,
+                    "changed_files": stmt.excluded.changed_files,
+                    "insertions": stmt.excluded.insertions,
+                    "deletions": stmt.excluded.deletions,
+                },
+            )
+            await db.execute(upsert_stmt)
             await db.flush()
-        return len(commits_to_add)
+        except Exception:
+            # Fallback for SQLite / test environments where pg_insert isn't supported
+            for record in commit_records:
+                existing = await db.execute(
+                    select(Commit).where(
+                        Commit.repository_id == repository_id,
+                        Commit.sha == record["sha"],
+                    )
+                )
+                existing_row = existing.scalar_one_or_none()
+                if existing_row is not None:
+                    for k, v in record.items():
+                        setattr(existing_row, k, v)
+                else:
+                    db.add(Commit(**record))
+            await db.flush()
+
+        return len(commit_records)
 
     async def _count(
         self, db: AsyncSession, model: type[Any], repository_id: UUID | Any

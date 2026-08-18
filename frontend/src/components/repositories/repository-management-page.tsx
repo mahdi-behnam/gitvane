@@ -97,7 +97,9 @@ function RepositoryStatusCell({
       eta === null || eta === undefined
         ? "Calculating..."
         : eta <= 0
-        ? "Wrapping up..."
+        ? pct >= 90
+          ? "Wrapping up..."
+          : "Calculating..."
         : `~${eta}s left`;
 
     return (
@@ -435,12 +437,12 @@ function RepositoryRowActions({
     : null;
 
   const handleIndex = async () => {
-    onIndexStarted();
     try {
       await indexRepository({
         body: {},
         repositoryId: repository.id,
       }).unwrap();
+      onIndexStarted();
     } catch {
       onIndexFailed();
     }

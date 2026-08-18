@@ -105,9 +105,21 @@ async def index_repository(
     db.add(new_gen)
     await db.flush()
 
-    # 4. Set Repository.desired_generation_id = new_generation.id
     repo_obj.desired_generation_id = new_gen.id
     repo_obj.status = "indexing_queued"
+
+    tracker = IndexingProgressTracker.get_instance()
+    tracker.set_progress(
+        repo_obj.id,
+        IndexingProgressEvent(
+            repository_id=repo_obj.id,
+            status="indexing_queued",
+            phase="queued",
+            phase_name="Indexing Queued",
+            progress_percentage=0.0,
+            estimated_seconds_remaining=None,
+        ),
+    )
 
     # 5. If the previous desired generation is a different non-active, non-terminal generation, mark it superseded and set terminal_at = now()
     if (

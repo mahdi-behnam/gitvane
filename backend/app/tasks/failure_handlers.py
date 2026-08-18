@@ -6,6 +6,7 @@ from uuid import UUID
 
 from celery import Task
 
+from app.core.async_runner import run_sync_in_worker_loop
 from app.core.celery_app import celery_app
 from app.db.session import WorkerSessionLocal as SessionLocal
 from app.execution.failure_engine import (
@@ -32,7 +33,7 @@ def task_handle_parser_failure(
 ) -> dict:
     """Fenced terminal parser failure task."""
     generation_id = UUID(generation_id_str)
-    return asyncio.run(_async_parser_failure(generation_id, task_id, stage_attempt, error_message))
+    return run_sync_in_worker_loop(_async_parser_failure(generation_id, task_id, stage_attempt, error_message))
 
 
 async def _async_parser_failure(
@@ -69,7 +70,7 @@ def task_handle_embedding_batch_failure(
 ) -> dict:
     """Fenced terminal embedding batch failure task."""
     generation_id = UUID(generation_id_str)
-    return asyncio.run(_async_embedding_batch_failure(generation_id, batch_index, task_id, error_message))
+    return run_sync_in_worker_loop(_async_embedding_batch_failure(generation_id, batch_index, task_id, error_message))
 
 
 async def _async_embedding_batch_failure(

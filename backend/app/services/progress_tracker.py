@@ -28,6 +28,12 @@ class IndexingProgressTracker:
             cls._instance = IndexingProgressTracker()
         return cls._instance
 
+    def set_progress(
+        self, repository_id: UUID | Any, event: IndexingProgressEvent
+    ) -> None:
+        self._states[repository_id] = event
+        self._broadcast(repository_id, event)
+
     def init_progress(
         self, repository_id: UUID | Any, files_total: int = 0
     ) -> IndexingProgressEvent:
