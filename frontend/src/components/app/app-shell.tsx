@@ -34,6 +34,7 @@ import {
 import { setCredentials, clearCredentials } from "@/store/slices/authSlice";
 import { setActiveRepositoryId } from "@/store/slices/repositorySelectionSlice";
 import { cn } from "@/lib/utils";
+import { getRepositoryDisplayBranch } from "@/lib/format";
 
 const mainNavItems = [
   { href: "/", icon: Home, label: "Overview" },
@@ -370,11 +371,14 @@ export function AppShell({ children }: { children: ReactNode }) {
                       }}
                       options={[
                         { label: "None selected", value: "" },
-                        ...(repositories.data?.items.map((repo) => ({
-                          description: repo.default_branch ? `Branch: ${repo.default_branch}` : undefined,
-                          label: repo.name,
-                          value: repo.id,
-                        })) ?? []),
+                        ...(repositories.data?.items.map((repo) => {
+                          const branchName = getRepositoryDisplayBranch(repo);
+                          return {
+                            description: branchName !== "Unknown" ? `Branch: ${branchName}` : undefined,
+                            label: repo.name,
+                            value: repo.id,
+                          };
+                        }) ?? []),
                       ]}
                       placeholder="Select repository..."
                       searchPlaceholder="Filter repos..."

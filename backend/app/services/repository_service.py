@@ -84,7 +84,7 @@ class RepositoryService:
 
             # 4. Update repository properties
             repo_obj.local_path = str(target_path.as_posix())
-            repo_obj.current_ref = current_sha
+            repo_obj.current_ref = branch or default_branch
             repo_obj.default_branch = default_branch
             # When index_now is requested, mark as queued for the indexing API;
             # otherwise mark as ready.
@@ -256,7 +256,7 @@ class RepositoryService:
             )
 
         resolved_path = validate_and_resolve_path(repo_obj.local_path)
-        target_ref = branch or repo_obj.default_branch or repo_obj.current_ref or "main"
+        target_ref = branch or repo_obj.current_ref or repo_obj.default_branch or "main"
         pat = decrypt_pat(repo_obj.encrypted_pat) if repo_obj.encrypted_pat else None
 
         commit_sha = self.git_service.fetch_and_pull_ref(
@@ -266,7 +266,8 @@ class RepositoryService:
             pat=pat,
         )
 
-        repo_obj.current_ref = commit_sha
+        repo_obj.current_ref = target_ref
+        repo_obj.last_indexed_commit = commit_sha
         await db.flush()
         return repo_obj, commit_sha
 

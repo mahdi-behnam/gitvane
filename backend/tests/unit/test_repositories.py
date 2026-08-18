@@ -528,3 +528,73 @@ def test_list_repository_refs_endpoint() -> None:
         app.dependency_overrides.clear()
 
 
+import pytest
+from app.services.repository_service import RepositoryService
+
+
+@pytest.mark.asyncio
+async def test_repository_service_create_repository_preserves_selected_branch_and_default_branch(tmp_path: Any) -> None:
+    """create_repository sets current_ref to user-selected branch and default_branch to git default branch."""
+    mock_git_svc = MagicMock()
+    mock_git_svc.get_current_sha.return_value = "commit_sha_123"
+    mock_git_svc.get_default_branch.return_value = "main"
+    mock_git_svc.clone_repository.return_value = MagicMock()
+
+    service = RepositoryService(git_service=mock_git_svc)
+
+    db = MagicMock()
+    db.add = MagicMock()
+    db.flush = AsyncMock()
+    db.commit = AsyncMock()
+    db.refresh = AsyncMock()
+
+    with patch("app.services.repository_service.settings.GITVANE_WORKSPACE", str(tmp_path)):
+        repo = await service.create_repository(
+            db=db,
+            owner_id=1,
+            name="test-repo",
+            clone_url="https://github.com/example/test-repo.git",
+            branch="feature/custom-branch",
+        )
+
+        assert repo.default_branch == "main"
+        assert repo.current_ref == "feature/custom-branch"
+
+
+@pytest.mark.asyncio
+async def test_repository_service_sync_repository_updates_current_ref(tmp_path: Any) -> None:
+    """sync_repository updates current_ref to the synced branch and last_indexed_commit to commit SHA."""
+    mock_git_svc = MagicMock()
+    mock_git_svc.fetch_and_pull_ref.return_value = "new_commit_sha_456"
+
+    service = RepositoryService(git_service=mock_git_svc)
+
+    repo_dir = tmp_path / "repo_1"
+    repo_dir.mkdir()
+
+    repo = _make_repo()
+    repo.local_path = str(repo_dir)
+    repo.default_branch = "main"
+    repo.current_ref = "main"
+    repo.encrypted_pat = None
+
+    service.get_repository_or_raise = AsyncMock(return_value=repo)  # type: ignore
+
+    db = MagicMock()
+    db.flush = AsyncMock()
+
+    with patch("app.services.repository_service.settings.GITVANE_WORKSPACE", str(tmp_path)):
+        synced_repo, commit_sha = await service.sync_repository(
+            db=db,
+            repository_id=TEST_UUID,
+            owner_id=1,
+            branch="release-v2",
+        )
+
+        assert synced_repo.current_ref == "release-v2"
+        assert synced_repo.last_indexed_commit == "new_commit_sha_456"
+        assert synced_repo.default_branch == "main"
+        assert commit_sha == "new_commit_sha_456"
+
+
+

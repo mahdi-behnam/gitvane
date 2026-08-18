@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/table";
 import { normalizeApiError } from "@/lib/api/errors";
 import type { IndexingProgressEvent, Repository } from "@/lib/api/types";
-import { formatDateTime, formatSnakeCase } from "@/lib/format";
+import { formatDateTime, formatSnakeCase, getRepositoryDisplayBranch } from "@/lib/format";
 import { useIndexingSSE } from "@/lib/hooks/useIndexingSSE";
 import {
   gitvaneApi,
@@ -187,8 +187,8 @@ export function RepositoryManagementPage() {
           ? repository.clone_url.toLowerCase().includes(query)
           : false;
         const branchMatch =
-          (repository.default_branch && repository.default_branch.toLowerCase().includes(query)) ||
-          (repository.current_ref && repository.current_ref.toLowerCase().includes(query));
+          (repository.current_ref && repository.current_ref.toLowerCase().includes(query)) ||
+          (repository.default_branch && repository.default_branch.toLowerCase().includes(query));
 
         if (!nameMatch && !urlMatch && !branchMatch) {
           return false;
@@ -385,7 +385,7 @@ export function RepositoryManagementPage() {
                       />
                     </TableCell>
                     <TableCell className="font-mono text-xs text-muted">
-                      {repository.default_branch ?? repository.current_ref ?? "Unknown"}
+                      {getRepositoryDisplayBranch(repository)}
                     </TableCell>
                     <TableCell className="text-muted">
                       {formatDateTime(repository.indexed_at)}

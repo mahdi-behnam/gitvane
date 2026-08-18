@@ -74,7 +74,7 @@ async def index_repository(
     prev_desired_id = repo_obj.desired_generation_id
 
     # 3. Create a new IndexGeneration
-    requested_ref = body.ref or repo_obj.default_branch or repo_obj.current_ref or "main"
+    requested_ref = body.ref or repo_obj.current_ref or repo_obj.default_branch or "main"
     pipeline_version = body.pipeline_version or "v1"
     parser_version = body.parser_version or "v1"
     chunker_version = body.chunker_version or "v1"

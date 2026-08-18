@@ -71,10 +71,11 @@ class IndexingService:
         if gen_obj is None:
             config_str = f"{settings.EMBEDDING_PROVIDER}:{settings.LOCAL_EMBEDDING_MODEL}:{settings.EMBEDDING_DIM}"
             config_hash = hashlib.sha256(config_str.encode("utf-8")).hexdigest()[:16]
+            requested_ref = ref or repo_obj.current_ref or repo_obj.default_branch or "main"
             gen_obj = IndexGeneration(
                 id=uuid.uuid4(),
                 repository_id=repository_id,
-                requested_ref=ref or repo_obj.default_branch or repo_obj.current_ref or "main",
+                requested_ref=requested_ref,
                 commit_sha=None,
                 pipeline_version="v1",
                 parser_version="v1",
@@ -264,7 +265,7 @@ class IndexingService:
             gen_obj.terminal_at = datetime.now(timezone.utc)
 
             repo_obj.active_generation_id = generation_id
-            repo_obj.current_ref = current_sha
+            repo_obj.current_ref = gen_obj.requested_ref or ref or repo_obj.current_ref or "main"
             repo_obj.last_indexed_commit = current_sha
             repo_obj.indexed_at = datetime.now(timezone.utc)
             repo_obj.status = "indexed"

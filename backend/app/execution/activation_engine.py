@@ -102,8 +102,9 @@ async def activate_generation(
     repo.active_generation_id = gen.id
     repo.status = "indexed"
     repo.indexed_at = now_utc
+    if gen.requested_ref:
+        repo.current_ref = gen.requested_ref
     if gen.commit_sha:
-        repo.current_ref = gen.commit_sha
         repo.last_indexed_commit = gen.commit_sha
 
     gen.status = "completed"

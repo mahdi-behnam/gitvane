@@ -25,7 +25,7 @@ import { RefSelector } from "@/components/ui/ref-selector";
 import { Skeleton } from "@/components/ui/skeleton";
 
 import { normalizeApiError } from "@/lib/api/errors";
-import { formatDateTime, formatSnakeCase } from "@/lib/format";
+import { formatDateTime, formatSnakeCase, getRepositoryDisplayBranch } from "@/lib/format";
 import {
   gitvaneApi,
   useDeleteRepositoryMutation,
@@ -219,15 +219,15 @@ export function RepositoryDetailPage({ repositoryId }: { repositoryId: string })
                 </dd>
               </div>
               <div className="flex items-center justify-between gap-4">
-                <dt className="text-muted">Default branch</dt>
+                <dt className="text-muted">Selected ref / branch</dt>
                 <dd className="font-mono text-xs">
-                  {repositoryData.default_branch ?? "Unknown"}
+                  {getRepositoryDisplayBranch(repositoryData)}
                 </dd>
               </div>
               <div className="flex items-center justify-between gap-4">
-                <dt className="text-muted">Current ref</dt>
+                <dt className="text-muted">Default branch</dt>
                 <dd className="font-mono text-xs">
-                  {repositoryData.current_ref ?? "Unknown"}
+                  {repositoryData.default_branch ?? "Unknown"}
                 </dd>
               </div>
               <div className="flex items-center justify-between gap-4">
@@ -295,7 +295,7 @@ export function RepositoryDetailPage({ repositoryId }: { repositoryId: string })
               <RefSelector
                 id={`${formId}-ref`}
                 onChange={(val) => setRef(String(val || ""))}
-                placeholder="branch name (e.g. main)"
+                placeholder={getRepositoryDisplayBranch(repositoryData)}
                 repositoryId={validRepositoryId ?? ""}
                 value={ref}
               />

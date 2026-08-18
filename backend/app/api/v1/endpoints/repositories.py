@@ -89,7 +89,7 @@ async def create_repository(
             from app.core.config import settings
             from app.db.models import IndexGeneration, OutboxEvent
 
-            requested_ref = body.branch or repo.default_branch or repo.current_ref or "main"
+            requested_ref = body.branch or repo.current_ref or repo.default_branch or "main"
             config_str = f"{settings.EMBEDDING_PROVIDER}:{settings.LOCAL_EMBEDDING_MODEL}:{settings.EMBEDDING_DIM}"
             config_hash = hashlib.sha256(config_str.encode("utf-8")).hexdigest()[:16]
 
@@ -372,7 +372,7 @@ async def sync_and_reindex_repository(
         )
 
     prev_desired_id = repo_obj.desired_generation_id
-    requested_ref = body.branch or repo_obj.default_branch or repo_obj.current_ref or "main"
+    requested_ref = body.branch or repo_obj.current_ref or repo_obj.default_branch or "main"
     config_str = f"{settings.EMBEDDING_PROVIDER}:{settings.LOCAL_EMBEDDING_MODEL}:{settings.EMBEDDING_DIM}"
     config_hash = hashlib.sha256(config_str.encode("utf-8")).hexdigest()[:16]
 
