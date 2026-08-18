@@ -206,8 +206,8 @@ export function ImpactAnalysisPage({
         <div>
           <h1 className="mt-3 text-3xl font-semibold md:text-4xl">Impact analysis</h1>
           <p className="mt-3 max-w-3xl text-sm leading-6 text-muted">
-            Predict the blast radius of code modifications before committing changes. Input modified file paths,
-            a raw git diff, or base/head commits to calculate downstream affected modules.
+            Predict the blast radius and downstream effects of code modifications. Provide candidate file paths,
+            a raw git diff, or branch/commit refs to identify affected modules and recommend relevant tests.
           </p>
         </div>
         <div className="rounded-md border border-border bg-panel px-3 py-2 font-mono text-xs text-muted">
