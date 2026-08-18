@@ -25,6 +25,7 @@ import type {
   RepositoryList,
   RepositoryRiskArgs,
   RepositoryRiskResponse,
+  RepositorySyncRequest,
   SemanticSearchRequest,
   SemanticSearchResponse,
   TestRecommendationRequest,
@@ -42,6 +43,11 @@ type ListRepositoriesArgs = {
 
 type IndexRepositoryArgs = {
   body: IndexRepositoryRequest;
+  repositoryId: string;
+};
+
+type SyncRepositoryArgs = {
+  body?: RepositorySyncRequest;
   repositoryId: string;
 };
 
@@ -290,6 +296,18 @@ export const gitvaneApi = createApi({
         url: `/repositories/${repositoryId}/index`,
       }),
     }),
+    syncRepository: builder.mutation<IndexRepositoryResponse, SyncRepositoryArgs>({
+      invalidatesTags: (_result, _error, { repositoryId }) => [
+        { id: repositoryId, type: "IndexStatus" },
+        { id: repositoryId, type: "Repository" },
+        "Repository",
+      ],
+      query: ({ body, repositoryId }) => ({
+        body: body ?? {},
+        method: "POST",
+        url: `/repositories/${repositoryId}/sync`,
+      }),
+    }),
     listRepositories: builder.query<RepositoryList, ListRepositoriesArgs | void>({
       providesTags: (result) =>
         result
@@ -476,6 +494,7 @@ export const {
   useGetRepositoryRiskQuery,
   useGetRepositorySubgraphQuery,
   useIndexRepositoryMutation,
+  useSyncRepositoryMutation,
   useListRepositoriesQuery,
   useListRemoteBranchesMutation,
   useRecommendTestsMutation,

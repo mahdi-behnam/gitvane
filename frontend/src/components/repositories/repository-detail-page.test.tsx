@@ -99,12 +99,12 @@ describe("RepositoryDetailPage", () => {
     expect(screen.getByText("10")).toBeInTheDocument();
   });
 
-  it("submits an index request", async () => {
+  it("submits a sync and re-index request", async () => {
     const bodies: unknown[] = [];
     mockRouter();
     useRepositoryHandlers();
     server.use(
-      http.post(`${apiBaseUrl}/repositories/77777777-7777-7777-7777-777777777777/index`, async ({ request }) => {
+      http.post(`${apiBaseUrl}/repositories/77777777-7777-7777-7777-777777777777/sync`, async ({ request }) => {
         bodies.push(await request.json());
         return HttpResponse.json(indexResponse);
       }),
@@ -113,17 +113,15 @@ describe("RepositoryDetailPage", () => {
     renderWithProviders(<RepositoryDetailPage repositoryId="77777777-7777-7777-7777-777777777777" />);
 
     await screen.findByRole("heading", { name: "gitvane" });
-    fireEvent.click(screen.getByRole("combobox", { name: "Ref" }));
+    fireEvent.click(screen.getByRole("combobox", { name: "Branch" }));
     fireEvent.change(screen.getByPlaceholderText("Type branch, tag, or commit..."), {
       target: { value: "development" },
     });
     fireEvent.click(await screen.findByRole("button", { name: /Use / }));
-    fireEvent.click(screen.getByRole("button", { name: "Run index" }));
-
-
+    fireEvent.click(screen.getByRole("button", { name: "Sync & Re-index" }));
 
     await waitFor(() => expect(bodies).toHaveLength(1));
-    expect(bodies[0]).toEqual({ ref: "development" });
+    expect(bodies[0]).toEqual({ branch: "development" });
     expect(await screen.findByText(/Indexed 10 files/)).toBeInTheDocument();
   });
 

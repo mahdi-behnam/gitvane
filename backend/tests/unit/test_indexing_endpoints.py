@@ -171,3 +171,56 @@ def test_index_events_authenticated_valid_token() -> None:
         assert call_args.kwargs.get("owner_id") == 1
     finally:
         app.dependency_overrides.clear()
+
+
+def test_sync_and_reindex_repository_endpoint_success() -> None:
+    mock_db = MagicMock()
+    mock_repo = MagicMock()
+    mock_repo.id = TEST_UUID
+    mock_repo.owner_id = 1
+    mock_repo.status = "ready"
+    mock_repo.desired_generation_id = None
+    mock_repo.active_generation_id = None
+    mock_repo.default_branch = "main"
+
+    mock_res = MagicMock()
+    mock_res.scalars.return_value.first.return_value = mock_repo
+    mock_db.execute = AsyncMock(return_value=mock_res)
+    mock_db.flush = AsyncMock()
+    mock_db.commit = AsyncMock()
+
+    mock_svc = MagicMock()
+    mock_svc.sync_repository = AsyncMock(
+        return_value=(mock_repo, "abcdef1234567890abcdef1234567890abcdef12")
+    )
+
+    async def mock_get_db() -> AsyncGenerator[Any, None]:
+        yield mock_db
+
+    from app.api.deps import get_repository_service
+    token = create_access_token(subject=1)
+    app.dependency_overrides[get_db] = mock_get_db
+    app.dependency_overrides[get_repository_service] = lambda: mock_svc
+
+    try:
+        client = TestClient(app)
+        response = client.post(
+            f"/api/v1/repositories/{TEST_UUID}/sync",
+            headers={"Authorization": f"Bearer {token}"},
+            json={"branch": "main"},
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 202
+    res_data = response.json()
+    assert res_data["status"] == "queued"
+    assert res_data["repository_id"] == str(TEST_UUID)
+    assert "generation_id" in res_data
+    mock_svc.sync_repository.assert_awaited_once_with(
+        db=mock_db,
+        repository_id=TEST_UUID,
+        owner_id=1,
+        branch="main",
+    )
+

@@ -236,4 +236,38 @@ class RepositoryService:
         """Inspects remote repository branches without cloning."""
         return self.git_service.list_remote_branches(clone_url=clone_url, pat=pat)
 
+    async def sync_repository(
+        self,
+        db: AsyncSession,
+        repository_id: UUID | str,
+        owner_id: int,
+        branch: Optional[str] = None,
+    ) -> tuple[Repository, str]:
+        """Pulls latest commits from remote for the specified branch and updates current_ref.
+
+        Returns (repo_obj, commit_sha).
+        """
+        repo_obj = await self.get_repository_or_raise(
+            db, repository_id, owner_id=owner_id
+        )
+        if not repo_obj.local_path:
+            raise RepositoryNotFoundError(
+                f"Repository with id={repository_id} has no local clone path"
+            )
+
+        resolved_path = validate_and_resolve_path(repo_obj.local_path)
+        target_ref = branch or repo_obj.default_branch or repo_obj.current_ref or "main"
+        pat = decrypt_pat(repo_obj.encrypted_pat) if repo_obj.encrypted_pat else None
+
+        commit_sha = self.git_service.fetch_and_pull_ref(
+            local_path=resolved_path,
+            ref=target_ref,
+            clone_url=repo_obj.clone_url,
+            pat=pat,
+        )
+
+        repo_obj.current_ref = commit_sha
+        await db.flush()
+        return repo_obj, commit_sha
+
 

@@ -20,7 +20,6 @@ import type { SelectorOption } from "@/components/ui/selector";
 type FormState = {
   branch: string;
   cloneUrl: string;
-  indexNow: boolean;
   name: string;
   pat: string;
 };
@@ -28,7 +27,6 @@ type FormState = {
 const initialState: FormState = {
   branch: "",
   cloneUrl: "",
-  indexNow: false,
   name: "",
   pat: "",
 };
@@ -166,7 +164,7 @@ export function AddRepositoryDialog() {
     const body: RepositoryCreate = {
       branch: form.branch.trim(),
       clone_url: form.cloneUrl.trim(),
-      index_now: form.indexNow,
+      index_now: true,
       name: form.name.trim(),
       pat: form.pat.trim() || null,
     };
@@ -278,16 +276,6 @@ export function AddRepositoryDialog() {
               Required for private repositories.
             </span>
           </div>
-
-          <label className="flex items-start gap-3 text-sm text-muted">
-            <input
-              checked={form.indexNow}
-              className="mt-1 rounded border-border text-primary focus:ring-primary"
-              onChange={(event) => updateForm("indexNow", event.target.checked)}
-              type="checkbox"
-            />
-            <span>Index after registration</span>
-          </label>
 
           {error ? <Notice tone="danger">{error}</Notice> : null}
 

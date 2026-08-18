@@ -80,8 +80,8 @@ async def _noop_db() -> AsyncGenerator[Any, None]:
 
 
 def test_create_repository_success() -> None:
-    """POST returns 201 and the new repository payload on success."""
-    repo = _make_repo()
+    """POST returns 201 and the new repository payload on success (default index_now=True)."""
+    repo = _make_repo(status="indexing_queued")
     mock_svc = MagicMock()
     mock_svc.create_repository = AsyncMock(return_value=repo)
 
@@ -101,14 +101,14 @@ def test_create_repository_success() -> None:
         data = response.json()
         assert data["id"] == str(TEST_UUID)
         assert data["name"] == "test-repo"
-        assert data["status"] == "ready"
+        assert data["status"] == "indexing_queued"
     finally:
         app.dependency_overrides.clear()
 
 
-def test_create_repository_with_index_now() -> None:
-    """POST with index_now=True sets status to indexing_queued via Outbox kickoff transaction."""
-    repo = _make_repo(status="indexing_queued")
+def test_create_repository_with_index_now_false() -> None:
+    """POST with index_now=False sets status to ready without kicking off indexing."""
+    repo = _make_repo(status="ready")
 
     mock_svc = MagicMock()
     mock_svc.create_repository = AsyncMock(return_value=repo)
@@ -124,12 +124,12 @@ def test_create_repository_with_index_now() -> None:
                 "name": "test-repo",
                 "clone_url": "https://github.com/example/test-repo.git",
                 "branch": "main",
-                "index_now": True,
+                "index_now": False,
             },
         )
         assert response.status_code == 201
         data = response.json()
-        assert data["status"] == "indexing_queued"
+        assert data["status"] == "ready"
     finally:
         app.dependency_overrides.clear()
 

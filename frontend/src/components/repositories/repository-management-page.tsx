@@ -26,7 +26,7 @@ import { useIndexingSSE } from "@/lib/hooks/useIndexingSSE";
 import {
   gitvaneApi,
   useDeleteRepositoryMutation,
-  useIndexRepositoryMutation,
+  useSyncRepositoryMutation,
   useListRepositoriesQuery,
 } from "@/store/api/gitvaneApi";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -421,24 +421,24 @@ function RepositoryRowActions({
   repository: Repository;
 }) {
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [indexRepository, indexState] = useIndexRepositoryMutation();
+  const [syncRepository, syncState] = useSyncRepositoryMutation();
   const [deleteRepository, deleteState] = useDeleteRepositoryMutation();
 
   const isIndexingActive =
     ["indexing", "indexing_queued", "queued", "cloning"].includes(repository.status) ||
     isLocallyIndexing ||
-    indexState.isLoading;
+    syncState.isLoading;
 
-  const indexError = indexState.error
-    ? normalizeApiError(indexState.error).message
+  const syncError = syncState.error
+    ? normalizeApiError(syncState.error).message
     : null;
   const deleteError = deleteState.error
     ? normalizeApiError(deleteState.error).message
     : null;
 
-  const handleIndex = async () => {
+  const handleSync = async () => {
     try {
-      await indexRepository({
+      await syncRepository({
         body: {},
         repositoryId: repository.id,
       }).unwrap();
@@ -464,12 +464,15 @@ function RepositoryRowActions({
       </Button>
       <Button
         disabled={isIndexingActive}
-        onClick={handleIndex}
+        onClick={handleSync}
         size="sm"
         type="button"
       >
-        <Play aria-hidden="true" className="size-3.5" />
-        {isIndexingActive ? "Indexing" : "Index"}
+        <RefreshCw
+          aria-hidden="true"
+          className={`size-3.5 ${isIndexingActive ? "animate-spin" : ""}`}
+        />
+        {isIndexingActive ? "Syncing..." : "Sync & Re-index"}
       </Button>
       <Button
         onClick={() => setDeleteOpen(true)}
@@ -488,7 +491,7 @@ function RepositoryRowActions({
         open={deleteOpen}
         repositoryName={repository.name}
       />
-      {indexError ? <p className="w-full text-xs text-danger">{indexError}</p> : null}
+      {syncError ? <p className="w-full text-xs text-danger">{syncError}</p> : null}
     </div>
   );
 }

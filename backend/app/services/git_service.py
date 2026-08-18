@@ -256,6 +256,59 @@ class GitService:
         except Exception as e:
             raise GitOperationError(f"Failed to checkout ref '{ref}': {str(e)}") from e
 
+    def fetch_and_pull_ref(
+        self,
+        local_path: str | Path,
+        ref: str,
+        clone_url: Optional[str] = None,
+        pat: Optional[str] = None,
+    ) -> str:
+        """
+        Fetches latest commits from remote and updates local branch / ref.
+        Enforces SSRF and path containment validations, checks out target ref,
+        pulls changes if it is a branch, and returns the resulting commit SHA.
+        """
+        target_path_obj = Path(local_path)
+        self.validator.validate_path_containment(target_path_obj)
+        if clone_url:
+            self.validator.validate_dns_and_ssrf(clone_url)
+
+        repo = self.open_repository(target_path_obj)
+        auth_url = self._get_authenticated_url(clone_url, pat) if clone_url else None
+        env = self.validator.get_sandbox_execution_env()
+
+        try:
+            # 1. Fetch from remote
+            if auth_url:
+                repo.git.fetch(auth_url, env=env)
+            elif "origin" in repo.remotes:
+                repo.remotes.origin.fetch(env=env)
+
+            # 2. Checkout ref
+            if ref in repo.heads:
+                repo.heads[ref].checkout()
+                try:
+                    repo.git.reset("--hard", "FETCH_HEAD")
+                except Exception:
+                    pass
+            elif f"origin/{ref}" in repo.refs:
+                repo.git.checkout("-B", ref, f"origin/{ref}")
+            else:
+                repo.git.checkout(ref)
+
+            # 3. Post-sync resource limit validation
+            self.validator.validate_repository_limits(target_path_obj)
+
+            return str(repo.head.commit.hexsha)
+        except GitVaneError:
+            raise
+        except git.exc.GitCommandError as e:
+            err_msg = self._sanitize_error_message(str(e), pat)
+            raise GitOperationError(f"Failed to sync repository ref '{ref}': {err_msg}") from e
+        except Exception as e:
+            err_msg = self._sanitize_error_message(str(e), pat)
+            raise GitOperationError(f"Failed to sync repository ref '{ref}': {err_msg}") from e
+
     def get_diff_between_refs(
         self, repo: git.Repo, base_ref: str, head_ref: str
     ) -> str:

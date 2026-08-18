@@ -14,7 +14,7 @@ class RepositoryCreate(BaseModel):
         ..., min_length=1, description="Branch name to clone or inspect"
     )
     index_now: bool = Field(
-        False,
+        True,
         description=(
             "When true, trigger indexing immediately after the repository is "
             "registered. Requires the indexing pipeline to be active."
@@ -31,6 +31,18 @@ class RepositoryCreate(BaseModel):
         if not isinstance(v, str) or not v.strip():
             raise ValueError(f"{info.field_name} must not be empty or whitespace")
         return v.strip()
+
+
+class RepositorySyncRequest(BaseModel):
+    """Request schema to sync remote changes and re-index a repository"""
+
+    branch: Optional[str] = Field(
+        None,
+        description=(
+            "Optional branch or ref to pull and checkout before re-indexing. "
+            "If omitted, uses the repository default branch or current ref."
+        ),
+    )
 
 
 class RemoteBranchesRequest(BaseModel):

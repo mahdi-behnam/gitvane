@@ -75,7 +75,7 @@ describe("RepositoryManagementPage", () => {
       http.get(`${apiBaseUrl}/repositories`, () =>
         HttpResponse.json(repositoryList([repository])),
       ),
-      http.post(`${apiBaseUrl}/repositories/7/index`, async ({ request }) => {
+      http.post(`${apiBaseUrl}/repositories/7/sync`, async ({ request }) => {
         indexBodies.push(await request.json());
         return HttpResponse.json({
           chunks_indexed: 1,
@@ -102,7 +102,7 @@ describe("RepositoryManagementPage", () => {
     renderWithProviders(<RepositoryManagementPage />);
 
     await screen.findByText("gitvane");
-    fireEvent.click(screen.getByRole("button", { name: "Index" }));
+    fireEvent.click(screen.getByRole("button", { name: "Sync & Re-index" }));
     await waitFor(() => expect(indexBodies).toEqual([{}]));
 
     fireEvent.click(screen.getByRole("button", { name: "Delete" }));
@@ -165,7 +165,7 @@ describe("RepositoryManagementPage", () => {
     expect(bodies[0]).toMatchObject({
       branch: "main",
       clone_url: "https://github.com/mahdi-behnam/gitvane.git",
-      index_now: false,
+      index_now: true,
       name: "gitvane",
     });
   });

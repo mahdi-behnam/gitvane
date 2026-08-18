@@ -27,10 +27,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { normalizeApiError } from "@/lib/api/errors";
 import { formatDateTime, formatSnakeCase } from "@/lib/format";
 import {
+  gitvaneApi,
   useDeleteRepositoryMutation,
   useGetIndexStatusQuery,
   useGetRepositoryQuery,
-  useIndexRepositoryMutation,
+  useSyncRepositoryMutation,
 } from "@/store/api/gitvaneApi";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { setActiveRepositoryId } from "@/store/slices/repositorySelectionSlice";
@@ -50,7 +51,7 @@ export function RepositoryDetailPage({ repositoryId }: { repositoryId: string })
   const validRepositoryId = typeof repositoryId === "string" && repositoryId.trim() !== "" ? repositoryId : null;
   const repository = useGetRepositoryQuery(validRepositoryId ?? skipToken);
   const indexStatus = useGetIndexStatusQuery(validRepositoryId ?? skipToken);
-  const [indexRepository, indexState] = useIndexRepositoryMutation();
+  const [syncRepository, syncState] = useSyncRepositoryMutation();
   const [deleteRepository, deleteState] = useDeleteRepositoryMutation();
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [ref, setRef] = useState("");
@@ -75,8 +76,8 @@ export function RepositoryDetailPage({ repositoryId }: { repositoryId: string })
   const shouldConnect =
     indexingStatuses.includes(repository.data?.status ?? "") ||
     indexingStatuses.includes(indexStatus.data?.status ?? "") ||
-    indexState.isLoading ||
-    indexingStatuses.includes(indexState.data?.status ?? "");
+    syncState.isLoading ||
+    indexingStatuses.includes(syncState.data?.status ?? "");
 
   const { connectionState, progress } = useIndexingSSE({
     repositoryId: validRepositoryId,
@@ -84,7 +85,7 @@ export function RepositoryDetailPage({ repositoryId }: { repositoryId: string })
     token,
     initialProgress: indexStatus.data?.progress,
     onComplete: () => {
-      indexState.reset();
+      syncState.reset();
       dispatch(gitvaneApi.util.invalidateTags(["Repository", "IndexStatus"]));
       handleRefresh();
     },
@@ -92,16 +93,16 @@ export function RepositoryDetailPage({ repositoryId }: { repositoryId: string })
 
   const isActuallyIndexing = shouldConnect && progress?.status !== "indexed";
 
-  const handleIndex = async (event: FormEvent<HTMLFormElement>) => {
+  const handleSync = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     if (!validRepositoryId) {
       return;
     }
 
-    await indexRepository({
+    await syncRepository({
       body: {
-        ref: ref.trim() || null,
+        branch: ref.trim() || null,
       },
       repositoryId: validRepositoryId,
     });
@@ -125,8 +126,8 @@ export function RepositoryDetailPage({ repositoryId }: { repositoryId: string })
   const deleteError = deleteState.error
     ? normalizeApiError(deleteState.error).message
     : null;
-  const indexError = indexState.error
-    ? normalizeApiError(indexState.error).message
+  const syncError = syncState.error
+    ? normalizeApiError(syncState.error).message
     : null;
 
   if (!validRepositoryId) {
@@ -277,43 +278,48 @@ export function RepositoryDetailPage({ repositoryId }: { repositoryId: string })
 
       <Card>
         <CardHeader>
-          <h2 className="text-sm font-semibold">Index repository</h2>
+          <h2 className="text-sm font-semibold">Sync & Re-index</h2>
+          <p className="text-xs text-muted">
+            Fetch latest commits from the remote repository and rebuild the code index.
+          </p>
         </CardHeader>
         <CardContent>
           <form
             className="grid gap-4 lg:grid-cols-[1fr_auto]"
-            onSubmit={handleIndex}
+            onSubmit={handleSync}
           >
             <div className="space-y-2">
               <label className="block text-sm font-medium" htmlFor={`${formId}-ref`}>
-                Ref
+                Branch
               </label>
               <RefSelector
                 id={`${formId}-ref`}
                 onChange={(val) => setRef(String(val || ""))}
-                placeholder="branch, tag, or commit"
+                placeholder="branch name (e.g. main)"
                 repositoryId={validRepositoryId ?? ""}
                 value={ref}
               />
             </div>
 
-
             <div className="flex items-end">
-              <Button disabled={indexState.isLoading} type="submit" variant="primary">
-                <Play aria-hidden="true" className="size-4" />
-                {indexState.isLoading ? "Indexing" : "Run index"}
+              <Button disabled={syncState.isLoading || isActuallyIndexing} type="submit" variant="primary">
+                <RefreshCw
+                  aria-hidden="true"
+                  className={`size-4 ${syncState.isLoading || isActuallyIndexing ? "animate-spin" : ""}`}
+                />
+                {syncState.isLoading || isActuallyIndexing ? "Syncing & Indexing..." : "Sync & Re-index"}
               </Button>
             </div>
           </form>
-          {indexError ? (
+          {syncError ? (
             <Notice className="mt-4" tone="danger">
-              {indexError}
+              {syncError}
             </Notice>
           ) : null}
-          {indexState.data && indexState.data.status !== "indexing" ? (
+          {syncState.data && syncState.data.status !== "indexing" && syncState.data.status !== "queued" ? (
             <Notice className="mt-4" tone="success">
-              Indexed {indexState.data.files_indexed} files and{" "}
-              {indexState.data.symbols_indexed} symbols.
+              Indexed {syncState.data.files_indexed} files and{" "}
+              {syncState.data.symbols_indexed} symbols.
             </Notice>
           ) : null}
         </CardContent>

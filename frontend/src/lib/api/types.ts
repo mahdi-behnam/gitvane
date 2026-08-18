@@ -50,6 +50,10 @@ export type IndexRepositoryRequest = {
   ref?: string | null;
 };
 
+export type RepositorySyncRequest = {
+  branch?: string | null;
+};
+
 export type IndexRepositoryResponse = {
   chunks_indexed: number;
   commits_indexed: number;

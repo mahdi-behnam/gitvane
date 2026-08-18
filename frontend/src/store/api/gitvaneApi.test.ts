@@ -21,6 +21,7 @@ describe("gitvaneApi", () => {
         "getRepositoryRisk",
         "getRepositorySubgraph",
         "indexRepository",
+        "syncRepository",
         "listRepositories",
         "recommendTests",
         "runEvaluation",

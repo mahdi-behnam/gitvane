@@ -320,3 +320,25 @@ def test_list_repository_refs_filters_by_query(svc: GitService) -> None:
     assert len(results) == 1
     assert results[0]["name"] == "feature-login"
 
+
+def test_fetch_and_pull_ref_success(svc: GitService, tmp_path: Path) -> None:
+    with patch.object(svc, "open_repository") as mock_open:
+        mock_repo = MagicMock()
+        mock_head = MagicMock()
+        mock_head.commit.hexsha = "abcdef1234567890abcdef1234567890abcdef12"
+        mock_repo.head = mock_head
+        mock_repo.heads = {"main": MagicMock()}
+        mock_open.return_value = mock_repo
+
+        with patch.object(svc.validator, "validate_path_containment"):
+            with patch.object(svc.validator, "validate_repository_limits"):
+                result_sha = svc.fetch_and_pull_ref(
+                    local_path=tmp_path,
+                    ref="main",
+                    clone_url="https://github.com/org/repo.git",
+                )
+
+        assert result_sha == "abcdef1234567890abcdef1234567890abcdef12"
+        mock_repo.git.fetch.assert_called_once()
+
+

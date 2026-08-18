@@ -226,6 +226,25 @@ export const handlers = [
 
     return HttpResponse.json(response);
   }),
+  http.post(`${apiBaseUrl}/repositories/:repositoryId/sync`, () => {
+    const response: IndexRepositoryResponse = {
+      chunks_indexed: 30,
+      commits_indexed: 5,
+      current_ref: "main",
+      dependency_edges_indexed: 12,
+      embeddings_indexed: 30,
+      files_indexed: 18,
+      files_skipped: 0,
+      indexed_at: "2026-06-21T10:30:00Z",
+      parser_errors: [],
+      repository_id: "77777777-7777-7777-7777-777777777777",
+      status: "indexed",
+      symbols_indexed: 44,
+      warnings: [],
+    };
+
+    return HttpResponse.json(response);
+  }),
   http.get(`${apiBaseUrl}/repositories/:repositoryId/index/status`, () =>
     HttpResponse.json(indexStatusFixture),
   ),

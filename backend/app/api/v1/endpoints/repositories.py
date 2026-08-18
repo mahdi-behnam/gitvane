@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_db, get_repository_service, get_current_user
 from app.db.models import User
 from app.core.errors import GitOperationError, InvalidPathError, RepositoryNotFoundError
+from app.schemas.indexing import IndexRepositoryResponse
 from app.schemas.repository import (
     FileSearchResult,
     RefSearchResult,
@@ -16,7 +17,9 @@ from app.schemas.repository import (
     RepositoryCreate,
     RepositoryList,
     RepositoryOut,
+    RepositorySyncRequest,
 )
+from app.services.progress_publisher import ProgressStreamPublisher, get_progress_publisher
 from app.services.repository_service import RepositoryService
 
 
@@ -309,5 +312,170 @@ async def list_repository_refs(
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
         ) from exc
+
+
+@router.post(
+    "/{repository_id}/sync",
+    response_model=IndexRepositoryResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+async def sync_and_reindex_repository(
+    repository_id: UUID,
+    body: RepositorySyncRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    svc: Annotated[RepositoryService, Depends(get_repository_service)],
+    current_user: Annotated[User, Depends(get_current_user)],
+    publisher: Annotated[ProgressStreamPublisher, Depends(get_progress_publisher)],
+) -> IndexRepositoryResponse:
+    """
+    Pull latest changes from remote repository for the specified (or default) branch,
+    and queue a re-indexing run.
+    """
+    import hashlib
+    import uuid
+    from datetime import datetime, timezone
+    from sqlalchemy import select
+    from app.core.config import settings
+    from app.db.models import IndexGeneration, OutboxEvent, Repository
+    from app.schemas.indexing import IndexingProgressEvent
+    from app.services.progress_tracker import IndexingProgressTracker
+
+    # 1. Fetch & pull latest changes
+    try:
+        repo_obj, commit_sha = await svc.sync_repository(
+            db=db,
+            repository_id=repository_id,
+            owner_id=current_user.id,
+            branch=body.branch,
+        )
+    except RepositoryNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)
+        ) from exc
+    except GitOperationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+        ) from exc
+
+    # 2. Lock repository row for update
+    stmt = (
+        select(Repository)
+        .where(Repository.id == repository_id, Repository.owner_id == current_user.id)
+        .with_for_update()
+    )
+    res = await db.execute(stmt)
+    repo_obj = res.scalars().first()
+    if repo_obj is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Repository with id={repository_id} does not exist",
+        )
+
+    prev_desired_id = repo_obj.desired_generation_id
+    requested_ref = body.branch or repo_obj.default_branch or repo_obj.current_ref or "main"
+    config_str = f"{settings.EMBEDDING_PROVIDER}:{settings.LOCAL_EMBEDDING_MODEL}:{settings.EMBEDDING_DIM}"
+    config_hash = hashlib.sha256(config_str.encode("utf-8")).hexdigest()[:16]
+
+    new_gen = IndexGeneration(
+        id=uuid.uuid4(),
+        repository_id=repo_obj.id,
+        requested_ref=requested_ref,
+        commit_sha=commit_sha,
+        pipeline_version="v1",
+        parser_version="v1",
+        chunker_version="v1",
+        embedding_backend=settings.EMBEDDING_PROVIDER,
+        embedding_model=settings.LOCAL_EMBEDDING_MODEL,
+        embedding_dimension=settings.EMBEDDING_DIM,
+        embedding_config_hash=config_hash,
+        status="queued",
+        stage_lease_owner=None,
+        stage_lease_expires_at=None,
+        stage_attempt=0,
+    )
+    db.add(new_gen)
+    await db.flush()
+
+    repo_obj.desired_generation_id = new_gen.id
+    repo_obj.status = "indexing_queued"
+
+    tracker = IndexingProgressTracker.get_instance()
+    tracker.set_progress(
+        repo_obj.id,
+        IndexingProgressEvent(
+            repository_id=repo_obj.id,
+            status="indexing_queued",
+            phase="queued",
+            phase_name="Indexing Queued",
+            progress_percentage=0.0,
+            estimated_seconds_remaining=None,
+        ),
+    )
+
+    if (
+        prev_desired_id
+        and prev_desired_id != repo_obj.active_generation_id
+        and prev_desired_id != new_gen.id
+    ):
+        prev_gen_stmt = (
+            select(IndexGeneration)
+            .where(IndexGeneration.id == prev_desired_id)
+            .with_for_update()
+        )
+        prev_gen_res = await db.execute(prev_gen_stmt)
+        prev_gen = prev_gen_res.scalars().first()
+        if prev_gen and prev_gen.status not in (
+            "completed",
+            "failed",
+            "cancelled",
+            "superseded",
+        ):
+            prev_gen.status = "superseded"
+            prev_gen.terminal_at = datetime.now(timezone.utc)
+            await publisher.publish_progress(
+                generation_id=prev_gen.id,
+                payload={
+                    "status": "superseded",
+                    "phase": "superseded",
+                    "phase_name": "Indexing superseded by sync request",
+                },
+                is_terminal=True,
+            )
+
+    outbox_event = OutboxEvent(
+        id=uuid.uuid4(),
+        aggregate_id=new_gen.id,
+        event_type="prepare_requested",
+        payload={"generation_id": str(new_gen.id)},
+        status="pending",
+        attempt_count=0,
+        next_attempt_at=datetime.now(timezone.utc),
+    )
+    db.add(outbox_event)
+    await db.commit()
+
+    await publisher.publish_progress(
+        generation_id=new_gen.id,
+        payload={
+            "status": "queued",
+            "phase": "queued",
+            "phase_name": "Sync & indexing request queued",
+        },
+    )
+
+    return IndexRepositoryResponse(
+        repository_id=repo_obj.id,
+        generation_id=new_gen.id,
+        status="queued",
+        current_ref=requested_ref,
+        files_indexed=0,
+        files_skipped=0,
+        symbols_indexed=0,
+        chunks_indexed=0,
+        embeddings_indexed=0,
+        dependency_edges_indexed=0,
+        commits_indexed=0,
+    )
+
 
 
