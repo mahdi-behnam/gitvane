@@ -351,3 +351,7 @@ curl -X POST "http://localhost:8000/api/v1/evaluation/run" \
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 - [docs/API.md](docs/API.md)
 - [docs/EVALUATION.md](docs/EVALUATION.md)
+
+## License
+
+This project is licensed under the [PolyForm Noncommercial License 1.0.0](LICENSE) — free for personal, educational, research, and non-commercial evaluation. Commercial use is prohibited without prior authorization.
