@@ -104,7 +104,45 @@ def test_ingestion_resource_limits(tmp_path: Path):
 
     big_file.unlink()
 
-    # 2. Test max file count limit
+    # 2. Test nested file reports relative path without leaking host paths
+    subdir = repo_dir / "docs" / "assets"
+    subdir.mkdir(parents=True)
+    nested_big_file = subdir / "video.mp4"
+    nested_big_file.write_bytes(b"A" * 500)
+    with pytest.raises(ResourceLimitExceededError) as exc_info:
+        validator.validate_repository_limits(repo_dir, base_sandbox_dir=tmp_path)
+    assert "File 'docs/assets/video.mp4' exceeds" in str(exc_info.value)
+    assert str(tmp_path) not in str(exc_info.value)
+    nested_big_file.unlink()
+
+    # 3. Test .git internal packfile is excluded from individual file size limit
+    git_pack_dir = repo_dir / ".git" / "objects" / "pack"
+    git_pack_dir.mkdir(parents=True)
+    git_pack_file = git_pack_dir / "pack-d7449f192e5fc19b51b22f1c5912fc8342e5de41.pack"
+    git_pack_file.write_bytes(b"G" * 500)  # > 400 bytes limit, but inside .git
+
+    # Small working tree file
+    (repo_dir / "main.py").write_bytes(b"print('hello')")
+
+    # Should succeed because .git packfile is not restricted by individual file size limit
+    stats = validator.validate_repository_limits(repo_dir, base_sandbox_dir=tmp_path)
+    assert stats["total_files"] == 2
+
+    # But total clone size limit still enforces total bytes (including .git)
+    tight_total_validator = RepositoryIngestionValidator(
+        max_clone_size_bytes=400,  # 500 + 14 > 400
+        max_file_count=10,
+        max_file_size_bytes=1000,
+    )
+    with pytest.raises(ResourceLimitExceededError) as exc_info:
+        tight_total_validator.validate_repository_limits(repo_dir, base_sandbox_dir=tmp_path)
+    assert "Total repository size exceeds" in str(exc_info.value)
+
+    # Cleanup .git pack file
+    git_pack_file.unlink()
+    (repo_dir / "main.py").unlink()
+
+    # 4. Test max file count limit
     for i in range(4):
         (repo_dir / f"file_{i}.txt").write_bytes(b"hello")
 

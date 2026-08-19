@@ -192,14 +192,16 @@ class RepositoryIngestionValidator:
         resolved_path = self.validate_path_containment(repo_dir, base_sandbox_dir=base_sandbox_dir)
 
         if not resolved_path.exists() or not resolved_path.is_dir():
-            raise InvalidPathError(f"Repository directory does not exist or is not a directory: {repo_dir}")
+            raise InvalidPathError("Repository directory does not exist or is not a directory.")
 
         total_files = 0
         total_bytes = 0
         largest_file_size = 0
 
         for root, dirs, files in os.walk(resolved_path):
-            # Skip .git folder internals from file count limit if desired, or include all files
+            rel_root = Path(root).relative_to(resolved_path)
+            is_git_internal = len(rel_root.parts) > 0 and rel_root.parts[0] == ".git"
+
             for fname in files:
                 fpath = Path(root) / fname
                 try:
@@ -207,9 +209,12 @@ class RepositoryIngestionValidator:
                 except (OSError, PermissionError):
                     continue
 
-                if fsize > self.max_file_size_bytes:
+                rel_file_path = (rel_root / fname).as_posix() if rel_root != Path(".") else fname
+
+                # Enforce individual file size limits only on working tree files (excluding .git internal packfiles/metadata)
+                if not is_git_internal and fname != ".git" and fsize > self.max_file_size_bytes:
                     raise ResourceLimitExceededError(
-                        f"File '{fpath.name}' exceeds maximum allowed individual file size of "
+                        f"File '{rel_file_path}' exceeds maximum allowed individual file size of "
                         f"{self.max_file_size_bytes / (1024 * 1024):.1f}MB ({fsize} bytes)."
                     )
 
@@ -293,7 +298,7 @@ class RepositoryIngestionValidator:
 
         if not is_contained:
             raise InvalidPathError(
-                f"Workspace security violation: path '{user_path}' lies outside allowed sandbox boundaries."
+                "Workspace security violation: target path lies outside allowed sandbox boundaries."
             )
 
         return resolved_user
