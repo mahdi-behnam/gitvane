@@ -342,3 +342,21 @@ def test_fetch_and_pull_ref_success(svc: GitService, tmp_path: Path) -> None:
         mock_repo.git.fetch.assert_called_once()
 
 
+def test_sanitize_error_message_paths(svc: GitService) -> None:
+    """Verify _sanitize_error_message strips sensitive credentials and filesystem paths."""
+    # 1. URL with credentials and PAT
+    err = svc._sanitize_error_message("Error with https://my_pat@github.com/repo and secret_pat", pat="secret_pat")
+    assert "secret_pat" not in err
+    assert "my_pat" not in err
+
+    # 2. Windows drive paths
+    err_win = svc._sanitize_error_message("fatal: cannot open D:\\Dev\\Personal\\workspace\\repos\\repo_123\\.git")
+    assert "D:\\Dev" not in err_win
+    assert "<sanitized_path>" in err_win or "<workspace>" in err_win
+
+    # 3. Unix system directory paths
+    err_unix = svc._sanitize_error_message("fatal: cannot open /workspaces/repos/repo_abc/.git")
+    assert "/workspaces/repos" not in err_unix
+    assert "<sanitized_path>" in err_unix or "<workspace>" in err_unix
+
+

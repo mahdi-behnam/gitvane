@@ -296,17 +296,18 @@ class IndexingService:
             await db.rollback()
             repo_obj = await self._get_repository_or_raise(db, repository_id)
             repo_obj.status = "index_failed"
+            safe_err = self.git_service._sanitize_error_message(str(exc))
             repo_obj.repo_metadata = {
                 **(repo_obj.repo_metadata or {}),
-                "last_index_error": str(exc),
+                "last_index_error": safe_err,
             }
-            self.tracker.set_failed(repository_id, str(exc))
+            self.tracker.set_failed(repository_id, safe_err)
             await self.tracker.sync_to_db(db, repository_id)
 
             await db.commit()
             if isinstance(exc, (GitOperationError, InvalidPathError)):
                 raise
-            raise GitOperationError(f"Failed to index repository: {exc}") from exc
+            raise GitOperationError(f"Failed to index repository: {safe_err}") from exc
 
     async def get_index_status(
         self, db: AsyncSession, repository_id: UUID | Any
@@ -361,7 +362,7 @@ class IndexingService:
             raise InvalidPathError("Repository has no local_path to index.")
         repo_path = validate_and_resolve_path(repo_obj.local_path)
         if not repo_path.exists():
-            raise InvalidPathError(f"Repository path does not exist: {repo_path}")
+            raise InvalidPathError("Repository path does not exist.")
         return repo_path
 
     def _should_skip_path(self, full_path: Path, tracked_path: str) -> bool:

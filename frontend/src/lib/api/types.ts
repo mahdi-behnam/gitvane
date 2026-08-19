@@ -32,7 +32,6 @@ export type Repository = {
   id: string;
   indexed_at: ISODateTime | null;
   last_indexed_commit: string | null;
-  local_path: string | null;
   name: string;
   repo_metadata: Record<string, unknown> | null;
   status: string;

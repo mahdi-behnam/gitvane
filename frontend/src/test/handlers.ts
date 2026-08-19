@@ -37,7 +37,6 @@ const repositoryFixture: Repository = {
   id: "77777777-7777-7777-7777-777777777777",
   indexed_at: "2026-06-21T10:30:00Z",
   last_indexed_commit: "abc123",
-  local_path: null,
   name: "gitvane",
   repo_metadata: null,
   status: "indexed",

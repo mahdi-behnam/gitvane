@@ -1,3 +1,4 @@
+import re
 from datetime import datetime, timezone
 from typing import Any
 from uuid import UUID
@@ -161,7 +162,10 @@ class EvaluationService:
         except Exception as exc:
             await db.rollback()
             evaluation_run.status = "failed"
-            evaluation_run.error_message = str(exc)
+            err_str = str(exc)
+            err_str = re.sub(r"[A-Za-z]:[\\/][^'\"<>:\r\n\t ]+", "<sanitized_path>", err_str)
+            err_str = re.sub(r"/(?:app|workspaces|workspace|tmp|root|home|etc|var|usr)/[^\s'\"<>:]+", "<sanitized_path>", err_str)
+            evaluation_run.error_message = err_str
             evaluation_run.finished_at = datetime.now(timezone.utc)
             db.add(evaluation_run)
             await db.commit()

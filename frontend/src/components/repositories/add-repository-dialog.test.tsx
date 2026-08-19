@@ -125,7 +125,6 @@ describe("AddRepositoryDialog", () => {
             id: "1",
             indexed_at: null,
             last_indexed_commit: null,
-            local_path: null,
             name: "test-repo",
             repo_metadata: null,
             status: "ready",

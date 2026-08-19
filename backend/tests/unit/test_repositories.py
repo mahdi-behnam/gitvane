@@ -13,6 +13,7 @@ from fastapi.testclient import TestClient
 from app.api.deps import get_db, get_repository_service
 from app.core.errors import GitOperationError, RepositoryNotFoundError, PrivateRepositoryNotSupportedError
 from app.db.models import Repository
+from app.schemas.repository import RepositoryOut
 from app.main import app
 
 # ---------------------------------------------------------------------------
@@ -595,6 +596,29 @@ async def test_repository_service_sync_repository_updates_current_ref(tmp_path: 
         assert synced_repo.last_indexed_commit == "new_commit_sha_456"
         assert synced_repo.default_branch == "main"
         assert commit_sha == "new_commit_sha_456"
+
+
+def test_repository_out_does_not_expose_local_path() -> None:
+    """Verify RepositoryOut schema and endpoint responses do not leak local_path."""
+    repo = _make_repo()
+    assert hasattr(repo, "local_path")
+    out = RepositoryOut.model_validate(repo)
+    dumped = out.model_dump()
+    assert "local_path" not in dumped
+
+    mock_svc = MagicMock()
+    mock_svc.get_repository_or_raise = AsyncMock(return_value=repo)
+
+    app.dependency_overrides[get_db] = _noop_db
+    app.dependency_overrides[get_repository_service] = lambda: mock_svc
+    try:
+        client = TestClient(app)
+        response = client.get(f"/api/v1/repositories/{TEST_UUID}")
+        assert response.status_code == 200
+        data = response.json()
+        assert "local_path" not in data
+    finally:
+        app.dependency_overrides.clear()
 
 
 

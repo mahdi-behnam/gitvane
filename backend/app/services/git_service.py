@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Optional, cast
 
 import git
 
+from app.core.config import settings
 from app.core.errors import (
     GitOperationError,
     GitVaneError,
@@ -33,6 +34,13 @@ class GitService:
         if pat:
             err_msg = err_msg.replace(pat, "****")
         err_msg = re.sub(r"https?://[^@]+@", "https://****@", err_msg)
+        workspace_path = getattr(settings, "GITVANE_WORKSPACE", "")
+        if workspace_path:
+            resolved_ws = Path(workspace_path).resolve()
+            err_msg = err_msg.replace(str(resolved_ws), "<workspace>")
+            err_msg = err_msg.replace(resolved_ws.as_posix(), "<workspace>")
+        err_msg = re.sub(r"(?<![a-zA-Z0-9])([A-Za-z]:[\\/][^'\"<>:\r\n\t ]+)", "<sanitized_path>", err_msg)
+        err_msg = re.sub(r"/(?:app|workspaces|workspace|tmp|root|home|etc|var|usr)/[^\s'\"<>:]+", "<sanitized_path>", err_msg)
         return err_msg
 
     def verify_public_accessibility(self, clone_url: str, pat: Optional[str] = None) -> None:
@@ -194,15 +202,17 @@ class GitService:
         try:
             return git.Repo(str(local_path))
         except Exception as e:
-            raise GitOperationError(f"Failed to open repository: {str(e)}") from e
+            err_msg = self._sanitize_error_message(str(e))
+            raise GitOperationError(f"Failed to open repository: {err_msg}") from e
 
     def get_current_sha(self, repo: git.Repo) -> str:
         """Returns the current commit SHA of the repository."""
         try:
             return str(repo.head.commit.hexsha)
         except Exception as e:
+            err_msg = self._sanitize_error_message(str(e))
             raise GitOperationError(
-                f"Failed to retrieve current commit SHA: {str(e)}"
+                f"Failed to retrieve current commit SHA: {err_msg}"
             ) from e
 
     def resolve_ref_to_sha(self, repo_path: str | Path, ref: str) -> str:
@@ -221,7 +231,8 @@ class GitService:
                     return str(repo.tags[ref].commit.hexsha)
                 return str(repo.head.commit.hexsha)
         except Exception as e:
-            raise GitOperationError(f"Failed to resolve ref '{ref}' to commit SHA: {str(e)}") from e
+            err_msg = self._sanitize_error_message(str(e))
+            raise GitOperationError(f"Failed to resolve ref '{ref}' to commit SHA: {err_msg}") from e
 
     def get_default_branch(self, repo: git.Repo) -> str:
         """Returns the default branch of the repository (e.g. main/master)."""
@@ -245,8 +256,9 @@ class GitService:
                     return str(repo.heads[0].name)
                 return "main"
         except Exception as e:
+            err_msg = self._sanitize_error_message(str(e))
             raise GitOperationError(
-                f"Failed to retrieve default branch: {str(e)}"
+                f"Failed to retrieve default branch: {err_msg}"
             ) from e
 
     def checkout_ref(self, repo: git.Repo, ref: str) -> None:
@@ -254,7 +266,8 @@ class GitService:
         try:
             repo.git.checkout(ref)
         except Exception as e:
-            raise GitOperationError(f"Failed to checkout ref '{ref}': {str(e)}") from e
+            err_msg = self._sanitize_error_message(str(e))
+            raise GitOperationError(f"Failed to checkout ref '{ref}': {err_msg}") from e
 
     def fetch_and_pull_ref(
         self,
@@ -316,8 +329,9 @@ class GitService:
         try:
             return str(repo.git.diff(base_ref, head_ref))
         except Exception as e:
+            err_msg = self._sanitize_error_message(str(e))
             raise GitOperationError(
-                f"Failed to get diff between '{base_ref}' and '{head_ref}': {str(e)}"
+                f"Failed to get diff between '{base_ref}' and '{head_ref}': {err_msg}"
             ) from e
 
     def get_raw_diff(self, repo: git.Repo, ref_or_commit: str) -> str:
@@ -332,8 +346,9 @@ class GitService:
                 # Initial commit with no parent; diff against the empty tree
                 return str(repo.git.diff(git.NULL_TREE, commit_obj.hexsha))
         except Exception as e:
+            err_msg = self._sanitize_error_message(str(e))
             raise GitOperationError(
-                f"Failed to get raw diff for '{ref_or_commit}': {str(e)}"
+                f"Failed to get raw diff for '{ref_or_commit}': {err_msg}"
             ) from e
 
     def get_changed_files_between_refs(
@@ -366,9 +381,10 @@ class GitService:
                 )
             return changed_files
         except Exception as e:
+            err_msg = self._sanitize_error_message(str(e))
             raise GitOperationError(
                 f"Failed to retrieve changed files between "
-                f"'{base_ref}' and '{head_ref}': {str(e)}"
+                f"'{base_ref}' and '{head_ref}': {err_msg}"
             ) from e
 
     def iter_commits(self, repo: git.Repo, max_count: int = 500) -> List[git.Commit]:
@@ -376,7 +392,8 @@ class GitService:
         try:
             return list(repo.iter_commits(max_count=max_count))
         except Exception as e:
-            raise GitOperationError(f"Failed to iterate commits: {str(e)}") from e
+            err_msg = self._sanitize_error_message(str(e))
+            raise GitOperationError(f"Failed to iterate commits: {err_msg}") from e
 
     def get_commit_metadata(self, repo: git.Repo, commit_sha: str) -> Dict[str, Any]:
         """Retrieves structured metadata for a specific commit."""
@@ -403,8 +420,9 @@ class GitService:
                 "deletions": deletions,
             }
         except Exception as e:
+            err_msg = self._sanitize_error_message(str(e))
             raise GitOperationError(
-                f"Failed to retrieve metadata for commit '{commit_sha}': {str(e)}"
+                f"Failed to retrieve metadata for commit '{commit_sha}': {err_msg}"
             ) from e
 
     def get_file_content_at_ref(
@@ -416,8 +434,9 @@ class GitService:
                 bytes, repo.git.show(f"{ref}:{file_path}", stdout_as_string=False)
             )
         except Exception as e:
+            err_msg = self._sanitize_error_message(str(e))
             raise GitOperationError(
-                f"Failed to retrieve content for '{file_path}' at ref '{ref}': {str(e)}"
+                f"Failed to retrieve content for '{file_path}' at ref '{ref}': {err_msg}"
             ) from e
 
     def list_tracked_files(
@@ -431,7 +450,8 @@ class GitService:
                 output = repo.git.ls_files()
             return cast(str, output).splitlines()
         except Exception as e:
-            raise GitOperationError(f"Failed to list tracked files: {str(e)}") from e
+            err_msg = self._sanitize_error_message(str(e))
+            raise GitOperationError(f"Failed to list tracked files: {err_msg}") from e
 
     def is_binary_file(
         self, file_path: Optional[str | Path] = None, content: Optional[bytes] = None

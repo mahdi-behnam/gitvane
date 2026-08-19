@@ -77,7 +77,6 @@ class RepositoryOut(BaseModel):
     id: UUID
     name: str
     clone_url: Optional[str] = None
-    local_path: Optional[str] = None
     default_branch: Optional[str] = None
     current_ref: Optional[str] = None
     status: str

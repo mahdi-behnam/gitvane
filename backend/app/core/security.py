@@ -31,7 +31,7 @@ def validate_and_resolve_path(
     if user_str != str(resolved_sandbox) and not user_str.startswith(sandbox_prefix):
         # We raise a custom error that gets handled globally
         raise InvalidPathError(
-            f"Access denied: path '{user_path}' is outside sandbox boundary."
+            "Access denied: target path lies outside allowed sandbox boundary."
         )
 
     return resolved_user
