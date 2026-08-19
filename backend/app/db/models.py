@@ -42,6 +42,16 @@ class User(Base):
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
 
+    # Constraints & Indices
+    __table_args__ = (
+        Index(
+            "idx_users_oauth_provider_id",
+            "oauth_provider",
+            "oauth_id",
+            postgresql_where=text("oauth_provider IS NOT NULL AND oauth_id IS NOT NULL"),
+        ),
+    )
+
     # Relationships
     repositories = relationship(
         "Repository", back_populates="owner", cascade="all, delete-orphan"
@@ -66,6 +76,15 @@ class UserRefreshToken(Base):
     is_revoked: Mapped[bool] = mapped_column(default=False, nullable=False)
     revoked_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True
+    )
+
+    # Constraints & Indices
+    __table_args__ = (
+        Index(
+            "idx_user_refresh_tokens_active",
+            "user_id",
+            postgresql_where=text("is_revoked = false"),
+        ),
     )
 
     # Relationships
@@ -127,6 +146,7 @@ class Repository(Base):
     # Constraints & Indices
     __table_args__ = (
         Index("idx_repositories_owner_id", "owner_id"),
+        Index("idx_repositories_owner_created", "owner_id", text("created_at DESC")),
         Index("idx_repositories_active_gen", "active_generation_id"),
         Index("idx_repositories_desired_gen", "desired_generation_id"),
     )
@@ -218,6 +238,17 @@ class IndexGeneration(Base):
     __table_args__ = (
         Index("idx_index_generations_repo_status", "repository_id", "status"),
         Index("idx_index_generations_status_lease", "status", "stage_lease_expires_at"),
+        Index(
+            "idx_index_generations_gc",
+            "status",
+            "terminal_at",
+            postgresql_where=text("cleaned_at IS NULL"),
+        ),
+        Index(
+            "idx_index_generations_finalizing_stuck",
+            "updated_at",
+            postgresql_where=text("status = 'finalizing'"),
+        ),
         CheckConstraint(
             "status IN ('queued', 'preparing', 'parsing', 'embedding', 'finalizing', 'completed', 'failed', 'cancelled', 'superseded')",
             name="ck_index_generations_status",
@@ -273,6 +304,7 @@ class Commit(Base):
     # Constraints & Indices
     __table_args__ = (
         UniqueConstraint("repository_id", "sha", name="uq_commits_repository_sha"),
+        Index("idx_commits_repo_author_date", "repository_id", text("author_date DESC")),
     )
 
     # Relationships
@@ -306,9 +338,12 @@ class CodeFile(Base):
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
 
-    # Constraints
+    # Constraints & Indices
     __table_args__ = (
+        Index("idx_code_files_repository_id", "repository_id"),
         Index("idx_code_files_generation_id", "generation_id"),
+        Index("idx_code_files_gen_lang", "generation_id", "language"),
+        Index("idx_code_files_path_trgm", "path", postgresql_using="gin", postgresql_ops={"path": "gin_trgm_ops"}),
         UniqueConstraint("generation_id", "path", name="uq_code_files_generation_path"),
     )
 
@@ -409,6 +444,8 @@ class DependencyEdge(Base):
         Index("idx_dependency_edges_generation_id", "generation_id"),
         Index("idx_dependency_edges_source_file_id", "source_file_id"),
         Index("idx_dependency_edges_target_file_id", "target_file_id"),
+        Index("idx_dependency_edges_gen_source", "generation_id", "source_file_id"),
+        Index("idx_dependency_edges_gen_target", "generation_id", "target_file_id"),
     )
 
     # Relationships
@@ -451,6 +488,7 @@ class CodeChunk(Base):
         Index("idx_code_chunks_repository_id", "repository_id"),
         Index("idx_code_chunks_generation_id", "generation_id"),
         Index("idx_code_chunks_file_id", "file_id"),
+        Index("idx_code_chunks_gen_id_range", "generation_id", "id"),
     )
 
     # Relationships
@@ -485,6 +523,12 @@ class CodeEmbedding(Base):
     __table_args__ = (
         Index("idx_code_embeddings_chunk_id", "chunk_id"),
         Index("idx_code_embeddings_generation_id", "generation_id"),
+        Index(
+            "idx_code_embeddings_vector_hnsw",
+            "embedding",
+            postgresql_using="hnsw",
+            postgresql_ops={"embedding": "vector_cosine_ops"},
+        ),
         UniqueConstraint("generation_id", "chunk_id", "model", name="uq_code_embeddings_gen_chunk_model"),
     )
 
@@ -570,6 +614,17 @@ class OutboxEvent(Base):
             "created_at",
             postgresql_where=text("status = 'pending'"),
         ),
+        Index(
+            "idx_outbox_events_processing_lease",
+            "locked_at",
+            postgresql_where=text("status = 'processing'"),
+        ),
+        Index(
+            "idx_outbox_events_active_aggregate",
+            "aggregate_id",
+            "event_type",
+            postgresql_where=text("status IN ('pending', 'processing')"),
+        ),
         CheckConstraint(
             "status IN ('pending', 'processing', 'published', 'failed')",
             name="ck_outbox_events_status",
@@ -602,6 +657,7 @@ class AnalysisRun(Base):
     # Constraints & Indices
     __table_args__ = (
         Index("idx_analysis_runs_repository_id", "repository_id"),
+        Index("idx_analysis_runs_repo_started", "repository_id", text("started_at DESC")),
     )
 
     # Relationships
@@ -644,6 +700,12 @@ class ImpactPrediction(Base):
     reasons: Mapped[Optional[list[Any]]] = mapped_column(JSONB, nullable=True)
     recommended_tests: Mapped[Optional[list[Any]]] = mapped_column(JSONB, nullable=True)
 
+    # Constraints & Indices
+    __table_args__ = (
+        Index("idx_impact_predictions_run_rank", "analysis_run_id", "rank"),
+        Index("idx_impact_predictions_file_id", "file_id"),
+    )
+
     # Relationships
     analysis_run = relationship("AnalysisRun", back_populates="predictions")
     code_file = relationship("CodeFile")
@@ -672,6 +734,7 @@ class EvaluationRun(Base):
     # Constraints & Indices
     __table_args__ = (
         Index("idx_evaluation_runs_repository_id", "repository_id"),
+        Index("idx_evaluation_runs_repo_started", "repository_id", text("started_at DESC")),
     )
 
     # Relationships
@@ -697,6 +760,11 @@ class EvaluationResult(Base):
     ground_truth: Mapped[Optional[list[Any]]] = mapped_column(JSONB, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
+    )
+
+    # Constraints & Indices
+    __table_args__ = (
+        Index("idx_evaluation_results_run_id", "evaluation_run_id", "id"),
     )
 
     # Relationships
