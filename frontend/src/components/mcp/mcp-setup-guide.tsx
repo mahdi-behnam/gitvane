@@ -11,6 +11,7 @@ import {
   ShieldAlert,
   Sparkles,
 } from "lucide-react";
+import { apiBaseUrl } from "@/lib/api/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -34,22 +35,51 @@ interface ClientConfig {
   syntax: "json" | "bash";
 }
 
+function resolveServerUrl(): string {
+  if (typeof window !== "undefined" && window.location?.origin) {
+    if (apiBaseUrl.startsWith("http://") || apiBaseUrl.startsWith("https://")) {
+      try {
+        const parsed = new URL(apiBaseUrl);
+        const isApiLocalhost =
+          parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1";
+        const isWindowLocalhost =
+          window.location.hostname === "localhost" ||
+          window.location.hostname === "127.0.0.1";
+        if (isApiLocalhost && !isWindowLocalhost) {
+          return window.location.origin;
+        }
+        return parsed.origin;
+      } catch {
+        return window.location.origin;
+      }
+    }
+    return window.location.origin;
+  }
+
+  if (apiBaseUrl.startsWith("http://") || apiBaseUrl.startsWith("https://")) {
+    try {
+      return new URL(apiBaseUrl).origin;
+    } catch {
+      // fallback
+    }
+  }
+
+  return "";
+}
+
 export function McpSetupGuide() {
   const { notify } = useToast();
-  const [serverUrl, setServerUrl] = useState("http://localhost:8000");
+  const [serverUrl, setServerUrl] = useState<string>("");
   const [apiKeyInput, setApiKeyInput] = useState("");
   const [copiedTab, setCopiedTab] = useState<string | null>(null);
   const [selectedTab, setSelectedTab] = useState("antigravity");
 
   useEffect(() => {
-    if (typeof window !== "undefined" && window.location.origin) {
-      // Default to origin or backend base if running in browser
-      setServerUrl(window.location.origin);
-    }
+    setServerUrl(resolveServerUrl());
   }, []);
 
   const effectiveKey = apiKeyInput.trim() || "<YOUR_API_KEY>";
-  const effectiveUrl = serverUrl.trim() || "<SERVER_URL>";
+  const effectiveUrl = serverUrl.trim() || resolveServerUrl() || "<SERVER_URL>";
 
   const jsonSnippet = JSON.stringify(
     {
@@ -162,27 +192,8 @@ export function McpSetupGuide() {
 
         <CardContent className="space-y-6 p-5">
           {/* Parameter customization bar */}
-          <div className="grid grid-cols-1 gap-4 rounded-lg border border-border/80 bg-panel-muted/50 p-4 md:grid-cols-2">
-            <div>
-              <label
-                className="mb-1.5 block font-mono text-[11px] font-bold uppercase tracking-wider text-muted"
-                htmlFor="mcp-server-url"
-              >
-                GitVane Server URL
-              </label>
-              <Input
-                className="font-mono text-xs"
-                id="mcp-server-url"
-                onChange={(e) => setServerUrl(e.target.value)}
-                placeholder="http://localhost:8000"
-                value={serverUrl}
-              />
-              <p className="mt-1 text-[11px] text-muted">
-                The URL where your GitVane backend service is running.
-              </p>
-            </div>
-
-            <div>
+          <div className="rounded-lg border border-border/80 bg-panel-muted/50 p-4">
+            <div className="max-w-xl">
               <label
                 className="mb-1.5 block font-mono text-[11px] font-bold uppercase tracking-wider text-muted"
                 htmlFor="mcp-api-key"

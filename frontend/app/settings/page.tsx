@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from "react";
 import { Check, Moon, Monitor, Sun, User as UserIcon, Lock, Save } from "lucide-react";
 import { useTheme } from "@/components/theme/theme-provider";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";

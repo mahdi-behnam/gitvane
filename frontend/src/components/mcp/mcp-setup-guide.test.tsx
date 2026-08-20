@@ -66,17 +66,12 @@ describe("McpSetupGuide", () => {
     expect(screen.getByText(/\.cursor\/mcp\.json/)).toBeInTheDocument();
   });
 
-  it("updates snippets when custom server URL and API key are entered", () => {
+  it("updates snippets when custom API key is entered", () => {
     renderWithProviders(
       <ToastProvider>
         <McpSetupGuide />
       </ToastProvider>,
     );
-
-    const urlInput = screen.getByLabelText(/gitvane server url/i);
-    fireEvent.change(urlInput, {
-      target: { value: "https://api.gitvane.corp.internal" },
-    });
 
     const keyInput = screen.getByLabelText(/personal api key/i);
     fireEvent.change(keyInput, {
@@ -84,9 +79,6 @@ describe("McpSetupGuide", () => {
     });
 
     // Check snippet updates
-    expect(
-      screen.getByText(/https:\/\/api\.gitvane\.corp\.internal/),
-    ).toBeInTheDocument();
     expect(
       screen.getByText(/gv_live_custom_token_123/),
     ).toBeInTheDocument();
