@@ -1,13 +1,20 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_db, get_impact_service, get_repository_service, get_current_user
-from app.db.models import User, AnalysisRun
+from app.api.deps import (
+    get_current_user,
+    get_db,
+    get_impact_service,
+    get_repository_service,
+)
+from app.core.config import settings
 from app.core.errors import GitOperationError, RepositoryNotFoundError
+from app.core.rate_limit import limiter
+from app.db.models import AnalysisRun, User
 from app.schemas.impact import (
     ImpactAnalyzeRequest,
     ImpactAnalyzeResponse,
@@ -21,7 +28,9 @@ router = APIRouter()
 
 
 @router.post("/analyze", response_model=ImpactAnalyzeResponse)
+@limiter.limit(settings.RATE_LIMIT_COMPUTE)
 async def analyze_impact(
+    request: Request,
     body: ImpactAnalyzeRequest,
     db: Annotated[AsyncSession, Depends(get_db)],
     svc: Annotated[ImpactService, Depends(get_impact_service)],
@@ -55,7 +64,7 @@ async def get_impact_run(
         repository_id = result.scalar_one_or_none()
         if repository_id is None:
             raise RepositoryNotFoundError(f"Analysis run with id={analysis_run_id} does not exist")
-        
+
         await repo_svc.get_repository_or_raise(db=db, repository_id=repository_id, owner_id=current_user.id)
         return await svc.get_run(db=db, analysis_run_id=analysis_run_id)
     except RepositoryNotFoundError as exc:

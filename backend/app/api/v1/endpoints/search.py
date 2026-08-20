@@ -1,20 +1,29 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_db, get_semantic_search_service, get_repository_service, get_current_user
-from app.db.models import User
+from app.api.deps import (
+    get_current_user,
+    get_db,
+    get_repository_service,
+    get_semantic_search_service,
+)
+from app.core.config import settings
 from app.core.errors import EmbeddingDimensionMismatchError, RepositoryNotFoundError
+from app.core.rate_limit import limiter
+from app.db.models import User
 from app.schemas.search import SemanticSearchRequest, SemanticSearchResponse
-from app.services.semantic_search_service import SemanticSearchService
 from app.services.repository_service import RepositoryService
+from app.services.semantic_search_service import SemanticSearchService
 
 router = APIRouter()
 
 
 @router.post("/semantic", response_model=SemanticSearchResponse)
+@limiter.limit(settings.RATE_LIMIT_COMPUTE)
 async def semantic_search(
+    request: Request,
     body: SemanticSearchRequest,
     db: Annotated[AsyncSession, Depends(get_db)],
     svc: Annotated[

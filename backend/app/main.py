@@ -1,19 +1,21 @@
 import asyncio
-from contextlib import asynccontextmanager
 import logging
 import os
 import subprocess
 import sys
+from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi.middleware import SlowAPIMiddleware
 
 from app.api.v1.router import api_router
 from app.core.config import settings
 from app.core.csrf_middleware import CSRFMiddleware
 from app.core.errors import setup_error_handlers
 from app.core.logging import setup_logging
+from app.core.rate_limit import limiter
 
 logger = logging.getLogger("gitvane")
 
@@ -56,8 +58,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         # Recovery: Resume indexing for any repositories that were interrupted by server restart
         try:
             from sqlalchemy import select
-            from app.db.session import SessionLocal
+
             from app.db.models import Repository
+            from app.db.session import SessionLocal
             from app.services.git_service import GitService
             from app.services.indexing_service import IndexingService
 
@@ -106,6 +109,9 @@ app = FastAPI(
     lifespan=lifespan,
     debug=settings.DEBUG,
 )
+
+app.state.limiter = limiter
+app.add_middleware(SlowAPIMiddleware)
 
 # Apply secure CORS rules. No wildcard origins.
 origins = settings.CORS_ORIGINS or [

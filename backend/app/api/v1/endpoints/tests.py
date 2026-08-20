@@ -1,27 +1,31 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import (
+    get_current_user,
     get_db,
+    get_repository_service,
     get_semantic_search_service,
     get_test_recommendation_service,
-    get_repository_service,
-    get_current_user,
 )
-from app.db.models import User
+from app.core.config import settings
 from app.core.errors import RepositoryNotFoundError
+from app.core.rate_limit import limiter
+from app.db.models import User
 from app.schemas.tests import TestRecommendationRequest, TestRecommendationResponse
+from app.services.repository_service import RepositoryService
 from app.services.semantic_search_service import SemanticSearchService
 from app.services.test_recommendation_service import TestRecommendationService
-from app.services.repository_service import RepositoryService
 
 router = APIRouter()
 
 
 @router.post("/recommend", response_model=TestRecommendationResponse)
+@limiter.limit(settings.RATE_LIMIT_COMPUTE)
 async def recommend_tests(
+    request: Request,
     body: TestRecommendationRequest,
     db: Annotated[AsyncSession, Depends(get_db)],
     svc: Annotated[

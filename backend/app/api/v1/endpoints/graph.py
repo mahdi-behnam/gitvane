@@ -1,12 +1,19 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_db, get_graph_service, get_repository_service, get_current_user
-from app.db.models import User
+from app.api.deps import (
+    get_current_user,
+    get_db,
+    get_graph_service,
+    get_repository_service,
+)
+from app.core.config import settings
 from app.core.errors import RepositoryNotFoundError
+from app.core.rate_limit import limiter
+from app.db.models import User
 from app.schemas.graph import GraphResponse
 from app.services.graph_service import GraphService
 from app.services.repository_service import RepositoryService
@@ -18,7 +25,9 @@ router = APIRouter()
     "/repositories/{repository_id}/file/{file_id}/neighbors",
     response_model=GraphResponse,
 )
+@limiter.limit(settings.RATE_LIMIT_COMPUTE)
 async def get_file_neighbors(
+    request: Request,
     repository_id: UUID,
     file_id: int,
     db: Annotated[AsyncSession, Depends(get_db)],
@@ -41,7 +50,9 @@ async def get_file_neighbors(
     "/repositories/{repository_id}/subgraph",
     response_model=GraphResponse,
 )
+@limiter.limit(settings.RATE_LIMIT_COMPUTE)
 async def get_repository_subgraph(
+    request: Request,
     repository_id: UUID,
     db: Annotated[AsyncSession, Depends(get_db)],
     svc: Annotated[GraphService, Depends(get_graph_service)],

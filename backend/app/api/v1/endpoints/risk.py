@@ -1,15 +1,22 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_db, get_risk_service, get_repository_service, get_current_user
-from app.db.models import User
+from app.api.deps import (
+    get_current_user,
+    get_db,
+    get_repository_service,
+    get_risk_service,
+)
+from app.core.config import settings
 from app.core.errors import RepositoryNotFoundError
+from app.core.rate_limit import limiter
+from app.db.models import User
 from app.schemas.risk import RepositoryRiskResponse
-from app.services.risk_service import RiskService
 from app.services.repository_service import RepositoryService
+from app.services.risk_service import RiskService
 
 router = APIRouter()
 
@@ -18,7 +25,9 @@ router = APIRouter()
     "/repositories/{repository_id}/files",
     response_model=RepositoryRiskResponse,
 )
+@limiter.limit(settings.RATE_LIMIT_COMPUTE)
 async def get_repository_risk(
+    request: Request,
     repository_id: UUID,
     db: Annotated[AsyncSession, Depends(get_db)],
     svc: Annotated[RiskService, Depends(get_risk_service)],

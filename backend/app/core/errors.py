@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
+from slowapi.errors import RateLimitExceeded
 
 from app.core.logging import logger
 
@@ -64,6 +65,22 @@ class CSRFError(GitVaneError):
 
 
 def setup_error_handlers(app: FastAPI) -> None:
+    @app.exception_handler(RateLimitExceeded)
+    async def rate_limit_exceeded_handler(
+        request: Request, exc: RateLimitExceeded
+    ) -> JSONResponse:
+        logger.warning(
+            f"Rate limit exceeded during request {request.url.path}: {exc.detail}"
+        )
+        return JSONResponse(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            content={
+                "detail": f"Rate limit exceeded: {exc.detail}. Please try again later.",
+                "error_type": "RateLimitExceeded",
+            },
+            headers={"Retry-After": "60"},
+        )
+
     @app.exception_handler(GitVaneError)
     async def gitvane_exception_handler(
         request: Request, exc: GitVaneError

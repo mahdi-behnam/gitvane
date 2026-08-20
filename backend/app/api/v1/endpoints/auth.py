@@ -1,38 +1,39 @@
 import asyncio
+import smtplib
 from datetime import datetime, timedelta, timezone
+from email.message import EmailMessage
+from typing import Any
 from urllib.parse import urlencode
 
-from fastapi import APIRouter, Depends, Response, Request, status, HTTPException
-from fastapi.responses import RedirectResponse
 import httpx
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from app.api.deps import get_db, get_current_user
+from app.api.deps import get_current_user, get_db
 from app.core.config import settings
 from app.core.errors import AuthenticationError, GitVaneError
+from app.core.rate_limit import limiter
 from app.core.security_utils import (
+    create_access_token,
+    create_password_reset_token,
+    generate_secure_token,
     hash_password,
     verify_password,
-    create_access_token,
-    generate_secure_token,
-    create_password_reset_token,
     verify_password_reset_token,
 )
 from app.db.models import User, UserRefreshToken
 from app.schemas.user import (
+    LoginRequest,
+    PasswordResetConfirm,
+    PasswordResetRequest,
+    TokenResponse,
     UserCreate,
     UserResponse,
-    LoginRequest,
-    TokenResponse,
-    PasswordResetRequest,
-    PasswordResetConfirm,
     UserUpdate,
 )
 
-import smtplib
-from email.message import EmailMessage
-from typing import Any
 
 def send_reset_email(to_email: str, reset_url: str) -> None:
     msg = EmailMessage()
@@ -61,7 +62,9 @@ router = APIRouter()
 
 
 @router.post("/signup", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
+@limiter.limit(settings.RATE_LIMIT_AUTH)
 async def signup(
+    request: Request,
     user_in: UserCreate,
     response: Response,
     db: AsyncSession = Depends(get_db),
@@ -120,7 +123,9 @@ async def signup(
 
 
 @router.post("/login", response_model=TokenResponse)
+@limiter.limit(settings.RATE_LIMIT_AUTH)
 async def login(
+    request: Request,
     login_data: LoginRequest,
     response: Response,
     db: AsyncSession = Depends(get_db),
@@ -323,7 +328,7 @@ async def oauth2_google() -> RedirectResponse:
         "state": state,
         "access_type": "offline",
     }
-    
+
     redirect_url = f"{auth_url}?{urlencode(params)}"
     redirect_res = RedirectResponse(redirect_url)
 
@@ -473,7 +478,9 @@ async def oauth2_callback_google(
 
 
 @router.post("/forgot-password")
+@limiter.limit(settings.RATE_LIMIT_AUTH)
 async def forgot_password(
+    request: Request,
     request_data: PasswordResetRequest,
     db: AsyncSession = Depends(get_db),
 ) -> dict[str, Any]:
@@ -506,7 +513,9 @@ async def forgot_password(
 
 
 @router.post("/reset-password")
+@limiter.limit(settings.RATE_LIMIT_AUTH)
 async def reset_password(
+    request: Request,
     reset_data: PasswordResetConfirm,
     db: AsyncSession = Depends(get_db),
 ) -> dict[str, str]:

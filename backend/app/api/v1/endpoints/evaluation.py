@@ -2,13 +2,20 @@ import logging
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
 from fastapi.responses import PlainTextResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_db, get_evaluation_service, get_repository_service, get_current_user
+from app.api.deps import (
+    get_current_user,
+    get_db,
+    get_evaluation_service,
+    get_repository_service,
+)
+from app.core.config import settings
 from app.core.errors import RepositoryNotFoundError
+from app.core.rate_limit import limiter
 from app.db.models import EvaluationRun, User
 from app.db.session import SessionLocal
 from app.schemas.evaluation import (
@@ -31,7 +38,9 @@ router = APIRouter()
     response_model=EvaluationRunResponse,
     status_code=status.HTTP_202_ACCEPTED,
 )
+@limiter.limit(settings.RATE_LIMIT_COMPUTE)
 async def run_evaluation(
+    request: Request,
     body: EvaluationRunRequest,
     background_tasks: BackgroundTasks,
     db: Annotated[AsyncSession, Depends(get_db)],
@@ -100,7 +109,7 @@ async def get_evaluation_status(
 ) -> EvaluationStatusResponse:
     try:
         repository_id = await svc.get_evaluation_run_repository_id(db, evaluation_run_id)
-        
+
         await repo_svc.get_repository_or_raise(db, repository_id, owner_id=current_user.id)
         return await svc.get_evaluation(db=db, evaluation_run_id=evaluation_run_id)
     except RepositoryNotFoundError as exc:
@@ -120,7 +129,7 @@ async def get_evaluation_report(
 ) -> EvaluationReportResponse:
     try:
         repository_id = await svc.get_evaluation_run_repository_id(db, evaluation_run_id)
-        
+
         await repo_svc.get_repository_or_raise(db, repository_id, owner_id=current_user.id)
         return await svc.get_report(db=db, evaluation_run_id=evaluation_run_id)
     except RepositoryNotFoundError as exc:
@@ -137,7 +146,7 @@ async def get_evaluation_report_markdown(
 ) -> str:
     try:
         repository_id = await svc.get_evaluation_run_repository_id(db, evaluation_run_id)
-        
+
         await repo_svc.get_repository_or_raise(db, repository_id, owner_id=current_user.id)
         report = await svc.get_report(db=db, evaluation_run_id=evaluation_run_id)
         return report.markdown

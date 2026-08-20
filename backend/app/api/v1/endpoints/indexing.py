@@ -2,9 +2,9 @@ import asyncio
 import hashlib
 import json
 import logging
+import uuid
 from datetime import datetime, timezone
 from typing import Annotated
-import uuid
 from uuid import UUID
 
 from fastapi import (
@@ -19,21 +19,28 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user, get_db, get_indexing_service, get_repository_service
+from app.api.deps import (
+    get_current_user,
+    get_db,
+    get_indexing_service,
+    get_repository_service,
+)
 from app.core.config import settings
 from app.core.errors import AuthenticationError, RepositoryNotFoundError
+from app.core.rate_limit import limiter
 from app.core.security_utils import decode_access_token
 from app.db.models import IndexGeneration, OutboxEvent, Repository, User
-from app.db.session import SessionLocal
 from app.schemas.indexing import (
+    IndexingProgressEvent,
     IndexRepositoryRequest,
     IndexRepositoryResponse,
     IndexStatusResponse,
-    IndexingProgressEvent,
 )
-from app.services.git_service import GitService
 from app.services.indexing_service import IndexingService
-from app.services.progress_publisher import ProgressStreamPublisher, get_progress_publisher
+from app.services.progress_publisher import (
+    ProgressStreamPublisher,
+    get_progress_publisher,
+)
 from app.services.progress_tracker import IndexingProgressTracker
 from app.services.repository_service import RepositoryService
 
@@ -48,7 +55,9 @@ generation_router = APIRouter()
     response_model=IndexRepositoryResponse,
     status_code=status.HTTP_202_ACCEPTED,
 )
+@limiter.limit(settings.RATE_LIMIT_COMPUTE)
 async def index_repository(
+    request: Request,
     repository_id: UUID,
     body: IndexRepositoryRequest,
     db: Annotated[AsyncSession, Depends(get_db)],
@@ -277,6 +286,7 @@ async def stream_generation_progress(
         snap_gen = snap_res.scalar_one_or_none() or gen
 
         from sqlalchemy import func
+
         from app.db.models import EmbeddingBatch
         batch_total_stmt = select(func.count(EmbeddingBatch.id)).where(EmbeddingBatch.generation_id == generation_id)
         batch_completed_stmt = select(func.count(EmbeddingBatch.id)).where(

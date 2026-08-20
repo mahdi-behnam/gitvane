@@ -83,7 +83,14 @@ class Settings(BaseSettings):
     SMTP_PORT: int = 587
     SMTP_USER: Optional[str] = None
     SMTP_PASSWORD: Optional[str] = None
-    EMAILS_FROM_EMAIL: str = "noreply@gitvane.dev" 
+    EMAILS_FROM_EMAIL: str = "noreply@gitvane.dev"
+
+    RATE_LIMIT_ENABLED: bool = True
+    RATE_LIMIT_STORAGE_URI: Optional[str] = None
+    RATE_LIMIT_DEFAULT: str = "300/minute"
+    RATE_LIMIT_AUTH: str = "30/minute"
+    RATE_LIMIT_COMPUTE: str = "120/minute"
+    RATE_LIMIT_STRATEGY: str = "moving-window"
 
     def model_post_init(self, __context: Any) -> None:
         if not self.JWT_SECRET_KEY:
