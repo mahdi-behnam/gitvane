@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertCircle, Loader2, Play, RefreshCw, Search, Trash2, X } from "lucide-react";
+import { AlertCircle, Loader2, RefreshCw, Search, Trash2, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { AddRepositoryDialog } from "@/components/repositories/add-repository-dialog";

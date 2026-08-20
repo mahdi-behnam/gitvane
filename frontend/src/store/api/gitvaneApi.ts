@@ -35,6 +35,11 @@ import type {
   TokenResponse,
   UserResponse,
 } from "@/lib/api/types";
+import type {
+  ApiKeyCreateRequest,
+  ApiKeyCreatedResponse,
+  ApiKeyItem,
+} from "@/types/apiKeys";
 
 type ListRepositoriesArgs = {
   limit?: number;
@@ -193,6 +198,25 @@ const baseQueryWithReauth: typeof rawBaseQuery = async (args, api, extraOptions)
 export const gitvaneApi = createApi({
   baseQuery: baseQueryWithReauth,
   endpoints: (builder) => ({
+    getApiKeys: builder.query<ApiKeyItem[], void>({
+      providesTags: ["ApiKeys"],
+      query: () => "/api-keys",
+    }),
+    createApiKey: builder.mutation<ApiKeyCreatedResponse, ApiKeyCreateRequest>({
+      invalidatesTags: ["ApiKeys"],
+      query: (body) => ({
+        body,
+        method: "POST",
+        url: "/api-keys",
+      }),
+    }),
+    revokeApiKey: builder.mutation<void, string>({
+      invalidatesTags: ["ApiKeys"],
+      query: (id) => ({
+        method: "DELETE",
+        url: `/api-keys/${id}`,
+      }),
+    }),
     createRepository: builder.mutation<Repository, RepositoryCreate>({
       invalidatesTags: ["Repository"],
       query: (body) => ({
@@ -476,12 +500,14 @@ export const gitvaneApi = createApi({
     }),
   }),
   reducerPath: "gitvaneApi",
-  tagTypes: ["Evaluation", "Graph", "Impact", "IndexStatus", "Repository", "Risk", "User"],
+  tagTypes: ["ApiKeys", "Evaluation", "Graph", "Impact", "IndexStatus", "Repository", "Risk", "User"],
 });
 
 export const {
+  useCreateApiKeyMutation,
   useCreateRepositoryMutation,
   useDeleteRepositoryMutation,
+  useGetApiKeysQuery,
   useGetEvaluationReportMarkdownQuery,
   useGetEvaluationReportQuery,
   useGetEvaluationStatusQuery,
@@ -494,6 +520,7 @@ export const {
   useGetRepositoryRiskQuery,
   useGetRepositorySubgraphQuery,
   useIndexRepositoryMutation,
+  useRevokeApiKeyMutation,
   useSyncRepositoryMutation,
   useListRepositoriesQuery,
   useListRemoteBranchesMutation,

@@ -47,6 +47,9 @@ describe("AppShell", () => {
     expect(screen.getAllByRole("link", { name: /overview/i }).length).toBeGreaterThan(
       0,
     );
+    const mcpLinks = screen.getAllByRole("link", { name: /mcp & agents/i });
+    expect(mcpLinks.length).toBeGreaterThan(0);
+    expect(mcpLinks[0]).toHaveAttribute("href", "/mcp");
     expect(
       screen.getByRole("navigation", { name: "Primary shortcuts" }),
     ).toBeInTheDocument();

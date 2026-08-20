@@ -16,6 +16,7 @@ import type {
   SemanticSearchResponse,
   TestRecommendationResponse,
 } from "@/lib/api/types";
+import type { ApiKeyCreatedResponse, ApiKeyItem } from "@/types/apiKeys";
 
 const emptyRepositoryList: RepositoryList = {
   items: [],
@@ -348,5 +349,36 @@ export const handlers = [
   }),
   http.get(`${apiBaseUrl}/evaluation/:evaluationRunId/report.md`, () =>
     HttpResponse.text("# Evaluation Report"),
+  ),
+  http.get(`${apiBaseUrl}/api-keys`, () => {
+    const keys: ApiKeyItem[] = [
+      {
+        created_at: "2026-06-21T10:00:00Z",
+        expires_at: null,
+        id: "key-123",
+        is_revoked: false,
+        last_used_at: "2026-06-21T11:00:00Z",
+        name: "Cursor IDE",
+        key_prefix: "gv_live_abc12345",
+      },
+    ];
+    return HttpResponse.json(keys);
+  }),
+  http.post(`${apiBaseUrl}/api-keys`, async ({ request }) => {
+    const body = (await request.json()) as { expires_in_days?: number; name: string };
+    const response: ApiKeyCreatedResponse = {
+      created_at: "2026-06-21T10:00:00Z",
+      expires_at: body.expires_in_days ? "2026-07-21T10:00:00Z" : null,
+      id: "key-new",
+      is_revoked: false,
+      last_used_at: null,
+      name: body.name,
+      key_prefix: "gv_live_xyz98765",
+      raw_key: "gv_live_xyz9876543210abcdef",
+    };
+    return HttpResponse.json(response);
+  }),
+  http.delete(`${apiBaseUrl}/api-keys/:id`, () =>
+    HttpResponse.json(null),
   ),
 ];

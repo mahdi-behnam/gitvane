@@ -3,6 +3,7 @@
 import {
   Activity,
   BarChart3,
+  Bot,
   FlaskConical,
   GitGraph,
   Home,
@@ -39,6 +40,7 @@ import { getRepositoryDisplayBranch } from "@/lib/format";
 const mainNavItems = [
   { href: "/", icon: Home, label: "Overview" },
   { href: "/repositories", icon: Waypoints, label: "Repositories" },
+  { href: "/mcp", icon: Bot, label: "MCP & Agents" },
   { href: "/settings", icon: Settings, label: "Settings" },
 ];
 
@@ -60,6 +62,7 @@ const navigationItems = [
   mainNavItems[1],
   ...repositorySubItems,
   mainNavItems[2],
+  mainNavItems[3],
 ];
 
 export function parseJwtExp(token: string): number | null {
