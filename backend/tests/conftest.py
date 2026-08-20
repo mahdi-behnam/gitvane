@@ -28,7 +28,7 @@ MagicMock.commit = AsyncMock()
 
 @pytest.fixture(autouse=True)
 def mock_dependencies(request):
-    if "test_auth" in request.module.__name__:
+    if "test_auth" in request.module.__name__ or "test_api_keys" in request.module.__name__:
         yield
         return
 

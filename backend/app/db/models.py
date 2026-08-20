@@ -1,6 +1,6 @@
+import uuid
 from datetime import datetime
 from typing import Any, Optional
-import uuid
 
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
@@ -59,6 +59,9 @@ class User(Base):
     refresh_tokens = relationship(
         "UserRefreshToken", back_populates="user", cascade="all, delete-orphan"
     )
+    api_keys = relationship(
+        "ApiKey", back_populates="user", cascade="all, delete-orphan"
+    )
 
 
 class UserRefreshToken(Base):
@@ -89,6 +92,47 @@ class UserRefreshToken(Base):
 
     # Relationships
     user = relationship("User", back_populates="refresh_tokens")
+
+
+class ApiKey(Base):
+    __tablename__ = "api_keys"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    key_prefix: Mapped[str] = mapped_column(String, nullable=False)
+    hashed_key: Mapped[str] = mapped_column(String, unique=True, index=True, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    expires_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    last_used_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    is_revoked: Mapped[bool] = mapped_column(default=False, index=True, nullable=False)
+    revoked_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+    # Constraints & Indices
+    __table_args__ = (
+        Index("idx_api_keys_user_id", "user_id"),
+        Index("idx_api_keys_hashed_key", "hashed_key"),
+        Index(
+            "idx_api_keys_active",
+            "user_id",
+            postgresql_where=text("is_revoked = false"),
+        ),
+    )
+
+    # Relationships
+    user = relationship("User", back_populates="api_keys")
 
 
 class Repository(Base):

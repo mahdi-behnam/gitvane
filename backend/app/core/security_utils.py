@@ -1,3 +1,5 @@
+import hashlib
+import hmac
 import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Any
@@ -8,6 +10,36 @@ from cryptography.fernet import Fernet
 
 from app.core.config import settings
 from app.core.errors import AuthenticationError
+
+
+def hash_api_key(raw_key: str) -> str:
+    """
+    Computes a SHA-256 hexadecimal digest of the raw API key.
+    """
+    return hashlib.sha256(raw_key.encode("utf-8")).hexdigest()
+
+
+def verify_api_key(raw_key: str, hashed_key: str) -> bool:
+    """
+    Verifies that the raw API key matches the stored hash in constant time.
+    """
+    computed = hash_api_key(raw_key)
+    return hmac.compare_digest(computed, hashed_key)
+
+
+def generate_api_key() -> tuple[str, str, str]:
+    """
+    Generates a secure Personal API Key with prefix 'gv_live_'.
+    Returns a tuple of (raw_key, key_prefix, hashed_key).
+    - raw_key: The full plaintext secret (only shown once to the user).
+    - key_prefix: The first 12 characters of raw_key (used for identification/display).
+    - hashed_key: The SHA-256 hash to be stored in the database.
+    """
+    token = secrets.token_urlsafe(32)
+    raw_key = f"gv_live_{token}"
+    key_prefix = raw_key[:12]
+    hashed_key = hash_api_key(raw_key)
+    return raw_key, key_prefix, hashed_key
 
 
 def hash_password(plain_password: str) -> str:

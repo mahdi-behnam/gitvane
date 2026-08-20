@@ -1,4 +1,5 @@
 from datetime import timedelta
+
 import pytest
 
 from app.core.errors import AuthenticationError
@@ -108,4 +109,4 @@ def test_hash_api_key_deterministic() -> None:
     hash1 = hash_api_key(key)
     hash2 = hash_api_key(key)
     assert hash1 == hash2
-    assert len(hash1) == 64
+    assert len(hash1) == 64  # SHA-256 hex digest length
