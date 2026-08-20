@@ -230,7 +230,7 @@ async def stream_generation_progress(
     publisher: Annotated[ProgressStreamPublisher, Depends(get_progress_publisher)],
     token: str | None = Query(None),
 ) -> StreamingResponse:
-    """SSE Streaming Endpoint (Section 15).
+    """SSE Streaming Endpoint.
     
     Sequence:
     1. Capture current Redis stream tail ID `C` (using XREVRANGE).

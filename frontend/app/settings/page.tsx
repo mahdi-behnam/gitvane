@@ -12,7 +12,10 @@ import { useToast } from "@/components/ui/toast";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { useMeQuery, useUpdateMeMutation } from "@/store/api/gitvaneApi";
 import { setUser } from "@/store/slices/authSlice";
-import { PasswordStrengthIndicator, isPasswordValid } from "@/components/auth/password-strength";
+import {
+  PasswordStrengthIndicator,
+  isPasswordValid,
+} from "@/components/auth/password-strength";
 import {
   setDependencyDepth,
   setIncludeChangedFilesInImpact,
@@ -97,7 +100,8 @@ export default function SettingsPage() {
     } catch (err: unknown) {
       console.error("Failed to update profile:", err);
       const apiErr = err as { data?: { detail?: string | Record<string, unknown> } };
-      const detail = apiErr?.data?.detail || "Failed to update profile. Please try again.";
+      const detail =
+        apiErr?.data?.detail || "Failed to update profile. Please try again.";
       setProfileError(typeof detail === "string" ? detail : JSON.stringify(detail));
     }
   };
@@ -105,7 +109,6 @@ export default function SettingsPage() {
   return (
     <div className="mx-auto max-w-7xl space-y-6">
       <div className="border-b border-border pb-6">
-        <Badge tone="info">Settings</Badge>
         <h1 className="mt-3 text-3xl font-semibold md:text-4xl">Settings</h1>
       </div>
 
@@ -133,7 +136,10 @@ export default function SettingsPage() {
               )}
 
               <div>
-                <label className="block text-xs font-medium text-muted mb-1.5" htmlFor="profile-email">
+                <label
+                  className="block text-xs font-medium text-muted mb-1.5"
+                  htmlFor="profile-email"
+                >
                   Email Address
                 </label>
                 <Input
@@ -143,11 +149,16 @@ export default function SettingsPage() {
                   disabled
                   className="bg-canvas/50 text-muted cursor-not-allowed"
                 />
-                <p className="mt-1 text-[11px] text-muted">Email address cannot be changed.</p>
+                <p className="mt-1 text-[11px] text-muted">
+                  Email address cannot be changed.
+                </p>
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-muted mb-1.5" htmlFor="profile-fullname">
+                <label
+                  className="block text-xs font-medium text-muted mb-1.5"
+                  htmlFor="profile-fullname"
+                >
                   Full Name
                 </label>
                 <Input
@@ -167,7 +178,10 @@ export default function SettingsPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-muted mb-1.5" htmlFor="profile-current-password">
+                  <label
+                    className="block text-xs font-medium text-muted mb-1.5"
+                    htmlFor="profile-current-password"
+                  >
                     Current Password
                   </label>
                   <Input
@@ -181,7 +195,10 @@ export default function SettingsPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-muted mb-1.5" htmlFor="profile-new-password">
+                  <label
+                    className="block text-xs font-medium text-muted mb-1.5"
+                    htmlFor="profile-new-password"
+                  >
                     New Password
                   </label>
                   <Input
@@ -196,7 +213,10 @@ export default function SettingsPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-muted mb-1.5" htmlFor="profile-confirm-password">
+                  <label
+                    className="block text-xs font-medium text-muted mb-1.5"
+                    htmlFor="profile-confirm-password"
+                  >
                     Confirm New Password
                   </label>
                   <Input
@@ -218,7 +238,9 @@ export default function SettingsPage() {
                   disabled={isLoadingMe || isUpdating}
                 >
                   <Save className="size-4" />
-                  <span>{isUpdating ? "Saving Changes..." : "Save Profile Settings"}</span>
+                  <span>
+                    {isUpdating ? "Saving Changes..." : "Save Profile Settings"}
+                  </span>
                 </Button>
               </div>
             </form>
@@ -273,7 +295,8 @@ export default function SettingsPage() {
                 Default Max Dependency Depth
               </label>
               <p className="text-xs text-muted">
-                Maximum graph depth for dependency traversal when analyzing change impact.
+                Maximum graph depth for dependency traversal when analyzing change
+                impact.
               </p>
               <Input
                 className="max-w-[120px]"
@@ -303,7 +326,8 @@ export default function SettingsPage() {
                     Include changed files in predictions
                   </span>
                   <p className="text-xs text-muted">
-                    When enabled, the changed files themselves will be included alongside predicted impact files.
+                    When enabled, the changed files themselves will be included
+                    alongside predicted impact files.
                   </p>
                 </div>
               </label>
@@ -322,7 +346,8 @@ export default function SettingsPage() {
                     Generate LLM analysis explanations
                   </span>
                   <p className="text-xs text-muted">
-                    Request evidence-based explanation summaries alongside impact analysis runs.
+                    Request evidence-based explanation summaries alongside impact
+                    analysis runs.
                   </p>
                 </div>
               </label>

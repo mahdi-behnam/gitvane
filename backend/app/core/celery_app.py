@@ -1,6 +1,6 @@
 """Celery application and queue configurations for GitVane.
 
-Section 7: RabbitMQ / Celery Configuration
+RabbitMQ / Celery Configuration
 - Quorum queues declared with DLX routing to gitvane_failed_tasks
 - Consumer timeouts per queue
 - Late acknowledgment and worker-lost rejection enabled

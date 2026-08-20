@@ -1,6 +1,5 @@
 """Progress Stream Publisher for Redis Streams (Subsystem 5).
 
-Implements Section 15 & Section 14.3 of the GitVane implementation plan.
 - Emits progress events to Redis Streams `gitvane:progress:{generation_id}` via XADD MAXLEN ~ 1000.
 - Sets 24h (86400s) TTL on terminal states (`completed`, `failed`, `cancelled`, `superseded`).
 - Handles Redis outages gracefully without crashing worker tasks (Invariant 10).

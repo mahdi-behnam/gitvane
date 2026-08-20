@@ -1,6 +1,6 @@
 """Parser task and stage lease fencing logic for Subsystem 2.
 
-Section 11: Parser Task & Stage Lease Fencing
+Parser Task & Stage Lease Fencing
 - Atomic stage lease claim (stage_lease_owner, stage_lease_expires_at, stage_attempt)
 - Commit SHA freezing (resolve once, reuse on retries)
 - Retry cleanup (delete incomplete staged rows on takeover)

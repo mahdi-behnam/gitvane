@@ -1,4 +1,4 @@
-"""Unit tests for Celery queue and broker configuration (Section 7)."""
+"""Unit tests for Celery queue and broker configuration."""
 
 import pytest
 

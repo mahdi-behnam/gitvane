@@ -1,8 +1,8 @@
 """Worker and Repository Ingestion Security Validator for GitVane.
 
-Implements Section 18 Security Boundaries:
+Implements Security Boundaries:
 - URL validation and SSRF protection (scheme checks, IP blocklists, DNS safety)
-- Ingestion resource limits (max clone size 500MB, file count 50K, file size 10MB)
+- Ingestion resource limits (max clone size, file count, file size)
 - Binary file filtering policy
 - Submodule and Git LFS safety policies
 - Worker sandbox workspace path containment verification and process limits

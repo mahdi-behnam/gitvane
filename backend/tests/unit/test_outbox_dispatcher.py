@@ -1,4 +1,4 @@
-"""Unit tests for OutboxDispatcher service (Section 9 spec & Invariants 1, 3, 9)."""
+"""Unit tests for OutboxDispatcher service."""
 
 from datetime import datetime, timezone, timedelta
 from uuid import uuid4

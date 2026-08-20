@@ -1,6 +1,6 @@
 """Embedding batch task and batch lease fencing logic for Subsystem 2.
 
-Section 12: Embedding Batch Task & Batch Lease Fencing
+Embedding Batch Task & Batch Lease Fencing
 - Atomic batch claim with lease (27m local GPU / 8m NIM)
 - Vector generation using frozen generation settings
 - Fenced persistence check & PostgreSQL UPSERT (ON CONFLICT (generation_id, chunk_id, model))

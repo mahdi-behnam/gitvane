@@ -1,4 +1,4 @@
-"""Outbox Dispatcher Service for GitVane (Section 9).
+"""Outbox Dispatcher Service for GitVane.
 
 Claims pending OutboxEvent records using SELECT FOR UPDATE SKIP LOCKED in short transactions,
 publishes them to RabbitMQ/Celery outside the DB transaction with publisher confirms enabled,

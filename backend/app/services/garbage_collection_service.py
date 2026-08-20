@@ -1,6 +1,6 @@
 """Garbage Collection Service for GitVane Index Generations.
 
-Section 17: Garbage Collection
+Implements Garbage Collection
 - Identifies eligible generations: status IN ('superseded', 'failed', 'cancelled')
   AND terminal_at < now() - interval '24 hours'.
 - Defense-in-depth safety checks strictly protect any active_generation_id or desired_generation_id.

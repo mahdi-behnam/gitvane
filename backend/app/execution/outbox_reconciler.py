@@ -1,4 +1,4 @@
-"""Outbox Reconciler Service for GitVane execution engine (Section 10).
+"""Outbox Reconciler Service for GitVane execution engine.
 
 Executes independent short-transaction reconciliation passes for:
 1. Expired outbox processing leases (processing -> pending).

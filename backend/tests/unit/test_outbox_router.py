@@ -1,4 +1,4 @@
-"""Unit tests for OutboxRouter (Section 8 spec & Invariants 1, 3)."""
+"""Unit tests for OutboxRouter."""
 
 from uuid import uuid4
 import pytest

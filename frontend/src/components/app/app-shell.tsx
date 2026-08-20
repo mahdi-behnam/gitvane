@@ -25,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Selector } from "@/components/ui/selector";
+import { GitVaneLoader } from "@/components/ui/gitvane-loader";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
   useListRepositoriesQuery,
@@ -295,14 +296,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
 
   if (isInitializing) {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-canvas text-foreground">
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-9 w-9 animate-spin rounded-full border-3 border-primary border-t-transparent shadow-glow" />
-          <p className="text-xs font-semibold text-muted font-mono tracking-wider uppercase">Authenticating...</p>
-        </div>
-      </div>
-    );
+    return <GitVaneLoader fullScreen size="lg" text="Please Wait..." />;
   }
 
 

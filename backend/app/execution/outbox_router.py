@@ -1,7 +1,7 @@
 """Outbox Event Router for GitVane execution pipeline.
 
 Maps OutboxEvent instances to Celery queue names and task signatures based on
-durable generation configuration and Section 8 specifications.
+durable generation configuration.
 """
 
 import logging

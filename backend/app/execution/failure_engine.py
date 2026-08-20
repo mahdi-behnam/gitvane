@@ -1,6 +1,6 @@
 """Task-specific failure fencing logic for Subsystem 2.
 
-Section 14: Task-Specific Failure Fencing
+Task-Specific Failure Fencing
 - Parser terminal failure handler (verifies stage lease owner, attempt, expiry before transitioning to failed or superseded)
 - Embedding batch terminal failure handler (fenced batch update processing -> failed first, then transitions generation to failed or superseded if desired)
 - Stale workers are fenced out and prevented from committing terminal failures

@@ -102,7 +102,7 @@ async def test_get_tail_id():
 
 @pytest.mark.asyncio
 async def test_fenced_progress_rule_omitted_on_failed_fence():
-    """Verify terminal progress is omitted if DB fence check affected 0 rows (Section 14.3)."""
+    """Verify terminal progress is omitted if DB fence check affected 0 rows."""
     from app.execution.failure_engine import handle_parser_failure
 
     gen_id = uuid4()
@@ -129,7 +129,7 @@ async def test_fenced_progress_rule_omitted_on_failed_fence():
 
 @pytest.mark.asyncio
 async def test_fenced_progress_rule_emitted_on_successful_fence():
-    """Verify terminal progress is emitted if DB fence check affected > 0 rows (Section 14.3)."""
+    """Verify terminal progress is emitted if DB fence check affected > 0 rows."""
     from app.execution.failure_engine import handle_parser_failure
 
     gen_id = uuid4()

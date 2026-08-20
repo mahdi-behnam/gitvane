@@ -1,4 +1,4 @@
-"""Unit tests for Parser Task and Stage Lease Fencing (Section 11)."""
+"""Unit tests for Parser Task and Stage Lease Fencing."""
 
 from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock

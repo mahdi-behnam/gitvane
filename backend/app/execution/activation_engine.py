@@ -1,4 +1,4 @@
-"""Activation Engine for GitVane execution pipeline (Section 13).
+"""Activation Engine for GitVane execution pipeline.
 
 Handles atomic generation activation under lock timeouts and monotonic state transitions.
 """

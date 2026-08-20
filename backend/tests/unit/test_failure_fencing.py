@@ -1,4 +1,4 @@
-"""Unit tests for Task-Specific Failure Fencing (Section 14)."""
+"""Unit tests for Task-Specific Failure Fencing."""
 
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4

@@ -1,4 +1,4 @@
-"""Unit tests for OutboxReconciler service (Section 10 spec)."""
+"""Unit tests for OutboxReconciler service."""
 
 from datetime import datetime, timezone, timedelta
 from uuid import uuid4

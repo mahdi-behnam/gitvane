@@ -1,4 +1,4 @@
-"""Integration & Failure-Injection Test Suite for GitVane (Subsystem 7 / Section 20).
+"""Integration & Failure-Injection Test Suite for GitVane.
 
 Automated Failure-Injection Test Matrix covering all 25 failure-injection scenarios:
 

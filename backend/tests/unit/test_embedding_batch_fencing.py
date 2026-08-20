@@ -1,4 +1,4 @@
-"""Unit tests for Embedding Batch Task & Batch Lease Fencing (Section 12)."""
+"""Unit tests for Embedding Batch Task & Batch Lease Fencing."""
 
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
