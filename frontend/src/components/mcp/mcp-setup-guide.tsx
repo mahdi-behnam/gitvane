@@ -145,23 +145,17 @@ export function McpSetupGuide() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="grid size-9 place-items-center rounded-lg border border-border bg-panel-muted text-primary">
-                <Bot className="size-4" />
-              </div>
-              <div>
-                <h2 className="text-base font-semibold text-foreground">
-                  AI Agent & MCP Setup Guide
-                </h2>
-                <p className="text-xs text-muted">
-                  Connect your favorite AI agent or IDE to GitVane using the Model Context Protocol (MCP).
-                </p>
-              </div>
+          <div className="flex items-center gap-2.5">
+            <div className="grid size-9 place-items-center rounded-lg border border-border bg-panel-muted text-primary">
+              <Bot className="size-4" />
             </div>
-            <div className="flex items-center gap-2">
-              <Badge tone="info">Standard MCP Stdio</Badge>
-              <Badge tone="neutral">uvx gitvane-mcp</Badge>
+            <div>
+              <h2 className="text-base font-semibold text-foreground">
+                AI Agent & MCP Setup Guide
+              </h2>
+              <p className="text-xs text-muted">
+                Connect your favorite AI agent or IDE to GitVane using the Model Context Protocol (MCP).
+              </p>
             </div>
           </div>
         </CardHeader>
@@ -315,7 +309,7 @@ export function McpSetupGuide() {
           <div className="rounded-lg border border-border/80 bg-panel p-4 shadow-sm transition-all hover:border-primary/40">
             <div className="flex items-center gap-2 text-primary">
               <Activity className="size-4" />
-              <h3 className="font-mono text-xs font-bold uppercase tracking-wide">
+              <h3 className="font-mono text-xs font-bold lowercase">
                 gitvane_analyze_impact
               </h3>
             </div>
@@ -331,7 +325,7 @@ export function McpSetupGuide() {
           <div className="rounded-lg border border-border/80 bg-panel p-4 shadow-sm transition-all hover:border-primary/40">
             <div className="flex items-center gap-2 text-primary">
               <FlaskConical className="size-4" />
-              <h3 className="font-mono text-xs font-bold uppercase tracking-wide">
+              <h3 className="font-mono text-xs font-bold lowercase">
                 gitvane_recommend_tests
               </h3>
             </div>
@@ -347,7 +341,7 @@ export function McpSetupGuide() {
           <div className="rounded-lg border border-border/80 bg-panel p-4 shadow-sm transition-all hover:border-primary/40">
             <div className="flex items-center gap-2 text-primary">
               <ShieldAlert className="size-4" />
-              <h3 className="font-mono text-xs font-bold uppercase tracking-wide">
+              <h3 className="font-mono text-xs font-bold lowercase">
                 gitvane_get_file_risk
               </h3>
             </div>

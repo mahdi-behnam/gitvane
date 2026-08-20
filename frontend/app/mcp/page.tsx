@@ -1,23 +1,15 @@
 "use client";
 
-import { Bot, Sparkles } from "lucide-react";
+import { Bot } from "lucide-react";
 import { ApiKeysCard } from "@/components/mcp/api-keys-card";
 import { McpSetupGuide } from "@/components/mcp/mcp-setup-guide";
-import { Badge } from "@/components/ui/badge";
 
 export default function McpPage() {
   return (
     <div className="mx-auto max-w-7xl space-y-8">
       {/* Page Header */}
       <div className="border-b border-border/70 pb-6">
-        <div className="flex items-center gap-2">
-          <Badge tone="info">Model Context Protocol</Badge>
-          <span className="flex items-center gap-1 text-xs text-muted">
-            <Sparkles className="size-3 text-primary" />
-            Standard stdio & HTTP
-          </span>
-        </div>
-        <h1 className="mt-3 text-3xl font-extrabold tracking-tight md:text-4xl text-balance flex items-center gap-3">
+        <h1 className="text-3xl font-extrabold tracking-tight md:text-4xl text-balance flex items-center gap-3">
           <Bot className="size-8 text-primary shrink-0" />
           MCP & AI Agent Integration
         </h1>
