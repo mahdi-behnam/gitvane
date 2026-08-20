@@ -206,6 +206,9 @@ Predicts the ripple impact of proposed or uncommitted code changes across the re
 | `diff` | `str` (optional) | Raw git diff string. If omitted along with `changed_files`, working tree diff is auto-collected. |
 | `top_k` | `int` (default `20`) | Max number of impacted files to return |
 | `include_explanation` | `bool` (default `true`) | Generate LLM reasoning explanation |
+| `max_dependency_depth` | `int` (default `3`) | Maximum graph traversal depth |
+| `base_ref` | `str` (optional) | Base Git commit SHA / branch reference |
+| `head_ref` | `str` (optional) | Head Git commit SHA / branch reference |
 | `repo_id` | `str` (optional) | Target repository UUID/name override |
 
 ### `gitvane_recommend_tests`

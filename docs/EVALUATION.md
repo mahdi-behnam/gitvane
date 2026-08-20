@@ -49,30 +49,33 @@ Default K values are `5`, `10`, and `20`.
 
 ## API
 
-Start an evaluation:
+Start an evaluation run (runs asynchronously in the background):
 
 ```bash
 curl -X POST "http://localhost:8000/api/v1/evaluation/run" \
+  -H "Authorization: Bearer $GITVANE_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "repository_id": 1,
-    "name": "Initial evaluation",
+    "repository_id": "7b886d91-3839-4458-9a3b-2856f616d24f",
+    "name": "Historical benchmark",
     "commit_limit": 100,
     "methods": ["dependency_only", "semantic_only", "cochange_only", "hybrid"],
     "k_values": [5, 10, 20]
   }'
 ```
 
-Fetch status:
+Fetch evaluation status & summary:
 
 ```bash
-curl "http://localhost:8000/api/v1/evaluation/1"
+curl -H "Authorization: Bearer $GITVANE_API_KEY" \
+  "http://localhost:8000/api/v1/evaluation/1"
 ```
 
 Fetch Markdown report:
 
 ```bash
-curl "http://localhost:8000/api/v1/evaluation/1/report.md"
+curl -H "Authorization: Bearer $GITVANE_API_KEY" \
+  "http://localhost:8000/api/v1/evaluation/1/report.md"
 ```
 
 ## Interpreting Results

@@ -1,41 +1,77 @@
 # GitVane Backend
 
-FastAPI backend for repository indexing, semantic search, impact prediction,
-test recommendation, risk scoring, LLM explanations, and historical evaluation.
+FastAPI backend for repository indexing, semantic search, change impact prediction,
+test recommendation, architectural risk scoring, LLM explanations, and historical evaluation.
 
-## Install
+## Installation & Setup
 
-Use the repo-local virtual environment from the repository root:
+Install dependencies using `uv`:
 
 ```powershell
-.\venv\Scripts\activate
 cd backend
-python -m pip install -e ".[dev]"
+uv sync --all-extras
 ```
 
-## Run
+## Running Backend Services
+
+During development, start the required background services in dedicated terminals:
+
+### 1. Database Migrations
 
 ```powershell
-uvicorn app.main:app --reload --reload-dir app
+cd backend
+uv run alembic upgrade head
 ```
 
-## Migrations
+### 2. FastAPI Web Server
 
 ```powershell
-alembic upgrade head
+cd backend
+uv run uvicorn app.main:app --reload --reload-dir app --host 0.0.0.0 --port 8000
 ```
 
-## Tests
+### 3. Celery Task Worker
+
+- **CPU Worker:**
+  ```powershell
+  cd backend
+  uv run celery -A app.core.celery_app worker -Q indexing_cpu,workflow_control,evaluation_cpu --loglevel=info -P solo --without-mingle --without-gossip --without-heartbeat
+  ```
+- **With GPU Acceleration:**
+  ```powershell
+  cd backend
+  uv run celery -A app.core.celery_app worker -Q indexing_cpu,embeddings_gpu,workflow_control,evaluation_cpu --loglevel=info -P solo --without-mingle --without-gossip --without-heartbeat
+  ```
+
+### 4. Outbox Dispatcher
 
 ```powershell
+cd backend
+uv run python -m app.cli.dispatcher
+```
+
+### 5. Outbox Reconciler
+
+```powershell
+cd backend
+uv run python -m app.cli.reconciler
+```
+
+## Testing & Quality Checks
+
+Run unit and integration tests:
+
+```powershell
+cd backend
 $env:DEBUG='true'
-python -m pytest -q -p no:cacheprovider --basetemp .test-tmp
-python -m ruff check app tests
+uv run pytest -q -p no:cacheprovider --basetemp .test-tmp
+uv run ruff check app tests
 ```
 
-## API Docs
+## API Documentation
 
 With the backend running:
 
-- `http://localhost:8000/docs`
-- `http://localhost:8000/redoc`
+- Swagger UI: `http://localhost:8000/docs`
+- ReDoc: `http://localhost:8000/redoc`
+- OpenAPI JSON: `http://localhost:8000/openapi.json`

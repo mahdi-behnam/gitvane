@@ -28,21 +28,20 @@ turns those signals into explainable impact predictions.
 
 Current backend capabilities:
 
-- Register local or remote Git repositories.
-- Index Python, JavaScript, and TypeScript files.
+- Register remote Git repositories with automatic clone, branch discovery, and optional PAT authentication.
+- Index Python, JavaScript, and TypeScript files with AST and tree-sitter parsers.
 - Extract imports, classes, functions, methods, calls, exports, and test blocks.
-- Build file-level dependency edges.
-- Generate and store code chunk embeddings with pgvector.
-- Run semantic code search.
-- Analyze change impact from Git refs, raw diffs, or explicit changed files.
-- Recommend tests without executing them.
-- Rank risky files using churn, dependency centrality, complexity, and size.
-- Explain predictions through NVIDIA NIM or deterministic fallback text.
-- Evaluate prediction quality against historical commits.
-- Return graph data for frontend visualization.
-- Provide a Next.js dashboard for repository management, search, impact
-  analysis, test recommendations, risk ranking, graph exploration, and
-  evaluation reports.
+- Build file-level dependency edges and call graphs.
+- Generate and store code chunk embeddings with pgvector (local models or NVIDIA NIM).
+- Run semantic natural language code search across indexed codebases.
+- Analyze change impact from Git refs, raw unified diffs, or explicit changed files.
+- Recommend targeted test files without executing the test suite.
+- Rank architectural risk hot spots using churn, dependency centrality, complexity, and size.
+- Explain predictions through NVIDIA NIM LLM reasoning or deterministic fallback text.
+- Evaluate prediction quality against historical Git commits using standard IR metrics (Precision, Recall, MRR, MAP, NDCG).
+- Return interactive graph data for frontend dependency visualization.
+- Provide a modern Next.js dashboard for repository management, real-time SSE indexing progress, semantic search, change impact, test recommendations, risk ranking, interactive dependency graphs, and evaluation reports.
+- Provide a Model Context Protocol (MCP) server (`gitvane-mcp`) integrating directly with AI coding assistants (Claude Desktop, Cursor, Claude Code, Windsurf, OpenAI Codex, Antigravity).
 
 ## Dashboard Preview
 
@@ -257,35 +256,40 @@ python -m pytest -q -p no:cacheprovider --basetemp .test-tmp
 
 ## Example API Calls
 
-### Create Repository
+> [!NOTE]
+> All API requests require authentication. Pass your personal API key (`gv_live_...`) or JWT access token in the `Authorization: Bearer <token>` header.
+
+### 1. Register a Repository
 
 ```bash
 curl -X POST "http://localhost:8000/api/v1/repositories" \
+  -H "Authorization: Bearer $GITVANE_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "example",
-    "clone_url": "https://github.com/example/example.git"
+    "name": "example-repo",
+    "clone_url": "https://github.com/example/example-repo.git",
+    "branch": "main",
+    "index_now": true
   }'
 ```
 
-For a local repository, place it inside `GITVANE_WORKSPACE` and pass
-`local_path`.
-
-### Index Repository
+### 2. Index a Repository
 
 ```bash
-curl -X POST "http://localhost:8000/api/v1/repositories/1/index" \
+curl -X POST "http://localhost:8000/api/v1/repositories/7b886d91-3839-4458-9a3b-2856f616d24f/index" \
+  -H "Authorization: Bearer $GITVANE_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"max_commits": 100}'
+  -d '{"ref": "main"}'
 ```
 
-### Run Impact Analysis
+### 3. Run Change Impact Analysis
 
 ```bash
 curl -X POST "http://localhost:8000/api/v1/impact/analyze" \
+  -H "Authorization: Bearer $GITVANE_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "repository_id": 1,
+    "repository_id": "7b886d91-3839-4458-9a3b-2856f616d24f",
     "changed_files": [
       {
         "path": "src/auth/token.py",
@@ -298,39 +302,42 @@ curl -X POST "http://localhost:8000/api/v1/impact/analyze" \
   }'
 ```
 
-### Run Semantic Search
+### 4. Run Semantic Code Search
 
 ```bash
 curl -X POST "http://localhost:8000/api/v1/search/semantic" \
+  -H "Authorization: Bearer $GITVANE_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "repository_id": 1,
+    "repository_id": "7b886d91-3839-4458-9a3b-2856f616d24f",
     "query": "Where is JWT expiration validated?",
     "top_k": 10
   }'
 ```
 
-### Recommend Tests
+### 5. Recommend Targeted Tests
 
 ```bash
 curl -X POST "http://localhost:8000/api/v1/tests/recommend" \
+  -H "Authorization: Bearer $GITVANE_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "repository_id": 1,
+    "repository_id": "7b886d91-3839-4458-9a3b-2856f616d24f",
     "changed_files": [{"path": "src/auth/token.py"}],
     "impacted_files": ["src/api/routes.py"],
     "top_k": 10
   }'
 ```
 
-### Run Evaluation
+### 6. Run Historical Impact Evaluation
 
 ```bash
 curl -X POST "http://localhost:8000/api/v1/evaluation/run" \
+  -H "Authorization: Bearer $GITVANE_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "repository_id": 1,
-    "name": "Initial evaluation",
+    "repository_id": "7b886d91-3839-4458-9a3b-2856f616d24f",
+    "name": "Initial benchmark",
     "commit_limit": 100,
     "methods": ["dependency_only", "semantic_only", "cochange_only", "hybrid"],
     "k_values": [5, 10, 20]
@@ -341,16 +348,15 @@ curl -X POST "http://localhost:8000/api/v1/evaluation/run" \
 
 - JavaScript/TypeScript symbol resolution is best-effort.
 - TypeScript path aliases are only partially supported.
-- Historical evaluation currently uses the current index as an approximation
-  instead of checking out every historical commit.
-- Test execution is intentionally out of scope.
-- The frontend does not implement authentication or execute repository tests.
+- Historical evaluation currently uses the current index as an approximation instead of checking out every historical commit.
+- Test execution is intentionally out of scope (GitVane provides test recommendations based on deterministic and semantic mapping, without executing untrusted test code).
 
 ## Documentation
 
-- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
-- [docs/API.md](docs/API.md)
-- [docs/EVALUATION.md](docs/EVALUATION.md)
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — System design, outbox pattern, and data flow
+- [docs/API.md](docs/API.md) — Complete REST API reference and schemas
+- [docs/EVALUATION.md](docs/EVALUATION.md) — Historical evaluation harness and metrics
+- [mcp/README.md](mcp/README.md) — Model Context Protocol (MCP) server documentation
 
 ## License
 
