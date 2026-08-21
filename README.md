@@ -45,42 +45,55 @@ Current backend capabilities:
 
 ## Dashboard Preview
 
-Here is a look at the GitVane Next.js dashboard in action, showcasing its core capabilities:
+Here is an architectural walkthrough of the GitVane Next.js dashboard in action:
 
-### 1. Repository Management & Indexing
+### 1. Repository Inventory & Real-Time Indexing Pipeline
 
-Manage your repositories, track indexing status, and see high-level metadata (branches, latest commits, files).
+Register codebases, manage multi-branch tracking, and observe live Server-Sent Events (SSE) progress as AST parsing, symbol extraction, dependency graph generation, and vector embeddings are computed asynchronously.
 
-<!-- The repository management dashboard screenshot will be put here -->
-<!-- ![Repository Management Dashboard](docs/assets/screenshots/repo_dashboard.png) -->
+![Repository Inventory & Multi-Branch Management](docs/assets/screenshots/repositories-page.png)
+![Repository Details & Real-Time SSE Indexing Progress](docs/assets/screenshots/repository-details-page.png)
 
 ### 2. Semantic Code Search
 
-Search your codebase using natural language queries (e.g., _"Where are API keys loaded?"_) powered by vector embeddings.
+Query codebases using natural language intent (e.g., _"How is the authentication handled?"_). Vector embeddings retrieve scored, syntax-highlighted code chunks with direct action links into impact analysis, risk assessment, and dependency graph views.
 
-<!-- The semantic search UI screenshot will be put here -->
-<!-- ![Semantic Search UI](docs/assets/screenshots/semantic_search.png) -->
+![Semantic Code Search](docs/assets/screenshots/semantic-search-page.png)
 
-### 3. Change Impact & Test Recommendation
+### 3. Change Impact Analysis (Blast Radius Prediction)
 
-Analyze the potential impact of proposed file edits, find dependency-linked risk areas, and get specific recommendations on which tests to run.
+Predict downstream blast radius for candidate code modifications from changed file paths, raw Git diffs, or branch refs. GitVane computes explainable prediction scores combining deterministic AST dependencies, semantic similarity, historical commit co-change frequencies, and test naming heuristics alongside LLM reasoning summaries.
 
-<!-- The change impact analysis screenshot will be put here -->
-<!-- ![Change Impact Analysis](docs/assets/screenshots/impact_analysis.png) -->
+![Change Impact Analysis - Input Configuration & Analysis Lookup](docs/assets/screenshots/impact-analysis-page-1.png)
+![Change Impact Analysis - Multi-Signal Impact Scores & Test Mapping](docs/assets/screenshots/impact-analysis-page-2.png)
+![Change Impact Analysis - Risk Summary & LLM Evidence Explanation](docs/assets/screenshots/impact-analysis-page-3.png)
 
-### 4. Interactive Graph Explorer
+### 4. Targeted Test Recommendations
 
-Visualize your code structure, import maps, and dependencies as an interactive file-level node graph.
+Identify and prioritize the exact test candidates impacted by proposed changes without executing untrusted test suites, providing instant feedback for pull request reviews and local pre-commit validation.
 
-<!-- The interactive dependency graph explorer screenshot will be put here -->
-<!-- ![Dependency Graph Explorer](docs/assets/screenshots/graph_explorer.png) -->
+![Targeted Test Recommendations](docs/assets/screenshots/test-recommendations-page.png)
 
-### 5. Historical Evaluation Reports
+### 5. Interactive Dependency Graph & Risk-Impact Matrix
 
-Run and compare prediction performance benchmarks (Precision, Recall, MRR, NDCG) against actual historical Git commits.
+Explore architectural structure and module coupling across multiple visual perspectives—from layered interactive node topologies with real-time traversal depth controls to a 2D Risk vs. Coupling quadrant matrix highlighting critical architectural hubs.
 
-<!-- The historical evaluation report screenshot will be put here -->
-<!-- ![Historical Evaluation Report](docs/assets/screenshots/evaluation_report.png) -->
+![Interactive Dependency Topology Explorer](docs/assets/screenshots/dependency-graph-page-interactive-topology.png)
+![2D Risk vs. Module Coupling Quadrant Matrix](docs/assets/screenshots/dependency-graph-page-risk-impact-matrix-view.png)
+
+### 6. Architectural Risk Ranking & Hotspots
+
+Pinpoint high-risk modules and maintenance bottlenecks across the repository using weighted heuristic signals: cyclomatic complexity, churn rate, test coverage proxy, and structural graph centrality (fan-in/fan-out).
+
+![Architectural Risk Ranking - Summary Metrics & Risk Distribution](docs/assets/screenshots/risk-ranking-page-1.png)
+![Architectural Risk Ranking - Granular Module Breakdown](docs/assets/screenshots/risk-ranking-page-2.png)
+
+### 7. Model Context Protocol (MCP) & AI Agent Integration
+
+Connect autonomous AI agents and IDE assistants (Claude Desktop, Cursor, Claude Code, Windsurf, Antigravity) directly to GitVane intelligence endpoints with personal API key provisioning, one-click client configuration templates, and exposed tool definitions.
+
+![MCP & AI Agent Integration - Personal API Keys & Client Setup](docs/assets/screenshots/mcp-page-1.png)
+![MCP & AI Agent Integration - Exposed Tools & Agent Intelligence](docs/assets/screenshots/mcp-page-2.png)
 
 ## Architecture
 
