@@ -366,6 +366,7 @@ curl -X POST "http://localhost:8000/api/v1/evaluation/run" \
 
 ## Documentation
 
+- [CONTRIBUTING.md](CONTRIBUTING.md) — Development setup, testing, and contribution guidelines
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — System design, outbox pattern, and data flow
 - [docs/API.md](docs/API.md) — Complete REST API reference and schemas
 - [docs/EVALUATION.md](docs/EVALUATION.md) — Historical evaluation harness and metrics
