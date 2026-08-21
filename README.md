@@ -1,8 +1,8 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/gitvane-dark-readme-header.jpg">
-    <source media="(prefers-color-scheme: light)" srcset="docs/assets/gitvane-light-readme-header.jpg">
-    <img alt="GitVane" src="docs/assets/gitvane-light-readme-header.jpg" width="100%">
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/brand/gitvane-dark-readme-header.jpg">
+    <source media="(prefers-color-scheme: light)" srcset="docs/assets/brand/gitvane-light-readme-header.jpg">
+    <img alt="GitVane" src="docs/assets/brand/gitvane-light-readme-header.jpg" width="100%">
   </picture>
 </p>
 
@@ -52,35 +52,35 @@ Here is a look at the GitVane Next.js dashboard in action, showcasing its core c
 Manage your repositories, track indexing status, and see high-level metadata (branches, latest commits, files).
 
 <!-- The repository management dashboard screenshot will be put here -->
-<!-- ![Repository Management Dashboard](docs/assets/repo_dashboard.png) -->
+<!-- ![Repository Management Dashboard](docs/assets/screenshots/repo_dashboard.png) -->
 
 ### 2. Semantic Code Search
 
 Search your codebase using natural language queries (e.g., _"Where are API keys loaded?"_) powered by vector embeddings.
 
 <!-- The semantic search UI screenshot will be put here -->
-<!-- ![Semantic Search UI](docs/assets/semantic_search.png) -->
+<!-- ![Semantic Search UI](docs/assets/screenshots/semantic_search.png) -->
 
 ### 3. Change Impact & Test Recommendation
 
 Analyze the potential impact of proposed file edits, find dependency-linked risk areas, and get specific recommendations on which tests to run.
 
 <!-- The change impact analysis screenshot will be put here -->
-<!-- ![Change Impact Analysis](docs/assets/impact_analysis.png) -->
+<!-- ![Change Impact Analysis](docs/assets/screenshots/impact_analysis.png) -->
 
 ### 4. Interactive Graph Explorer
 
 Visualize your code structure, import maps, and dependencies as an interactive file-level node graph.
 
 <!-- The interactive dependency graph explorer screenshot will be put here -->
-<!-- ![Dependency Graph Explorer](docs/assets/graph_explorer.png) -->
+<!-- ![Dependency Graph Explorer](docs/assets/screenshots/graph_explorer.png) -->
 
 ### 5. Historical Evaluation Reports
 
 Run and compare prediction performance benchmarks (Precision, Recall, MRR, NDCG) against actual historical Git commits.
 
 <!-- The historical evaluation report screenshot will be put here -->
-<!-- ![Historical Evaluation Report](docs/assets/evaluation_report.png) -->
+<!-- ![Historical Evaluation Report](docs/assets/screenshots/evaluation_report.png) -->
 
 ## Architecture
 
