@@ -81,7 +81,8 @@ cp .env.example .env
 Review `.env` and configure your environment:
 - **`EMBEDDING_PROVIDER`**: Default is `local` (uses `jinaai/jina-embeddings-v2-base-code` locally). Set to `nim` if using NVIDIA NIM.
 - **`NVIDIA_API_KEY`**: Optional, required only when `EMBEDDING_PROVIDER=nim` or LLM explanations are enabled via NVIDIA NIM.
-- **`SECRET_KEY`**: Provide a secure random secret key for session signing and authentication.
+- **`JWT_SECRET_KEY`**: Provide a secure random secret key for JWT access token signing and verification.
+- **`ENCRYPTION_KEY`**: Provide a Fernet-compatible key for encrypting stored credentials (e.g., repository PATs).
 
 ---
 

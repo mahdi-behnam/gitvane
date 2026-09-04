@@ -18,6 +18,8 @@ flowchart TD
     Parsers --> Graph[Dependency Graph]
     Celery --> Embeddings[Local / NIM Embeddings]
     Embeddings --> DB
+    Celery --> GC[Garbage Collection]
+    GC --> DB
     Celery --> Redis[Redis Streams]
     Redis --> SSE[FastAPI SSE Stream]
     DB --> Impact[Impact Prediction Engine]
@@ -40,7 +42,7 @@ flowchart TD
 ## Data Flow & Generation Pipeline
 
 1. **Repository Registration & Ingestion**:
-   A repository is registered from a remote Git URL with branch selection and optional PAT authentication.
+   A repository is registered from a remote Git URL with branch selection and optional PAT authentication. The `RepositoryService` validates and sanitizes the clone URL via `RepositoryIngestionValidator` before cloning.
 2. **Transactional Outbox & Generation State Machine**:
    An immutable `IndexGeneration` record is created in `queued` state, and an `OutboxEvent` is committed in the same database transaction.
 3. **Asynchronous Dispatching & Processing**:
@@ -48,16 +50,18 @@ flowchart TD
 4. **Parsing & Symbol Extraction**:
    CPU workers discover tracked files, filter out binaries/generated code, and parse Python (via `ast`) and JavaScript/TypeScript (via `tree-sitter`). Parsed symbols, imports, calls, and test blocks are saved.
 5. **Distributed Embedding Generation**:
-   Code chunks are partitioned into `EmbeddingBatch` records. Celery workers generate embeddings (using local sentence-transformers or NVIDIA NIM) and insert them into pgvector.
+   Code chunks are partitioned into `EmbeddingBatch` records. Celery workers route to `embeddings_gpu` (local GPU), `embeddings_nim_io` (NVIDIA NIM API), or fall back to CPU. Generated vectors are inserted into pgvector.
 6. **Real-time Progress Streaming**:
    Worker tasks publish structured progress events to Redis Streams, which FastAPI streams to clients via Server-Sent Events (SSE).
 7. **Atomic Activation**:
    Once all batches complete, the repository's `active_generation_id` is updated atomically to point to the new generation.
-8. **Impact & Risk Computation**:
+8. **Garbage Collection**:
+   Superseded `IndexGeneration` records and their associated data (embeddings, chunks, symbols, edges) are cleaned up asynchronously via `GarbageCollectionService` and the `gc_tasks` Celery queue.
+9. **Impact & Risk Computation**:
    Impact analysis combines dependency graph traversal, semantic vector similarity, co-change frequency, test mappings, and file risk metrics into ranked predictions.
-9. **Explainable Reasoning**:
-   The LLM layer summarizes already-computed structured evidence without inventing files or modifying scores. If LLM services are disabled, deterministic fallback text is generated.
-10. **Historical Evaluation**:
+10. **Explainable Reasoning**:
+    The LLM layer (routed via the `llm_io` queue) summarizes already-computed structured evidence without inventing files or modifying scores. If NVIDIA NIM is disabled, deterministic fallback text is generated.
+11. **Historical Evaluation**:
     Historical benchmarks evaluate prediction quality (Precision, Recall, MRR, MAP, NDCG) against past multi-file Git commits.
 
 ## Deterministic Components
