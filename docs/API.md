@@ -34,11 +34,10 @@ Personal API keys can be generated in the UI dashboard or via the `POST /api/v1/
 - `POST /api/v1/auth/refresh` — Issue a new access token using the HTTP-only refresh cookie.
 - `POST /api/v1/auth/logout` — Revoke active refresh token and clear auth cookies.
 - `GET /api/v1/auth/me` — Retrieve profile information of the authenticated user.
-- `PATCH /api/v1/auth/me` — Update user profile details (`full_name`, `email`, `picture`).
-- `GET /api/v1/auth/github` & `GET /api/v1/auth/github/callback` — GitHub OAuth2 authentication.
-- `GET /api/v1/auth/google` & `GET /api/v1/auth/google/callback` — Google OAuth2 authentication.
-- `POST /api/v1/auth/password-reset/request` — Request password reset email.
-- `POST /api/v1/auth/password-reset/confirm` — Reset password using verification token.
+- `PUT /api/v1/auth/me` — Update user profile details (`full_name`, `email`, `picture`).
+- `GET /api/v1/auth/oauth2/google` & `GET /api/v1/auth/oauth2/callback/google` — Google OAuth2 authentication.
+- `POST /api/v1/auth/forgot-password` — Request password reset email.
+- `POST /api/v1/auth/reset-password` — Reset password using verification token.
 
 ---
 

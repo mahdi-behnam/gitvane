@@ -79,7 +79,7 @@ cp .env.example .env
 ```
 
 Review `.env` and configure your environment:
-- **`EMBEDDING_PROVIDER`**: Default is `local` (uses `sentence-transformers/all-MiniLM-L6-v2` locally). Set to `nim` if using NVIDIA NIM.
+- **`EMBEDDING_PROVIDER`**: Default is `local` (uses `jinaai/jina-embeddings-v2-base-code` locally). Set to `nim` if using NVIDIA NIM.
 - **`NVIDIA_API_KEY`**: Optional, required only when `EMBEDDING_PROVIDER=nim` or LLM explanations are enabled via NVIDIA NIM.
 - **`SECRET_KEY`**: Provide a secure random secret key for session signing and authentication.
 
@@ -119,7 +119,7 @@ For day-to-day coding, running background infrastructure in Docker while running
 Start only the database, cache, and message broker:
 
 ```bash
-docker compose up -d db redis rabbitmq
+docker compose up -d postgres redis pgbouncer rabbitmq
 ```
 
 #### Step 2: Run Backend & Workers on Host
@@ -170,7 +170,7 @@ In separate terminals:
 2. **Celery Task Worker**:
    ```bash
    cd backend
-   uv run celery -A app.core.celery_app worker -Q indexing_cpu,workflow_control,evaluation_cpu --loglevel=info -P solo
+   uv run celery -A app.core.celery_app worker -Q indexing_cpu,workflow_control,evaluation_cpu --loglevel=info -P solo --without-mingle --without-gossip --without-heartbeat
    ```
 
 3. **Outbox Dispatcher**:

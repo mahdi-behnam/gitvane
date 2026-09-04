@@ -4,7 +4,7 @@ GitVane frontend is a Next.js App Router application providing a modern dashboar
 FastAPI backend.
 
 It includes:
-- **Authentication**: Email/password signup and login, GitHub & Google OAuth2, password recovery.
+- **Authentication**: Email/password signup and login, Google OAuth2, password recovery.
 - **Repository Management**: Repository registration, remote branch discovery, sync & pull, and real-time SSE indexing progress.
 - **Semantic Code Search**: Natural language codebase querying with match snippets and score breakdowns.
 - **Change Impact Analysis**: Ripple effect prediction from Git refs, raw unified diffs, or staged files.
